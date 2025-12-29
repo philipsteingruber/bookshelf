@@ -2,9 +2,15 @@
 
 import BookCard from "@/components/books/book-card";
 import { trpc } from "@/trpc/client";
+import { RedirectToSignIn, useAuth } from "@clerk/nextjs";
 
 const Page = () => {
+  const { isSignedIn } = useAuth();
   const { data, isPending, isError } = trpc.book.getBooks.useQuery();
+
+  if (!isSignedIn) {
+    return <RedirectToSignIn />;
+  }
 
   if (isError) {
     return <div>Failed to load books.</div>;
