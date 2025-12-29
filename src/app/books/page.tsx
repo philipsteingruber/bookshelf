@@ -1,12 +1,12 @@
 "use client";
 
 import BookCard from "@/components/books/book-card";
-import { trpc } from "@/trpc/client";
+import { useBooks } from "@/hooks/use-books";
 import { RedirectToSignIn, useAuth } from "@clerk/nextjs";
 
 const Page = () => {
   const { isSignedIn } = useAuth();
-  const { data, isPending, isError } = trpc.book.getBooks.useQuery();
+  const { books, isPending, isError } = useBooks();
 
   if (!isSignedIn) {
     return <RedirectToSignIn />;
@@ -16,11 +16,9 @@ const Page = () => {
     return <div>Failed to load books.</div>;
   }
 
-  if (!data || isPending) {
+  if (!books || isPending) {
     return <div>Loading books...</div>;
   }
-
-  const books = data.books;
 
   return (
     <div className="flex w-full justify-center">
