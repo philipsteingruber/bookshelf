@@ -7,7 +7,11 @@ const ReadStatusButton = ({ book }: { book: Book }) => {
   const buttonText = parseReadStatus(book.status);
   const buttonStyle = getStatusButtonStyle(book.status);
 
-  return <Button className={cn(buttonStyle)}>{buttonText}</Button>;
+  return (
+    <Button className={cn(buttonStyle, "hover: h-8 cursor-pointer")}>
+      {buttonText}
+    </Button>
+  );
 };
 
 export default ReadStatusButton;

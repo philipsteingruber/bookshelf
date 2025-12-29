@@ -1,3 +1,4 @@
+import { ReadStatus } from "@/app/generated/prisma/enums";
 import prisma from "@/lib/prisma";
 import { config } from "dotenv";
 
@@ -15,6 +16,7 @@ async function main() {
     userId: string;
     series?: string;
     seriesIndex?: number;
+    status?: ReadStatus;
   };
 
   const userId = "cmjrbq5990000aktqnm8gipd9";
@@ -26,6 +28,7 @@ async function main() {
       author: "Chris Wraight",
       coverUrl:
         "https://3k01dt1q3i.ufs.sh/f/yX6XxGcalfFsGxT1OC7MdJ8au0yQEAo49FghKzSClwL37nVI",
+      status: "READ",
       userId: userId,
     },
     {
@@ -33,6 +36,7 @@ async function main() {
       author: "Robert Rath",
       coverUrl:
         "https://3k01dt1q3i.ufs.sh/f/yX6XxGcalfFs1cPP3X7EWGPOTyF9lVqnN3ADvkZab40p8gHw",
+      status: "READING",
       userId: userId,
     },
     {
@@ -42,6 +46,15 @@ async function main() {
       seriesIndex: 1,
       coverUrl:
         "https://3k01dt1q3i.ufs.sh/f/yX6XxGcalfFsRfNa7VehVOyJQ0rx12BHfwbkLXWdYRp6M7Zl",
+      status: "TO_READ",
+      userId: userId,
+    },
+    {
+      title: "Fifteen Hours",
+      author: "Mitchel Scanlon",
+      coverUrl:
+        "https://3k01dt1q3i.ufs.sh/f/yX6XxGcalfFsCQnYcm5VaXmAYWNIgH6yhQDnE8jJ9l0M35xF",
+      status: "DNF",
       userId: userId,
     },
   ];

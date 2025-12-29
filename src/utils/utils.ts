@@ -20,12 +20,12 @@ export const parseReadStatus = (readStatus: ReadStatus) => {
 export const getStatusButtonStyle = (readStatus: ReadStatus) => {
   switch (readStatus) {
     case "TO_READ":
-      return "bg-blue-100 text-blue-900";
+      return "bg-orange-500 hover:bg-orange-500/80 text-white hover:text-neutral-200";
     case "READING":
-      return "bg-yellow-100 text-yellow-900";
+      return "bg-blue-600 hover:bg-blue-600/80 text-white hover:text-neutral-200";
     case "READ":
-      return "bg-green-100 text-green-900";
+      return "bg-green-600 hover:bg-green-600/80 text-white hover:text-neutral-200";
     case "DNF":
-      return "bg-red-100 text-red-900";
+      return "bg-red-600 hover:bg-red-600/80 text-white hover:text-neutral-200";
   }
 };
