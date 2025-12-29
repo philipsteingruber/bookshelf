@@ -33,17 +33,21 @@ enum ReadStatus {
 model Book {
     id Int @id @default(autoincrement())
 
-    title     String
-    author    String
-    pageCount Int     @default(0)
-    rating    Int?
-    progress  Int     @default(0)
-    review    String?
-    coverUrl  String?
-    isbn      String?
+    title       String
+    author      String
+    pageCount   Int     @default(0)
+    rating      Int?
+    progress    Int     @default(0)
+    review      String?
+    coverUrl    String?
+    isbn        String?
+    series      String?
+    seriesIndex Int?
 
     status ReadStatus @default(TO_READ)
 
     user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
     userId String
+
+    @@unique([series, seriesIndex])
 }
