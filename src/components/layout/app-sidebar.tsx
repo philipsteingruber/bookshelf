@@ -11,10 +11,13 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
+import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
 import type { LucideIcon } from "lucide-react";
 import { BookIcon, BookOpenIcon, LibraryIcon, ScrollIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import ThemeToggle from "../theme-toggle";
+import { Button } from "../ui/button";
 
 type SidebarItem = {
   title: string;
@@ -34,20 +37,19 @@ export function AppSidebar() {
   return (
     <Sidebar>
       <SidebarHeader />
-      <SidebarContent className="overflow-hidden">
-        <SidebarMenuItem className="flex h-8 items-center justify-center">
-          <SidebarMenuButton
-            asChild
-            className="flex items-center justify-center"
-          >
-            <Link href="/">
-              <BookOpenIcon />
-            </Link>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
-
+      <SidebarContent className="justify-between overflow-hidden">
         <SidebarGroup>
-          <SidebarGroupContent className="mt-4">
+          <SidebarGroupContent>
+            <SidebarMenuItem className="mb-4 flex h-8 items-center justify-center">
+              <SidebarMenuButton
+                asChild
+                className="flex items-center justify-center"
+              >
+                <Link href="/">
+                  <BookOpenIcon />
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
             {sidebarItems.map((item) => (
               <SidebarMenuItem
                 key={item.title}
@@ -65,6 +67,19 @@ export function AppSidebar() {
                 </SidebarMenuButton>
               </SidebarMenuItem>
             ))}
+          </SidebarGroupContent>
+        </SidebarGroup>
+        <SidebarGroup>
+          <SidebarGroupContent className="flex items-center justify-between p-1">
+            <ThemeToggle />
+            <SignedOut>
+              <SignInButton>
+                <Button>Sign In</Button>
+              </SignInButton>
+            </SignedOut>
+            <SignedIn>
+              <UserButton />
+            </SignedIn>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
