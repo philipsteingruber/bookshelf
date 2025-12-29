@@ -1,6 +1,7 @@
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import Header from "@/components/layout/header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { TRPCProvider } from "@/trpc/client";
 import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
 import { ThemeProvider } from "next-themes";
@@ -28,23 +29,25 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider>
-      <html lang="en" suppressHydrationWarning>
-        <body
-          className={`${geistSans.variable} ${geistMono.variable} flex h-full w-full flex-col antialiased`}
-          suppressHydrationWarning
-        >
-          <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-            <SidebarProvider className="h-full w-full">
-              <AppSidebar />
-              <SidebarInset>
-                <Header />
-                <div className="flex flex-1 flex-col">{children}</div>
-              </SidebarInset>
-            </SidebarProvider>
-          </ThemeProvider>
-        </body>
-      </html>
-    </ClerkProvider>
+    <TRPCProvider>
+      <ClerkProvider>
+        <html lang="en" suppressHydrationWarning>
+          <body
+            className={`${geistSans.variable} ${geistMono.variable} flex h-full w-full flex-col antialiased`}
+            suppressHydrationWarning
+          >
+            <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+              <SidebarProvider className="h-full w-full">
+                <AppSidebar />
+                <SidebarInset>
+                  <Header />
+                  <div className="flex flex-1 flex-col">{children}</div>
+                </SidebarInset>
+              </SidebarProvider>
+            </ThemeProvider>
+          </body>
+        </html>
+      </ClerkProvider>
+    </TRPCProvider>
   );
 }
