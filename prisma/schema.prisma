@@ -19,4 +19,31 @@ model User {
 
     name  String
     email String
+
+    books Book[]
+}
+
+enum ReadStatus {
+    TO_READ
+    READING
+    READ
+    DNF
+}
+
+model Book {
+    id Int @id @default(autoincrement())
+
+    title     String
+    author    String
+    pageCount Int     @default(0)
+    rating    Int?
+    progress  Int     @default(0)
+    review    String?
+    coverUrl  String?
+    isbn      String?
+
+    status ReadStatus @default(TO_READ)
+
+    user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+    userId String
 }
