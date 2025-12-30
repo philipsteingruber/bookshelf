@@ -2,6 +2,7 @@ import prisma from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 import { initTRPC, TRPCError } from "@trpc/server";
 import { cache } from "react";
+import superjson from "superjson";
 
 export const createTRPCContext = cache(async () => {
   /**
@@ -20,7 +21,7 @@ const t = initTRPC.context<Context>().create({
   /**
    * @see https://trpc.io/docs/server/data-transformers
    */
-  // transformer: superjson,
+  transformer: superjson,
 });
 
 const isAuthed = t.middleware(({ next, ctx }) => {
