@@ -38,7 +38,6 @@ model Book {
     pageCount   Int     @default(0)
     readPages   Int     @default(0)
     rating      Int?
-    progress    Int     @default(0)
     review      String?
     coverUrl    String?
     isbn        String?
