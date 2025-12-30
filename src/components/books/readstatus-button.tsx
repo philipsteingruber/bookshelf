@@ -8,7 +8,7 @@ const ReadStatusButton = ({ book }: { book: Book }) => {
   const buttonStyle = getStatusButtonStyle(book.status);
 
   return (
-    <Button className={cn(buttonStyle, "hover: h-8 cursor-pointer")}>
+    <Button className={cn(buttonStyle, "hover: h-8 w-24 cursor-pointer")}>
       {buttonText}
     </Button>
   );

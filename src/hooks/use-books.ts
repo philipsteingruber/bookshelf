@@ -17,7 +17,7 @@ export const useBooks = (options?: BookFilters) => {
 
   const [debouncedSearch] = useDebounce(search, 300);
 
-  const { data, isLoading, isError } = trpc.book.getBooks.useQuery({
+  const { data, isLoading, isError, error } = trpc.book.getBooks.useQuery({
     status,
     rating,
     search: debouncedSearch,
@@ -81,6 +81,7 @@ export const useBooks = (options?: BookFilters) => {
     books,
     isPending: isLoading,
     isError,
+    error,
     isEmpty,
     hasBooks,
     hasFilters,

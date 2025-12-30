@@ -19,12 +19,12 @@ const BookCard = ({ book }: { book: Book }) => {
             style={{ width: "100%", height: "100%", objectFit: "cover" }}
           />
         </div>
-        <div className="flex flex-col items-start justify-between gap-y-2 pl-2">
+        <div className="flex flex-col gap-y-2 px-2">
           {book.series && book.seriesIndex ? (
-            <div className="flex gap-1">
+            <div className="flex w-full justify-between">
               <p className="text-sm font-semibold">{`${book.title}`}</p>
-              <p className="text-sm font-semibold italic">
-                {`(${book.series} - ${book.seriesIndex})`}
+              <p className="text-sm italic">
+                {`${book.series} - ${book.seriesIndex}`}
               </p>
             </div>
           ) : (
