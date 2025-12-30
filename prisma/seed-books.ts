@@ -15,7 +15,8 @@ async function main() {
     status?: ReadStatus;
   };
 
-  const userId = "cmjrbq5990000aktqnm8gipd9";
+  const user = await prisma.user.findFirst();
+  const userId = user!.id;
 
   // Sample books data
   const books: Book[] = [

@@ -18,9 +18,16 @@ model User {
     clerkId String @unique
 
     name  String
-    email String
+    email String @unique
 
     books Book[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@index([id])
+    @@index([clerkId])
+    @@index([email])
 }
 
 enum ReadStatus {
@@ -49,5 +56,14 @@ model Book {
     user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
     userId String
 
-    @@unique([series, seriesIndex])
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@unique([series, seriesIndex, userId])
+    @@unique([isbn, userId])
+    @@index([userId])
+    @@index([status])
+    @@index([author])
+    @@index([series])
+    @@index([rating])
 }
