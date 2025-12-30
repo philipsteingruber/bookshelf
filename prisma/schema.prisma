@@ -25,7 +25,6 @@ model User {
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 
-    @@index([id])
     @@index([clerkId])
     @@index([email])
 }
@@ -45,7 +44,7 @@ model Book {
     pageCount   Int     @default(0)
     readPages   Int     @default(0)
     rating      Int?
-    review      String?
+    review      String? @db.Text
     coverUrl    String?
     isbn        String?
     series      String?
@@ -56,8 +55,10 @@ model Book {
     user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
     userId String
 
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+    startedAt  DateTime?
+    finishedAt DateTime?
+    createdAt  DateTime  @default(now())
+    updatedAt  DateTime  @updatedAt
 
     @@unique([series, seriesIndex, userId])
     @@unique([isbn, userId])
