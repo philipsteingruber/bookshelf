@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [new URL("https://3k01dt1q3i.ufs.sh/**/*")],
   },
+  devIndicators: false,
 };
 
 export default nextConfig;

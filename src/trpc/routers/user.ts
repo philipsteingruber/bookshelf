@@ -1,6 +1,14 @@
-import { createTRPCRouter, publicProcedure } from "../init";
+import z from "zod";
+import { authedProcedure, createTRPCRouter } from "../init";
 
 export const userRouter = createTRPCRouter({
-  // Add user-related procedures here
-  // Example: getUser: publicProcedure.query(() => { ... })
+  getUser: authedProcedure
+    .input(z.string().min(1))
+    .query(async ({ ctx, input: clerkId }) => {
+      const user = await ctx.db.user.findUniqueOrThrow({
+        where: { clerkId },
+      });
+
+      return { user };
+    }),
 });

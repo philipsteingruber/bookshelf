@@ -1,5 +1,4 @@
 import { AppSidebar } from "@/components/layout/app-sidebar";
-import Header from "@/components/layout/header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { TRPCProvider } from "@/trpc/client";
 import { ClerkProvider } from "@clerk/nextjs";
@@ -40,7 +39,6 @@ export default function RootLayout({
               <SidebarProvider className="h-full w-full">
                 <AppSidebar />
                 <SidebarInset>
-                  <Header />
                   <div className="flex flex-1 flex-col">{children}</div>
                 </SidebarInset>
               </SidebarProvider>

@@ -26,7 +26,7 @@ type SidebarItem = {
 };
 
 const sidebarItems: SidebarItem[] = [
-  { title: "Dashboard", href: "/", icon: BookIcon },
+  { title: "Dashboard", href: "/dashboard", icon: BookIcon },
   { title: "Library", href: "/books", icon: LibraryIcon },
   { title: "Journal", href: "/journal", icon: ScrollIcon },
 ];
@@ -40,7 +40,7 @@ export function AppSidebar() {
       <SidebarContent className="justify-between overflow-hidden">
         <SidebarGroup>
           <SidebarGroupContent>
-            <SidebarMenuItem className="mb-4 flex h-8 items-center justify-center">
+            <SidebarMenuItem className="mb-8 flex h-8 items-center justify-center">
               <SidebarMenuButton
                 asChild
                 className="flex items-center justify-center"
@@ -57,11 +57,11 @@ export function AppSidebar() {
                   currentPathName === item.href
                     ? "bg-neutral-200 dark:bg-neutral-800"
                     : null,
-                  "rounded-sm",
+                  "rounded-md",
                 )}
               >
                 <SidebarMenuButton asChild>
-                  <Link href={item.href} className="mb-4 text-lg">
+                  <Link href={item.href} className="mb-4 text-lg font-semibold">
                     <item.icon className="size-4" /> {item.title}
                   </Link>
                 </SidebarMenuButton>
@@ -70,7 +70,7 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
         <SidebarGroup>
-          <SidebarGroupContent className="flex items-center justify-between p-1">
+          <SidebarGroupContent className="flex items-center justify-center gap-x-8">
             <ThemeToggle />
             <SignedOut>
               <SignInButton>
