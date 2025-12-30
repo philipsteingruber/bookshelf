@@ -3,10 +3,6 @@ import prisma from "@/lib/prisma";
 import { config } from "dotenv";
 
 config();
-console.log(
-  "DATABASE_URL:",
-  process.env.DATABASE_URL?.substring(0, 30) + "...",
-);
 
 async function main() {
   type Book = {
@@ -29,7 +25,7 @@ async function main() {
       coverUrl:
         "https://3k01dt1q3i.ufs.sh/f/yX6XxGcalfFsGxT1OC7MdJ8au0yQEAo49FghKzSClwL37nVI",
       status: "READ",
-      userId: userId,
+      userId,
     },
     {
       title: "Fall of Cadia",
@@ -37,7 +33,7 @@ async function main() {
       coverUrl:
         "https://3k01dt1q3i.ufs.sh/f/yX6XxGcalfFs1cPP3X7EWGPOTyF9lVqnN3ADvkZab40p8gHw",
       status: "READING",
-      userId: userId,
+      userId,
     },
     {
       title: "Xenos",
@@ -47,7 +43,7 @@ async function main() {
       coverUrl:
         "https://3k01dt1q3i.ufs.sh/f/yX6XxGcalfFsRfNa7VehVOyJQ0rx12BHfwbkLXWdYRp6M7Zl",
       status: "TO_READ",
-      userId: userId,
+      userId,
     },
     {
       title: "Fifteen Hours",
@@ -55,7 +51,14 @@ async function main() {
       coverUrl:
         "https://3k01dt1q3i.ufs.sh/f/yX6XxGcalfFsCQnYcm5VaXmAYWNIgH6yhQDnE8jJ9l0M35xF",
       status: "DNF",
-      userId: userId,
+      userId,
+    },
+    {
+      title: "Saturnine",
+      author: "Dan Abnett",
+      coverUrl:
+        "https://3k01dt1q3i.ufs.sh/f/yX6XxGcalfFslNH6m4uKLk6dZ5wYsF780N2Mujbpgoae9Vcl",
+      userId,
     },
   ];
 
