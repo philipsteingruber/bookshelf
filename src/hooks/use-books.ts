@@ -1,27 +1,100 @@
 import { trpc } from "@/trpc/client";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
+import { useDebounce } from "use-debounce";
+import { BookFilters } from "./../trpc/routers/book";
 
-export const useBooks = () => {
-  const { data, isLoading, isError } = trpc.book.getBooks.useQuery();
+export const useBooks = (options?: BookFilters) => {
+  const {
+    status,
+    rating,
+    search,
+    sortBy = "title",
+    sortDirection = "asc",
+    limit = 50,
+  } = options || {};
+
+  const hasFilters = !!(status || rating || search);
+
+  const [debouncedSearch] = useDebounce(search, 300);
+
+  const { data, isLoading, isError } = trpc.book.getBooks.useQuery({
+    status,
+    rating,
+    search: debouncedSearch,
+    sortBy,
+    sortDirection,
+    limit,
+  });
+
   const books = useMemo(() => data?.books || [], [data?.books]);
 
   const isEmpty = books.length === 0 && !isLoading;
   const count = books.length;
+  const hasBooks = count > 0;
 
-  const readBooks = books.filter((book) => book.status === "READ");
-  const toReadBooks = books.filter((book) => book.status === "TO_READ");
-  const readingBooks = books.filter((book) => book.status === "READING");
-  const dnfBooks = books.filter((book) => book.status === "DNF");
+  const readBooks = useMemo(
+    () => books.filter((book) => book.status === "READ"),
+    [books],
+  );
+  const readBooksCount = readBooks.length;
+
+  const toReadBooks = useMemo(
+    () => books.filter((book) => book.status === "TO_READ"),
+    [books],
+  );
+  const toReadBooksCount = toReadBooks.length;
+
+  const readingBooks = useMemo(
+    () => books.filter((book) => book.status === "READING"),
+    [books],
+  );
+  const readingBooksCount = readingBooks.length;
+
+  const dnfBooks = useMemo(
+    () => books.filter((book) => book.status === "DNF"),
+    [books],
+  );
+  const dnfBooksCount = dnfBooks.length;
+
+  const totalReadPageCount = useMemo(
+    () => readBooks.reduce((sum, book) => sum + book.pageCount, 0),
+    [readBooks],
+  );
+
+  const findBookById = useCallback(
+    (id: number) => {
+      return books.find((book) => book.id === id) || null;
+    },
+    [books],
+  );
+
+  const getBooksByAuthor = useCallback(
+    (authorName: string) => {
+      return books.filter((book) =>
+        book.author.toLowerCase().includes(authorName.toLowerCase()),
+      );
+    },
+    [books],
+  );
 
   return {
     books,
     isPending: isLoading,
     isError,
     isEmpty,
+    hasBooks,
+    hasFilters,
     count,
     readBooks,
+    readBooksCount,
     toReadBooks,
+    toReadBooksCount,
     readingBooks,
+    readingBooksCount,
     dnfBooks,
+    dnfBooksCount,
+    totalReadPageCount,
+    findBookById,
+    getBooksByAuthor,
   };
 };
