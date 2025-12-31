@@ -51,7 +51,7 @@ model Book {
     isbn          String?
     series        String?
     seriesIndex   Int?
-    publishedYear Int?
+    publishedYear Int
     summary       String? @db.Text
 
     status ReadStatus @default(TO_READ)

@@ -3,7 +3,6 @@
 import ReadStatusButton from "@/components/books/readstatus-button";
 import ErrorState from "@/components/error-state";
 import LoadingState from "@/components/loading-state";
-import { Textarea } from "@/components/ui/textarea";
 import { useBook } from "@/hooks/use-book";
 import { BOOK_COVER_PLACEHOLDER_URL } from "@/utils/constants";
 import { TRPCError } from "@trpc/server";
@@ -34,7 +33,7 @@ export default function Page({
 
   return (
     <div className="flex h-full w-full justify-center">
-      <div className="flex gap-x-4">
+      <div className="flex w-2/3 justify-center gap-x-4">
         <div className="flex flex-col gap-y-2">
           <Image
             src={coverUrl}
@@ -45,7 +44,7 @@ export default function Page({
           />
           <ReadStatusButton book={book} className="w-full rounded-[5px]" />
         </div>
-        <div className="flex flex-col gap-y-2">
+        <div className="flex w-2/3 flex-col gap-y-2">
           {book.series && book.seriesIndex && (
             <p className="font-sm font-serif font-light italic">{`${book.series} #${book.seriesIndex}`}</p>
           )}
@@ -54,15 +53,19 @@ export default function Page({
           </span>
           <span className="font-serif text-xl">{book.author}</span>
           <div className="text-primary flex items-center gap-x-4">
-            <div className="flex items-center gap-x-1">
+            <div className="group flex items-center gap-x-1 text-sm font-semibold">
               <BookIcon className="size-3" />
-              <span>{book.pageCount ? book.pageCount : "Pages not set"}</span>
+              <span className="group-hover:underline">
+                {book.pageCount ? book.pageCount : "Pages not set"}
+              </span>
               <PenIcon className="size-3" />
             </div>
             <span className="text-secondary">•</span>
             <span>Published {book.publishedYear}</span>
           </div>
-          <Textarea readOnly />
+          <div className="w-3/4 text-pretty whitespace-pre-line">
+            {book.summary || ""}
+          </div>
         </div>
       </div>
     </div>
