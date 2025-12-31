@@ -61,6 +61,14 @@ async function main() {
         "https://3k01dt1q3i.ufs.sh/f/yX6XxGcalfFslNH6m4uKLk6dZ5wYsF780N2Mujbpgoae9Vcl",
       userId,
     },
+    {
+      title: "The Regent's Shadow",
+      author: "Chris Wraight",
+      coverUrl:
+        "https://3k01dt1q3i.ufs.sh/f/yX6XxGcalfFsuOiWtLSxdZhnOMqtCP37QJcDvmFGTbzje0KH",
+      status: "READ_NEXT",
+      userId,
+    },
   ];
 
   console.log("Clearing table... ⏳");

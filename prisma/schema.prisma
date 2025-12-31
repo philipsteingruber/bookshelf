@@ -33,6 +33,7 @@ enum ReadStatus {
     TO_READ
     READING
     READ
+    READ_NEXT
     DNF
 }
 
