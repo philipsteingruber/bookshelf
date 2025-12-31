@@ -13,14 +13,14 @@ const ReadingProgressCard = ({ book }: { book: Book }) => {
     <Link href={`/${book.id}`} className="w-1/4">
       <Card className="hover:bg-secondary/80 w-full">
         <CardContent className="flex gap-x-2 px-2">
-          <div className="relative aspect-[2/3] w-20 flex-shrink-0 overflow-hidden bg-gray-200">
+          <div className="relative aspect-2/3 w-20 shrink-0 overflow-hidden bg-gray-200">
             <Image
               src={coverUrl}
               alt={book.title}
               fill
               sizes="80px"
               style={{ objectFit: "cover" }}
-              priority={false}
+              priority
               placeholder="blur"
               blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjYwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjYwMCIgZmlsbD0iI2UwZTBlMCIvPjwvc3ZnPg=="
             />

@@ -103,6 +103,7 @@ const Page = () => {
                   className="width-1/6"
                   showStatusButton={false}
                   orientation="vertical"
+                  priority
                 />
               ))}
             </div>

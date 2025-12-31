@@ -10,9 +10,15 @@ interface BookCardProps {
   showStatusButton: boolean;
   orientation: "vertical" | "horizontal";
   className?: string;
+  priority?: boolean;
 }
 
-const BookCard = ({ book, showStatusButton, className }: BookCardProps) => {
+const BookCard = ({
+  book,
+  showStatusButton,
+  className,
+  priority,
+}: BookCardProps) => {
   const coverUrl = book.coverUrl || BOOK_COVER_PLACEHOLDER_URL;
 
   return (
@@ -25,7 +31,7 @@ const BookCard = ({ book, showStatusButton, className }: BookCardProps) => {
             fill
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             style={{ objectFit: "cover" }}
-            priority={false}
+            priority={!!priority}
             placeholder="blur"
             blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjYwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjYwMCIgZmlsbD0iI2UwZTBlMCIvPjwvc3ZnPg=="
           />
