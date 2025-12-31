@@ -8,6 +8,7 @@ import ReadingProgressCard from "@/components/dashboard/readingprogress-card";
 import { Separator } from "@/components/ui/separator";
 import { Spinner } from "@/components/ui/spinner";
 import { useBooks } from "@/hooks/use-books";
+import { RedirectToSignIn, useAuth } from "@clerk/nextjs";
 import {
   BookCheckIcon,
   BookIcon,
@@ -30,6 +31,12 @@ const Page = () => {
     sortBy: "title",
     sortDirection: "desc",
   });
+
+  const { isSignedIn } = useAuth();
+
+  if (!isSignedIn) {
+    return <RedirectToSignIn />;
+  }
 
   let sliceLength = Math.min(3, readingBooksCount);
   const topThreeReading = readingBooks.slice(0, sliceLength);
