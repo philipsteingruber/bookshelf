@@ -73,6 +73,13 @@ async function main() {
       status: "READ_NEXT",
       userId,
     },
+    {
+      title: "Darkness in Blood",
+      author: "Guy Haley",
+      coverUrl:
+        "https://3k01dt1q3i.ufs.sh/f/yX6XxGcalfFsmdrtkrg2UTRVFNzLP9ESulI5jboesfMhHypd",
+      userId,
+    },
   ];
 
   console.log("Clearing table... ⏳");
