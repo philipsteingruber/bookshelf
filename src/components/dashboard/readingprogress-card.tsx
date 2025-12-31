@@ -10,8 +10,8 @@ const ReadingProgressCard = ({ book }: { book: Book }) => {
   const coverUrl = book.coverUrl || BOOK_COVER_PLACEHOLDER_URL;
 
   return (
-    <Link href={`/${book.id}`} className="w-1/4">
-      <Card className="hover:bg-secondary/80 w-full">
+    <Link href={`/books/${book.id}`} className="w-1/4">
+      <Card className="hover:bg-card/80 w-full">
         <CardContent className="flex gap-x-2 px-2">
           <div className="relative aspect-2/3 w-20 shrink-0 overflow-hidden bg-gray-200">
             <Image
