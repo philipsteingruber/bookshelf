@@ -24,9 +24,14 @@ const BookCard = ({
 
   return (
     <Link href={`/books/${book.id}`} className={cn(className)}>
-      <Card className={cn("hover:bg-card/80 border-2", className)}>
-        <CardContent className="flex h-full w-full flex-col gap-y-2 p-0">
-          <div className="relative aspect-10/16 w-full overflow-hidden bg-gray-200">
+      <Card
+        className={cn(
+          "hover:bg-card/80 overflow-hidden border-2 p-0",
+          className,
+        )}
+      >
+        <CardContent className="m-0 flex h-full w-full flex-col gap-y-2 p-0">
+          <div className="relative aspect-10/16 w-full bg-gray-200">
             <Image
               src={coverUrl}
               alt={book.title}
@@ -38,7 +43,7 @@ const BookCard = ({
               blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjYwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjYwMCIgZmlsbD0iI2UwZTBlMCIvPjwvc3ZnPg=="
             />
           </div>
-          <div className="mt-2 flex flex-col gap-y-2 px-2">
+          <div className="mt-2 flex flex-col gap-y-2 px-2 pb-4">
             <div className="flex w-full justify-between pr-2">
               <p className="text-sm font-semibold">{`${book.title}`}</p>
               {book.series && book.seriesIndex && (

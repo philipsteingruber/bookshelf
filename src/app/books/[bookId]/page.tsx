@@ -3,6 +3,7 @@
 import ReadStatusButton from "@/components/books/readstatus-button";
 import ErrorState from "@/components/error-state";
 import LoadingState from "@/components/loading-state";
+import { Progress } from "@/components/ui/progress";
 import { useBook } from "@/hooks/use-book";
 import { BOOK_COVER_PLACEHOLDER_URL } from "@/utils/constants";
 import { TRPCError } from "@trpc/server";
@@ -34,7 +35,7 @@ export default function Page({
   return (
     <div className="flex h-full w-full justify-center">
       <div className="flex w-2/3 justify-center gap-x-4">
-        <div className="flex flex-col gap-y-2">
+        <div className="flex flex-col gap-y-4">
           <Image
             src={coverUrl}
             alt={`${book.title} cover`}
@@ -43,6 +44,12 @@ export default function Page({
             className="rounded-sm"
           />
           <ReadStatusButton book={book} className="w-full rounded-[5px]" />
+          {book.status === "READING" && (
+            <div className="flex flex-col items-center gap-y-1">
+              <Progress value={book.progress} className="h-3" />
+              <span>{book.progress}%</span>
+            </div>
+          )}
         </div>
         <div className="flex w-2/3 flex-col gap-y-2">
           {book.series && book.seriesIndex && (
