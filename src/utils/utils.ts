@@ -23,14 +23,14 @@ export const parseReadStatus = (readStatus: ReadStatus) => {
 export const getStatusButtonStyle = (readStatus: ReadStatus) => {
   switch (readStatus) {
     case "TO_READ":
-      return "bg-orange-500 hover:bg-orange-500/80 text-white hover:text-neutral-200";
+      return "bg-gradient-to-r from-orange-400 to-orange-700 hover:from-orange-400/80 hover:to-orange-700/80 text-white hover:text-neutral-200";
     case "READING":
-      return "bg-blue-600 hover:bg-blue-600/80 text-white hover:text-neutral-200";
+      return "bg-gradient-to-r from-blue-500 to-blue-800 hover:from-blue-500/80 hover:to-blue-800/80 text-white hover:text-neutral-200";
     case "READ":
-      return "bg-green-600 hover:bg-green-600/80 text-white hover:text-neutral-200";
+      return "bg-gradient-to-r from-green-500 to-green-800 hover:from-green-500/80 hover:to-green-800/80 text-white hover:text-neutral-200";
     case "DNF":
-      return "bg-red-600 hover:bg-red-600/80 text-white hover:text-neutral-200";
+      return "bg-gradient-to-r from-red-500 to-red-800 hover:from-red-500/80 hover:to-red-800/80 text-white hover:text-neutral-200";
     case "READ_NEXT":
-      return "bg-purple-500 hover:bg-purple-500/80 text-white hover:text-neutral-200";
+      return "bg-gradient-to-r from-purple-400 to-purple-700 hover:from-purple-400/80 hover:to-purple-700/80 text-white hover:text-neutral-200";
   }
 };
