@@ -5,8 +5,8 @@ import DashboardCard, {
   DashboardCardProps,
 } from "@/components/dashboard/dashboard-card";
 import ReadingProgressCard from "@/components/dashboard/readingprogress-card";
+import LoadingState from "@/components/loading-state";
 import { Separator } from "@/components/ui/separator";
-import { Spinner } from "@/components/ui/spinner";
 import { useBooks } from "@/hooks/use-books";
 import { RedirectToSignIn, useAuth } from "@clerk/nextjs";
 import {
@@ -71,12 +71,7 @@ const Page = () => {
   ];
 
   if (isPending) {
-    return (
-      <div className="flex size-full flex-col items-center justify-center">
-        <Spinner className="size-30" />
-        <span className="mt-4 text-xl">Loading...</span>
-      </div>
-    );
+    return <LoadingState />;
   }
 
   if (isError) {

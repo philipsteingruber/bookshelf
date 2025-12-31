@@ -1,7 +1,7 @@
 "use client";
 
 import BookCard from "@/components/books/book-card";
-import { Spinner } from "@/components/ui/spinner";
+import LoadingState from "@/components/loading-state";
 import { useBooks } from "@/hooks/use-books";
 import { RedirectToSignIn, useAuth } from "@clerk/nextjs";
 
@@ -18,12 +18,7 @@ const Page = () => {
   }
 
   if (!books || isPending) {
-    return (
-      <div className="flex size-full flex-col items-center justify-center">
-        <Spinner className="size-30" />
-        <span className="mt-4 text-xl">Loading...</span>
-      </div>
-    );
+    return <LoadingState />;
   }
 
   return (
