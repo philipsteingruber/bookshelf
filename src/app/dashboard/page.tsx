@@ -11,7 +11,6 @@ import { useBooks } from "@/hooks/use-books";
 import {
   BookCheckIcon,
   BookIcon,
-  Clapperboard,
   FlameIcon,
   TrendingUpIcon,
 } from "lucide-react";

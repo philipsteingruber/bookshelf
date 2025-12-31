@@ -11,13 +11,21 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
-import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
+import {
+  ClerkLoaded,
+  ClerkLoading,
+  SignedIn,
+  SignedOut,
+  SignInButton,
+  UserButton,
+} from "@clerk/nextjs";
 import type { LucideIcon } from "lucide-react";
 import { BookIcon, BookOpenIcon, LibraryIcon, ScrollIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import ThemeToggle from "../theme-toggle";
 import { Button } from "../ui/button";
+import { Spinner } from "../ui/spinner";
 
 type SidebarItem = {
   title: string;
@@ -72,14 +80,19 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupContent className="flex items-center justify-center gap-x-8">
             <ThemeToggle />
-            <SignedOut>
-              <SignInButton>
-                <Button>Sign In</Button>
-              </SignInButton>
-            </SignedOut>
-            <SignedIn>
-              <UserButton />
-            </SignedIn>
+            <ClerkLoading>
+              <Spinner />
+            </ClerkLoading>
+            <ClerkLoaded>
+              <SignedOut>
+                <SignInButton>
+                  <Button>Sign In</Button>
+                </SignInButton>
+              </SignedOut>
+              <SignedIn>
+                <UserButton />
+              </SignedIn>
+            </ClerkLoaded>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
