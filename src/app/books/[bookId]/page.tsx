@@ -63,7 +63,7 @@ export default function Page({
             <span className="text-secondary">•</span>
             <span>Published {book.publishedYear}</span>
           </div>
-          <div className="w-3/4 text-pretty whitespace-pre-line">
+          <div className="w-3/4 text-pretty whitespace-pre-line italic">
             {book.summary || ""}
           </div>
         </div>
