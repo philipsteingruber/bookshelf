@@ -18,13 +18,16 @@ const BookCard = ({ book, showStatusButton, className }: BookCardProps) => {
   return (
     <Card className={cn("border-2", className)}>
       <CardContent className="flex h-full w-full flex-col gap-y-2 p-0">
-        <div className="aspect-10/16 w-full overflow-hidden bg-gray-200">
+        <div className="relative aspect-10/16 w-full overflow-hidden bg-gray-200">
           <Image
             src={coverUrl}
             alt={book.title}
-            height={427}
-            width={240}
-            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            style={{ objectFit: "cover" }}
+            priority={false}
+            placeholder="blur"
+            blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjYwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjYwMCIgZmlsbD0iI2UwZTBlMCIvPjwvc3ZnPg=="
           />
         </div>
         <div className="mt-2 flex flex-col gap-y-2 px-2">

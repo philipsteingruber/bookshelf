@@ -6,7 +6,13 @@ import {
 import z from "zod";
 import { authedProcedure, createTRPCRouter } from "../init";
 
-const readStatusEnum = z.enum(["READ", "READING", "TO_READ", "DNF"]);
+const readStatusEnum = z.enum([
+  "READ",
+  "READING",
+  "TO_READ",
+  "DNF",
+  "READ_NEXT",
+]);
 const bookFiltersSchema = z
   .object({
     status: readStatusEnum.optional(),
@@ -53,15 +59,9 @@ export const bookRouter = createTRPCRouter({
       const books = await ctx.db.book.findMany({
         where,
         orderBy,
-        take: limit + 1,
+        take: limit,
       });
 
-      let nextCursor: string | undefined = undefined;
-      if (books.length > limit) {
-        const nextItem = books.pop();
-        nextCursor = nextItem!.id.toString();
-      }
-
-      return { books, nextCursor };
+      return { books };
     }),
 });

@@ -20,6 +20,8 @@ const Page = () => {
     readingBooksCount,
     readingBooks,
     isPending,
+    isError,
+    error,
     readNextBooks,
     readNextBooksCount,
     finishedThisYearBooksCount,
@@ -64,10 +66,14 @@ const Page = () => {
   if (isPending) {
     return (
       <div className="flex size-full flex-col items-center justify-center">
-        <Spinner className="size-40" />
+        <Spinner className="size-30" />
         <span className="mt-4 text-xl">Loading...</span>
       </div>
     );
+  }
+
+  if (isError) {
+    return <div>Error loading books: {error?.message}</div>;
   }
 
   return (

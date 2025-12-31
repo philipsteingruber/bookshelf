@@ -1,23 +1,29 @@
 "use client";
 
 import BookCard from "@/components/books/book-card";
+import { Spinner } from "@/components/ui/spinner";
 import { useBooks } from "@/hooks/use-books";
 import { RedirectToSignIn, useAuth } from "@clerk/nextjs";
 
 const Page = () => {
   const { isSignedIn } = useAuth();
-  const { books, isPending, isError } = useBooks();
+  const { books, isPending, isError, error } = useBooks();
 
   if (!isSignedIn) {
     return <RedirectToSignIn />;
   }
 
   if (isError) {
-    return <div>Failed to load books.</div>;
+    return <div>Error loading books: {error?.message}</div>;
   }
 
   if (!books || isPending) {
-    return <div>Loading books...</div>;
+    return (
+      <div className="flex size-full flex-col items-center justify-center">
+        <Spinner className="size-30" />
+        <span className="mt-4 text-xl">Loading...</span>
+      </div>
+    );
   }
 
   return (
