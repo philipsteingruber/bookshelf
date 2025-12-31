@@ -2,8 +2,19 @@
 
 import BookCard from "@/components/books/book-card";
 import ReadingProgressCard from "@/components/books/readingprogress-card";
+import DashboardCard, {
+  DashboardCardProps,
+} from "@/components/dashboard/dashboard-card";
+import { Separator } from "@/components/ui/separator";
 import { Spinner } from "@/components/ui/spinner";
 import { useBooks } from "@/hooks/use-books";
+import {
+  BookCheckIcon,
+  BookIcon,
+  Clapperboard,
+  FlameIcon,
+  TrendingUpIcon,
+} from "lucide-react";
 
 const Page = () => {
   const {
@@ -12,6 +23,8 @@ const Page = () => {
     isPending,
     readNextBooks,
     readNextBooksCount,
+    finishedThisYearBooksCount,
+    readBooksCount,
   } = useBooks({
     sortBy: "title",
     sortDirection: "desc",
@@ -21,6 +34,33 @@ const Page = () => {
   const topThreeReading = readingBooks.slice(0, sliceLength);
   sliceLength = Math.min(3, readNextBooksCount);
   const topThreeReadNext = readNextBooks.slice(0, sliceLength);
+
+  const dashBoardCardData: DashboardCardProps[] = [
+    {
+      header: "BOOKS READ THIS YEAR",
+      value: finishedThisYearBooksCount,
+      footer: `${readBooksCount} total`,
+      icon: BookCheckIcon,
+    },
+    {
+      header: "CURRENTLY READING",
+      value: readingBooksCount,
+      footer: "Active books",
+      icon: BookIcon,
+    },
+    {
+      header: "PAGES TODAY",
+      value: 61,
+      footer: "126 this month",
+      icon: TrendingUpIcon,
+    },
+    {
+      header: "AVG. PAGES/DAY",
+      value: 32,
+      footer: "Last 30 days",
+      icon: FlameIcon,
+    },
+  ];
 
   if (isPending) {
     return (
@@ -47,21 +87,29 @@ const Page = () => {
         </div>
       )}
       {readNextBooksCount > 0 && (
-        <div className="mb-8 flex flex-col gap-y-2">
-          <StatusCategoryHeader text="Up Next" count={readNextBooksCount} />
-          <div className="flex gap-x-4">
-            {topThreeReadNext.map((book) => (
-              <BookCard
-                book={book}
-                key={book.id}
-                className="width-1/6"
-                showStatusButton={false}
-                orientation="vertical"
-              />
-            ))}
+        <>
+          <div className="flex flex-col gap-y-2">
+            <StatusCategoryHeader text="Up Next" count={readNextBooksCount} />
+            <div className="flex gap-x-4">
+              {topThreeReadNext.map((book) => (
+                <BookCard
+                  book={book}
+                  key={book.id}
+                  className="width-1/6"
+                  showStatusButton={false}
+                  orientation="vertical"
+                />
+              ))}
+            </div>
           </div>
-        </div>
+          <Separator className="my-8" />
+        </>
       )}
+      <div className="flex gap-x-4">
+        {dashBoardCardData.map((item) => (
+          <DashboardCard {...item} key={item.header} />
+        ))}
+      </div>
     </div>
   );
 };

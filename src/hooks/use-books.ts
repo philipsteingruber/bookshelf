@@ -70,6 +70,14 @@ export const useBooks = (options?: BookFilters) => {
     readNextBooks,
   ];
 
+  const currentYear = new Date().getFullYear();
+  const finishedThisYearBooks = useMemo(
+    () =>
+      books.filter((book) => book.finishedAt?.getFullYear() === currentYear),
+    [books, currentYear],
+  );
+  const finishedThisYearBooksCount = finishedThisYearBooks.length;
+
   const totalReadPageCount = useMemo(
     () => readBooks.reduce((sum, book) => sum + book.pageCount, 0),
     [readBooks],
@@ -111,6 +119,8 @@ export const useBooks = (options?: BookFilters) => {
     readNextBooks,
     readNextBooksCount,
     booksByStatus,
+    finishedThisYearBooks,
+    finishedThisYearBooksCount,
     totalReadPageCount,
     findBookById,
     getBooksByAuthor,
