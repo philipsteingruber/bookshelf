@@ -83,6 +83,11 @@ This is the story of Abaddon’s greatest conquest. This is Cadia’s last stand
       publishedYear: 2020,
       status: "READING",
       progress: 71,
+      summary: `As the traitors tighten their grip on Terra, Rogal Dorn must marshal the Imperial hosts to weather the storm. But not all of the defenders will survive the onslaught… 
+READ IT BECAUSE
+Dan Abnett returns to the Horus Heresy! Experience one of the crucial stages of the Siege, as Rogal Dorn and Horus match wits in a game of Regicide where the board is the Throneworld itself, and one wrong move could lead to utter devastation… 
+THE STORY
+The Traitor Host of Horus Lupercal tightens its iron grip on the Palace of Terra, and one by one the walls and bastions begin to crumple and collapse. Rogal Dorn, Praetorian of Terra, redoubles his efforts to keep the relentless enemy at bay, but his forces are vastly outnumbered and hopelessly outgunned. Dorn simply cannot defend everything. Any chance of survival now requires sacrifice, but what battles dare he lose so that others can be won? Is there one tactical stroke, one crucial combat, that could turn the tide forever and win the war outright?`,
     },
     {
       title: "The Regent's Shadow",
@@ -94,7 +99,7 @@ This is the story of Abaddon’s greatest conquest. This is Cadia’s last stand
       publishedYear: 2020,
     },
     {
-      title: "Darkness in Blood",
+      title: "Darkness in the Blood",
       author: "Guy Haley",
       coverUrl:
         "https://3k01dt1q3i.ufs.sh/f/yX6XxGcalfFsmdrtkrg2UTRVFNzLP9ESulI5jboesfMhHypd",

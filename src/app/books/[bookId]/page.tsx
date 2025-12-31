@@ -9,6 +9,7 @@ import { BOOK_COVER_PLACEHOLDER_URL } from "@/utils/constants";
 import { TRPCError } from "@trpc/server";
 import { BookIcon, PenIcon } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { use } from "react";
 
 export default function Page({
@@ -17,7 +18,8 @@ export default function Page({
   params: Promise<{ bookId: string }>;
 }) {
   const { bookId } = use(params);
-  const { book, isPending, isForbidden, isNotFound, error } = useBook(bookId);
+  const { book, isPending, isForbidden, isNotFound, error, isReading } =
+    useBook(bookId);
   const coverUrl = book?.coverUrl || BOOK_COVER_PLACEHOLDER_URL;
 
   if (isPending) {
@@ -36,28 +38,29 @@ export default function Page({
     <div className="flex h-full w-full justify-center">
       <div className="flex w-2/3 justify-center gap-x-4">
         <div className="flex flex-col gap-y-4">
-          <Image
-            src={coverUrl}
-            alt={`${book.title} cover`}
-            width={200}
-            height={300}
-            className="rounded-sm"
-          />
+          <Link href={coverUrl} target="_blank">
+            <Image
+              src={coverUrl}
+              alt={`${book.title} cover`}
+              width={400}
+              height={600}
+              className="rounded-[6px]"
+            />
+          </Link>
           <ReadStatusButton book={book} className="w-full rounded-[5px]" />
-          {book.status === "READING" && (
-            <div className="flex flex-col items-center gap-y-1">
-              <Progress value={book.progress} className="h-3" />
-              <span>{book.progress}%</span>
-            </div>
-          )}
         </div>
         <div className="flex w-2/3 flex-col gap-y-2">
           {book.series && book.seriesIndex && (
             <p className="font-sm font-serif font-light italic">{`${book.series} #${book.seriesIndex}`}</p>
           )}
-          <span className="font-serif text-4xl font-semibold">
-            {book.title}
-          </span>
+          <Link
+            href={`https://www.goodreads.com/search?utf8=%E2%9C%93&q=${book.title}+${book.author}&search_type=books&search%5Bfield%5D=on`}
+            target="_blank"
+          >
+            <span className="font-serif text-4xl font-semibold">
+              {book.title}
+            </span>
+          </Link>
           <span className="font-serif text-xl">{book.author}</span>
           <div className="text-primary flex items-center gap-x-4">
             <div className="group flex items-center gap-x-1 text-sm font-semibold">
@@ -70,6 +73,14 @@ export default function Page({
             <span className="text-secondary">•</span>
             <span className="text-sm">Published {book.publishedYear}</span>
           </div>
+          {isReading && (
+            <div className="relative w-3/4">
+              <Progress value={book.progress} className="h-6 rounded-xs" />
+              <span className="absolute inset-0 flex items-center justify-center text-sm text-white">
+                {book.progress}%
+              </span>
+            </div>
+          )}
           <div className="w-3/4 text-xs leading-5 font-semibold text-pretty whitespace-pre-line">
             {book.summary || ""}
           </div>
