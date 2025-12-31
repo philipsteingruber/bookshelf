@@ -24,7 +24,12 @@ const Page = () => {
     <div className="flex w-full justify-center">
       <div className="grid w-5/6 grid-cols-5 items-center gap-x-8 gap-y-4 pt-4">
         {books.map((book) => (
-          <BookCard book={book} key={book.id} />
+          <BookCard
+            book={book}
+            key={book.id}
+            showStatusButton
+            orientation="vertical"
+          />
         ))}
       </div>
     </div>

@@ -14,6 +14,9 @@ export const parseReadStatus = (readStatus: ReadStatus) => {
     case "DNF":
       return "DNF";
       break;
+    case "READ_NEXT":
+      return "Read Next";
+      break;
   }
 };
 
@@ -27,5 +30,7 @@ export const getStatusButtonStyle = (readStatus: ReadStatus) => {
       return "bg-green-600 hover:bg-green-600/80 text-white hover:text-neutral-200";
     case "DNF":
       return "bg-red-600 hover:bg-red-600/80 text-white hover:text-neutral-200";
+    case "READ_NEXT":
+      return "bg-purple-500 hover:bg-purple-500/80 text-white hover:text-neutral-200";
   }
 };

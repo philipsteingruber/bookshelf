@@ -60,6 +60,8 @@ async function main() {
       coverUrl:
         "https://3k01dt1q3i.ufs.sh/f/yX6XxGcalfFslNH6m4uKLk6dZ5wYsF780N2Mujbpgoae9Vcl",
       userId,
+      series: "Siege of Terra",
+      seriesIndex: 4,
     },
     {
       title: "The Regent's Shadow",

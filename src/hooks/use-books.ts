@@ -56,6 +56,20 @@ export const useBooks = (options?: BookFilters) => {
   );
   const dnfBooksCount = dnfBooks.length;
 
+  const readNextBooks = useMemo(
+    () => books.filter((book) => book.status === "READ_NEXT"),
+    [books],
+  );
+  const readNextBooksCount = readNextBooks.length;
+
+  const booksByStatus = [
+    readBooks,
+    toReadBooks,
+    readingBooks,
+    dnfBooks,
+    readNextBooks,
+  ];
+
   const totalReadPageCount = useMemo(
     () => readBooks.reduce((sum, book) => sum + book.pageCount, 0),
     [readBooks],
@@ -94,6 +108,9 @@ export const useBooks = (options?: BookFilters) => {
     readingBooksCount,
     dnfBooks,
     dnfBooksCount,
+    readNextBooks,
+    readNextBooksCount,
+    booksByStatus,
     totalReadPageCount,
     findBookById,
     getBooksByAuthor,
