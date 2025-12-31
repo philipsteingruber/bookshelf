@@ -61,9 +61,9 @@ export default function Page({
               <PenIcon className="size-3" />
             </div>
             <span className="text-secondary">•</span>
-            <span>Published {book.publishedYear}</span>
+            <span className="text-sm">Published {book.publishedYear}</span>
           </div>
-          <div className="w-3/4 text-pretty whitespace-pre-line italic">
+          <div className="w-3/4 text-xs leading-5 font-semibold text-pretty whitespace-pre-line">
             {book.summary || ""}
           </div>
         </div>
