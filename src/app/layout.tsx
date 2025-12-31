@@ -4,18 +4,7 @@ import { TRPCProvider } from "@/trpc/client";
 import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
 import { ThemeProvider } from "next-themes";
-import { Josefin_Sans, Lora } from "next/font/google";
 import "./globals.css";
-
-const josefinSans = Josefin_Sans({
-  variable: "--font-josefin-sans",
-  subsets: ["latin"],
-});
-
-const lora = Lora({
-  variable: "--font-lora",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -32,7 +21,7 @@ export default function RootLayout({
       <ClerkProvider>
         <html lang="en" suppressHydrationWarning>
           <body
-            className={`${josefinSans.variable} ${lora.variable} flex h-full w-full flex-col antialiased`}
+            className={`flex h-full w-full flex-col antialiased`}
             suppressHydrationWarning
           >
             <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
