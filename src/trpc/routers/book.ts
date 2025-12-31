@@ -3,6 +3,7 @@ import {
   BookScalarFieldEnum,
   BookWhereInput,
 } from "@/app/generated/prisma/internal/prismaNamespace";
+import { TRPCError } from "@trpc/server";
 import z from "zod";
 import { authedProcedure, createTRPCRouter } from "../init";
 
@@ -63,5 +64,21 @@ export const bookRouter = createTRPCRouter({
       });
 
       return { books };
+    }),
+  getBook: authedProcedure
+    .input(z.number().min(0))
+    .query(async ({ ctx, input: bookId }) => {
+      const clerkId = ctx.auth.userId;
+      const user = await ctx.db.user.findUnique({ where: { clerkId } });
+
+      const book = await ctx.db.book.findUniqueOrThrow({
+        where: { id: bookId },
+      });
+
+      if (user?.id !== book?.userId) {
+        throw new TRPCError({ code: "FORBIDDEN" });
+      }
+
+      return { book };
     }),
 });

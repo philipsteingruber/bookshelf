@@ -1,0 +1,70 @@
+"use client";
+
+import ReadStatusButton from "@/components/books/readstatus-button";
+import ErrorState from "@/components/error-state";
+import LoadingState from "@/components/loading-state";
+import { Textarea } from "@/components/ui/textarea";
+import { useBook } from "@/hooks/use-book";
+import { BOOK_COVER_PLACEHOLDER_URL } from "@/utils/constants";
+import { TRPCError } from "@trpc/server";
+import { BookIcon, PenIcon } from "lucide-react";
+import Image from "next/image";
+import { use } from "react";
+
+export default function Page({
+  params,
+}: {
+  params: Promise<{ bookId: string }>;
+}) {
+  const { bookId } = use(params);
+  const { book, isPending, isForbidden, isNotFound, error } = useBook(bookId);
+  const coverUrl = book?.coverUrl || BOOK_COVER_PLACEHOLDER_URL;
+
+  if (isPending) {
+    return <LoadingState />;
+  }
+
+  if (isForbidden || isNotFound) {
+    const err = error as TRPCError;
+    return <ErrorState code={err.code} />;
+  }
+  if (isNotFound || !book) {
+    return <ErrorState code="NOT_FOUND" />;
+  }
+
+  return (
+    <div className="flex h-full w-full justify-center">
+      <div className="flex gap-x-4">
+        <div className="flex flex-col gap-y-2">
+          <Image
+            src={coverUrl}
+            alt={`${book.title} cover`}
+            width={200}
+            height={300}
+            className="rounded-sm"
+          />
+          <ReadStatusButton book={book} className="w-full rounded-[5px]" />
+        </div>
+        <div className="flex flex-col gap-y-2">
+          {book.series && book.seriesIndex && (
+            <p className="font-sm font-serif font-light italic">{`${book.series} #${book.seriesIndex}`}</p>
+          )}
+          <span className="font-serif text-4xl font-semibold">
+            {book.title}
+          </span>
+          <span className="font-serif text-xl">{book.author}</span>
+          <div className="text-primary flex items-center gap-x-4">
+            <div className="flex items-center gap-x-1">
+              <BookIcon className="size-3" />
+              <span>{book.pageCount ? book.pageCount : "Pages not set"}</span>
+              <PenIcon className="size-3" />
+            </div>
+            <span className="text-secondary">•</span>
+            <span>Published {book.publishedYear}</span>
+          </div>
+          <Textarea readOnly />
+        </div>
+      </div>
+    </div>
+  );
+}
