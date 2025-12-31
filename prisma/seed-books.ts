@@ -13,6 +13,7 @@ async function main() {
     series?: string;
     seriesIndex?: number;
     status?: ReadStatus;
+    finishedAt?: Date;
   };
 
   const user = await prisma.user.findFirst();
@@ -26,6 +27,7 @@ async function main() {
       coverUrl:
         "https://3k01dt1q3i.ufs.sh/f/yX6XxGcalfFsGxT1OC7MdJ8au0yQEAo49FghKzSClwL37nVI",
       status: "READ",
+      finishedAt: new Date(),
       userId,
     },
     {
