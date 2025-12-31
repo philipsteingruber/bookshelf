@@ -8,19 +8,23 @@ import { Progress } from "../ui/progress";
 
 const ReadingProgressCard = ({ book }: { book: Book }) => {
   const coverUrl = book.coverUrl || BOOK_COVER_PLACEHOLDER_URL;
-  const coverWidth = 80;
-  const coverHeight = (16 / 9) * coverWidth;
 
   return (
     <Link href={`/${book.id}`} className="w-1/4">
       <Card className="hover:bg-secondary/80 w-full">
         <CardContent className="flex gap-x-2 px-2">
-          <Image
-            src={coverUrl}
-            width={coverWidth}
-            height={coverHeight}
-            alt={book.title}
-          />
+          <div className="relative aspect-[2/3] w-20 flex-shrink-0 overflow-hidden bg-gray-200">
+            <Image
+              src={coverUrl}
+              alt={book.title}
+              fill
+              sizes="80px"
+              style={{ objectFit: "cover" }}
+              priority={false}
+              placeholder="blur"
+              blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjYwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjYwMCIgZmlsbD0iI2UwZTBlMCIvPjwvc3ZnPg=="
+            />
+          </div>
           <div className="flex w-full flex-col justify-center gap-y-4 px-2">
             <div className="flex flex-col gap-y-1">
               <span className="font-semibold">{book.title}</span>

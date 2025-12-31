@@ -1,10 +1,10 @@
 "use client";
 
 import BookCard from "@/components/books/book-card";
-import ReadingProgressCard from "@/components/books/readingprogress-card";
 import DashboardCard, {
   DashboardCardProps,
 } from "@/components/dashboard/dashboard-card";
+import ReadingProgressCard from "@/components/dashboard/readingprogress-card";
 import { Separator } from "@/components/ui/separator";
 import { Spinner } from "@/components/ui/spinner";
 import { useBooks } from "@/hooks/use-books";
