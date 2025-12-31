@@ -1,5 +1,6 @@
 import { TRPC_ERROR_CODE_KEY } from "@trpc/server";
 import { SearchAlertIcon, ShieldBan, ShieldXIcon } from "lucide-react";
+import BaseState from "./base-state";
 
 const ErrorState = ({ code }: { code?: TRPC_ERROR_CODE_KEY }) => {
   let text = "An error occured.";
@@ -12,12 +13,7 @@ const ErrorState = ({ code }: { code?: TRPC_ERROR_CODE_KEY }) => {
     Icon = SearchAlertIcon;
   }
 
-  return (
-    <div className="flex size-full flex-col items-center justify-center">
-      <Icon className="size-25" />
-      <span className="mt-4 text-2xl">{text}</span>
-    </div>
-  );
+  return <BaseState Icon={Icon} text={text} />;
 };
 
 export default ErrorState;
