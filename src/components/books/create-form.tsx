@@ -69,10 +69,11 @@ const CreateBookForm = () => {
     });
 
   const { books: existingBooksInSeries } = useBooks({
+    // eslint-disable-next-line react-hooks/incompatible-library
     search: form.watch("series"),
     enabled: !!form.watch("series") && !!form.watch("seriesIndex"),
   });
-  const { books: existingBooksIsbn, count: duplicateIsbnCount } = useBooks({
+  const { books: existingBooksIsbn } = useBooks({
     search: form.watch("isbn"),
     enabled: !!form.watch("isbn"),
   });

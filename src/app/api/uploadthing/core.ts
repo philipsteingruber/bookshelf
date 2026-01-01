@@ -2,7 +2,6 @@ import { trpc } from "@/trpc/server";
 import { auth } from "@clerk/nextjs/server";
 import { createUploadthing, type FileRouter } from "uploadthing/next";
 import { UploadThingError } from "uploadthing/server";
-import { is } from "zod/v4/locales";
 
 const f = createUploadthing();
 
