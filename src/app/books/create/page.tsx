@@ -1,10 +1,11 @@
 import CreateBookForm from "@/components/books/create-form";
-import { RedirectToSignIn, useAuth } from "@clerk/nextjs";
+import { RedirectToSignIn } from "@clerk/nextjs";
+import { currentUser } from "@clerk/nextjs/server";
 
-const Page = () => {
-  const { isSignedIn } = useAuth();
+const Page = async () => {
+  const user = await currentUser();
 
-  if (!isSignedIn) {
+  if (!user) {
     return <RedirectToSignIn />;
   }
 
