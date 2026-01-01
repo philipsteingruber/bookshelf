@@ -13,7 +13,14 @@ const ErrorState = ({ code }: { code?: TRPC_ERROR_CODE_KEY }) => {
     Icon = SearchAlertIcon;
   }
 
-  return <BaseState Icon={Icon} text={text} />;
+  return (
+    <BaseState
+      Icon={Icon}
+      text={text}
+      linkText="Click here to return to your Bookshelf"
+      href="/books"
+    />
+  );
 };
 
 export default ErrorState;

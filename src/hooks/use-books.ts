@@ -1,9 +1,9 @@
 import { trpc } from "@/trpc/client";
 import { useCallback, useMemo } from "react";
 import { useDebounce } from "use-debounce";
-import { BookFilters } from "./../trpc/routers/book";
+import type { BookFilters } from "./../trpc/routers/book";
 
-export const useBooks = (options?: BookFilters) => {
+export const useBooks = (options?: BookFilters & { enabled?: boolean }) => {
   const {
     status,
     rating,
@@ -11,20 +11,24 @@ export const useBooks = (options?: BookFilters) => {
     sortBy = "title",
     sortDirection = "asc",
     limit = 50,
+    enabled = true,
   } = options || {};
 
   const hasFilters = !!(status || rating || search);
 
   const [debouncedSearch] = useDebounce(search, 300);
 
-  const { data, isLoading, isError, error } = trpc.book.getBooks.useQuery({
-    status,
-    rating,
-    search: debouncedSearch,
-    sortBy,
-    sortDirection,
-    limit,
-  });
+  const { data, isLoading, isError, error } = trpc.book.getBooks.useQuery(
+    {
+      status,
+      rating,
+      search: debouncedSearch,
+      sortBy,
+      sortDirection,
+      limit,
+    },
+    { enabled },
+  );
 
   const books = useMemo(() => data?.books || [], [data?.books]);
 

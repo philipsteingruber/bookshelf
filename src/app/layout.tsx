@@ -4,6 +4,7 @@ import { TRPCProvider } from "@/trpc/client";
 import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
 import { ThemeProvider } from "next-themes";
+import { Toaster } from "sonner";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -32,6 +33,7 @@ export default function RootLayout({
                 </SidebarInset>
               </SidebarProvider>
             </ThemeProvider>
+            <Toaster />
           </body>
         </html>
       </ClerkProvider>

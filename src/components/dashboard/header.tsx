@@ -1,6 +1,8 @@
 "use client";
 
-import { BookIcon } from "lucide-react";
+import { BookIcon, PlusIcon } from "lucide-react";
+import Link from "next/link";
+import { Button } from "../ui/button";
 import { Separator } from "../ui/separator";
 import { SidebarTrigger } from "../ui/sidebar";
 
@@ -17,6 +19,11 @@ const Header = () => {
             <p className="text-xl">Welcome back to Bookshelf</p>
           </div>
         </div>
+        <Link href={"/books/create"}>
+          <Button className="cursor-pointer">
+            <PlusIcon /> Add
+          </Button>
+        </Link>
       </header>
       <Separator />
     </>

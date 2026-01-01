@@ -3,6 +3,7 @@ import {
   BookScalarFieldEnum,
   BookWhereInput,
 } from "@/app/generated/prisma/internal/prismaNamespace";
+import { createFormSchema } from "@/lib/schemas/book";
 import { TRPCError } from "@trpc/server";
 import z from "zod";
 import { authedProcedure, createTRPCRouter } from "../init";
@@ -48,6 +49,7 @@ export const bookRouter = createTRPCRouter({
           { title: { contains: input.search, mode: "insensitive" } },
           { author: { contains: input.search, mode: "insensitive" } },
           { series: { contains: input.search, mode: "insensitive" } },
+          { isbn: { contains: input.search, mode: "insensitive" } },
         ];
       }
 
@@ -79,6 +81,31 @@ export const bookRouter = createTRPCRouter({
         throw new TRPCError({ code: "FORBIDDEN" });
       }
 
+      return { book };
+    }),
+  createBook: authedProcedure
+    .input(createFormSchema)
+    .mutation(async ({ ctx, input }) => {
+      const user = await ctx.db.user.findUniqueOrThrow({
+        where: { clerkId: ctx.auth.userId },
+      });
+
+      const book = await ctx.db.book.create({
+        data: {
+          title: input.title,
+          author: input.author,
+          pageCount: input.pageCount,
+          isbn: input.isbn,
+          series: input.series,
+          seriesIndex: input.seriesIndex,
+          publishedYear: input.publishedYear,
+          summary: input.summary,
+          coverUrl: input.coverUrl,
+          userId: user.id,
+        },
+      });
+
+      console.log(`Book Created: ${book.title} - ${book.author}`);
       return { book };
     }),
 });
