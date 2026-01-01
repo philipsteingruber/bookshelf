@@ -6,6 +6,7 @@ import LoadingState from "@/components/loading-state";
 import { Progress } from "@/components/ui/progress";
 import { useBook } from "@/hooks/use-book";
 import { BOOK_COVER_PLACEHOLDER_URL } from "@/utils/constants";
+import { RedirectToSignIn, useAuth } from "@clerk/nextjs";
 import { TRPCError } from "@trpc/server";
 import { BookIcon, PenIcon } from "lucide-react";
 import Image from "next/image";
@@ -21,6 +22,12 @@ export default function Page({
   const { book, isPending, isForbidden, isNotFound, error, isReading } =
     useBook(bookId);
   const coverUrl = book?.coverUrl || BOOK_COVER_PLACEHOLDER_URL;
+
+  const { isSignedIn } = useAuth();
+
+  if (!isSignedIn) {
+    return <RedirectToSignIn />;
+  }
 
   if (isPending) {
     return <LoadingState />;
