@@ -20,6 +20,7 @@ export default function ThemeToggle() {
     <Button
       onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
       aria-label="Toggle theme"
+      className="cursor-pointer"
     >
       <motion.div
         key={theme}

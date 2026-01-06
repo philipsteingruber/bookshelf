@@ -3,8 +3,10 @@ import { BOOK_COVER_PLACEHOLDER_URL } from "@/utils/constants";
 import { PenIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { Button } from "../ui/button";
 import { Card, CardContent } from "../ui/card";
 import { Progress } from "../ui/progress";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 
 const ReadingProgressCard = ({ book }: { book: Book }) => {
   const coverUrl = book.coverUrl || BOOK_COVER_PLACEHOLDER_URL;
@@ -31,9 +33,20 @@ const ReadingProgressCard = ({ book }: { book: Book }) => {
               <span className="font-serif">{book.author}</span>
             </div>
             <div className="flex w-full items-center gap-x-2">
-              <span>{book.progress}%</span>
+              <span className="text-sm">{book.progress}%</span>
               <Progress value={book.progress} className="w-full" />
-              <PenIcon />
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Link href={"/"}>
+                    <Button variant={"ghost"} className="cursor-pointer">
+                      <PenIcon />
+                    </Button>
+                  </Link>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Update reading progress</p>
+                </TooltipContent>
+              </Tooltip>
             </div>
           </div>
         </CardContent>

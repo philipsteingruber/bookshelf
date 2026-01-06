@@ -4,6 +4,11 @@ import ReadStatusButton from "@/components/books/readstatus-button";
 import ErrorState from "@/components/error-state";
 import LoadingState from "@/components/loading-state";
 import { Progress } from "@/components/ui/progress";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useBook } from "@/hooks/use-book";
 import { BOOK_COVER_PLACEHOLDER_URL } from "@/utils/constants";
 import { RedirectToSignIn, useAuth } from "@clerk/nextjs";
@@ -60,17 +65,24 @@ export default function Page({
           {book.series && book.seriesIndex && (
             <p className="font-sm font-serif font-light italic">{`${book.series} #${book.seriesIndex}`}</p>
           )}
-          <Link
-            href={`https://www.goodreads.com/search?utf8=%E2%9C%93&q=${book.title}+${book.author}&search_type=books&search%5Bfield%5D=on`}
-            target="_blank"
-          >
-            <span className="font-serif text-4xl font-semibold">
-              {book.title}
-            </span>
-          </Link>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Link
+                href={`https://www.goodreads.com/search?utf8=%E2%9C%93&q=${book.title}+${book.author}&search_type=books&search%5Bfield%5D=on`}
+                target="_blank"
+                className="w-fit font-serif text-4xl font-semibold hover:underline"
+              >
+                {book.title}
+              </Link>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{`Search "${book.title} ${book.author}" on GoodReads`}</p>
+            </TooltipContent>
+          </Tooltip>
+
           <span className="font-serif text-xl">{book.author}</span>
           <div className="text-primary flex items-center gap-x-4">
-            <div className="group flex items-center gap-x-1 text-sm font-semibold">
+            <div className="group flex cursor-pointer items-center gap-x-1 text-sm font-semibold">
               <BookIcon className="size-3" />
               <span className="group-hover:underline">
                 {book.pageCount ? book.pageCount : "Pages not set"}
@@ -78,7 +90,10 @@ export default function Page({
               <PenIcon className="size-3" />
             </div>
             <span className="text-secondary">•</span>
-            <span className="text-sm">Published {book.publishedYear}</span>
+            <span className="text-sm">
+              Published{" "}
+              <span className="text-sm italic">{book.publishedYear}</span>
+            </span>
           </div>
           {isReading && (
             <div className="relative w-3/4">
