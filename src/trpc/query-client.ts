@@ -12,13 +12,18 @@ export function makeQueryClient() {
         staleTime: 30 * 1000,
         retry: (failureCount, error) => {
           const err = error as TRPCError;
-          // Don't retry on UNAUTHORIZED or FORBIDDEN errors
-          if (err.code === "UNAUTHORIZED" || err.code === "FORBIDDEN") {
+          // Don't retry on UNAUTHORIZED, FORBIDDEN or NOT_FOUND errors
+          if (
+            err.code === "UNAUTHORIZED" ||
+            err.code === "FORBIDDEN" ||
+            err.code === "NOT_FOUND"
+          ) {
             return false;
           }
           // Default retry behavior (3 retries)
           return failureCount < 3;
         },
+        refetchOnWindowFocus: false,
       },
       dehydrate: {
         serializeData: superjson.serialize,
