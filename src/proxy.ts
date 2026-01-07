@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { clerkMiddleware } from "@clerk/nextjs/server";
 
+import { logger } from "@/lib/logger";
+
 export default clerkMiddleware(async (auth, request: NextRequest) => {
   const requestId = crypto.randomUUID();
 
@@ -14,6 +16,16 @@ export default clerkMiddleware(async (auth, request: NextRequest) => {
   if (userId) {
     requestHeaders.set("x-user-id", userId);
   }
+
+  logger.debug(
+    {
+      requestId,
+      userId,
+      pathname: request.nextUrl.pathname,
+      method: request.method,
+    },
+    "Request context initialized",
+  );
 
   return NextResponse.next({
     request: {

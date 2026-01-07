@@ -5,7 +5,7 @@ import { auth } from "@clerk/nextjs/server";
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 
-import { createLoggerWithContext } from "@/lib/logger";
+import { createLoggerWithContext, performanceLogger } from "@/lib/logger";
 import prisma from "@/lib/prisma";
 
 export const createTRPCContext = cache(async () => {
@@ -31,16 +31,31 @@ const t = initTRPC.context<Context>().create({
 
 const isAuthed = t.middleware(async ({ next, ctx }) => {
   if (!ctx.auth.userId) {
+    ctx.logger.warn("Authentication check failed: No userId in auth context");
     throw new TRPCError({ code: "UNAUTHORIZED" });
   }
 
+  const fetchUserTimer = performanceLogger(
+    "DB: Fetch user for auth check",
+    500,
+    ctx.logger,
+  );
+
+  fetchUserTimer.start();
   const currentUser = await ctx.db.user.findUnique({
     where: { clerkId: ctx.auth.userId },
   });
+  fetchUserTimer.end({ clerkId: ctx.auth.userId });
 
   if (!currentUser) {
+    ctx.logger.warn(
+      { clerkId: ctx.auth.userId },
+      "User not found in database despite valid Clerk auth",
+    );
     throw new TRPCError({ code: "UNAUTHORIZED" });
   }
+
+  ctx.logger.debug({ userId: currentUser.id }, "User authenticated successfully");
 
   return next({
     ctx: {

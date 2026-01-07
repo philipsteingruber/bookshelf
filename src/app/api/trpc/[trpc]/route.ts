@@ -1,15 +1,47 @@
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 
+import { logger } from "@/lib/logger";
 import { createTRPCContext } from "@/trpc/init";
 import { appRouter } from "@/trpc/routers/_app";
 
-const handler = (req: Request) =>
-  fetchRequestHandler({
-    endpoint: "/api/trpc",
-    req,
-    router: appRouter,
-    createContext: createTRPCContext,
-  });
+const handler = async (req: Request) => {
+  const url = new URL(req.url);
+  const procedure = url.searchParams.get("batch") ? "batch" : url.pathname;
+
+  try {
+    const response = await fetchRequestHandler({
+      endpoint: "/api/trpc",
+      req,
+      router: appRouter,
+      createContext: createTRPCContext,
+      onError: ({ error, path, type }) => {
+        logger.error(
+          {
+            path,
+            type,
+            code: error.code,
+            message: error.message,
+            cause: error.cause,
+          },
+          "tRPC error occurred",
+        );
+      },
+    });
+
+    return response;
+  } catch (err) {
+    logger.error(
+      {
+        procedure,
+        method: req.method,
+        error: err instanceof Error ? err.message : String(err),
+        stack: err instanceof Error ? err.stack : undefined,
+      },
+      "Unhandled error in tRPC handler",
+    );
+    throw err;
+  }
+};
 
 export { handler as GET, handler as POST };
 

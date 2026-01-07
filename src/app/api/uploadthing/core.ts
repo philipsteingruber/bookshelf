@@ -24,8 +24,12 @@ export const bookshelfFileRouter = {
       // This code runs on your server before upload
       const { isAuthenticated, userId: clerkId } = await auth();
 
-      if (!isAuthenticated || !clerkId)
+      if (!isAuthenticated || !clerkId) {
+        logger.warn({ clerkId }, "Unauthenticated user tried to upload file");
         throw new UploadThingError("Unauthorized");
+      }
+
+      logger.debug({ clerkId }, "File upload authorized");
 
       // If you throw, the user will not be able to upload
 
