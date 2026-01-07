@@ -17,6 +17,7 @@ async function main() {
     summary?: string;
     publishedYear: number;
     progress?: number;
+    pageCount?: number;
   };
 
   const user = await prisma.user.findFirst();
@@ -97,6 +98,7 @@ The Traitor Host of Horus Lupercal tightens its iron grip on the Palace of Terra
       status: "READ_NEXT",
       userId,
       publishedYear: 2020,
+      pageCount: 373,
     },
     {
       title: "Darkness in the Blood",
