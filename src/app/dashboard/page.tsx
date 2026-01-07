@@ -5,6 +5,7 @@ import DashboardCard, {
   DashboardCardProps,
 } from "@/components/dashboard/dashboard-card";
 import ReadingProgressCard from "@/components/dashboard/readingprogress-card";
+import ErrorState from "@/components/error-state";
 import LoadingState from "@/components/loading-state";
 import { Separator } from "@/components/ui/separator";
 import { useBooks } from "@/hooks/use-books";
@@ -77,7 +78,14 @@ const Page = () => {
   }
 
   if (isError) {
-    return <div>Error loading books: {error?.message}</div>;
+    return (
+      <ErrorState
+        code={error?.data?.code}
+        message={error?.message}
+        linkText="Return to Dashboard"
+        href="/dashboard"
+      />
+    );
   }
 
   return (

@@ -62,11 +62,20 @@ const CreateBookForm = () => {
         router.push(`/books/${createdBook.id}`);
       },
       onError: (error) => {
-        // Handle CONFLICT errors from server (duplicate validation)
+        // Handle different error types with user-friendly messages
         if (error.data?.code === "CONFLICT") {
+          // Server sends specific messages for ISBN or series conflicts
           toast.error(error.message);
+        } else if (error.message.includes("unique constraint")) {
+          toast.error("A book with these details already exists in your library.");
+        } else if (error.message.includes("network") || error.message.includes("fetch")) {
+          toast.error("Network error. Please check your connection and try again.");
+        } else if (error.data?.code === "UNAUTHORIZED") {
+          toast.error("Please sign in to create books.");
+        } else if (error.data?.code === "BAD_REQUEST") {
+          toast.error("Invalid book information. Please check your entries.");
         } else {
-          toast.error("Failed to create book. Please try again.");
+          toast.error("Unable to create book. Please try again or contact support.");
         }
         console.error("Book creation failed:", error);
       },
@@ -298,19 +307,27 @@ In a sleepy village in the Shire, young Frodo Baggins finds himself faced with a
             <UploadButton
               endpoint="imageUploader"
               onUploadError={(error: Error) => {
-                toast.error("Upload failed");
-                console.error(error);
+                // Provide specific error messages based on error type
+                if (error.message.includes("file too large") || error.message.includes("FileSizeMismatch")) {
+                  toast.error("Image too large. Please use an image under 4MB.");
+                } else if (error.message.includes("file type") || error.message.includes("InvalidFileType")) {
+                  toast.error("Invalid file type. Please upload a JPG or PNG image.");
+                } else if (error.message.includes("network") || error.message.includes("fetch")) {
+                  toast.error("Network error. Please check your connection and try again.");
+                } else {
+                  toast.error("Upload failed. Please try again.");
+                }
+                console.error("Upload error:", error);
               }}
               onClientUploadComplete={async (res) => {
                 try {
                   const fileUrl = res[0].ufsUrl;
                   form.setValue("coverUrl", fileUrl);
-                  console.log("Cover uploaded: ", res);
                   toast.success("Cover successfully uploaded.");
                   setShowUploadButton(false);
                 } catch (err) {
-                  toast.error("Something went wrong, try again.");
-                  console.error(err);
+                  toast.error("Failed to save cover URL. Please try uploading again.");
+                  console.error("Upload complete error:", err);
                 }
               }}
               className="ut-button:bg-primary ut-button:text-foreground"
