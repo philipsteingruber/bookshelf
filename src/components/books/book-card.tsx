@@ -1,6 +1,6 @@
 import { Book } from "@/generated/prisma/client";
+import { BOOK_COVER_PLACEHOLDER_URL } from "@/lib/constants";
 import { cn } from "@/lib/utils";
-import { BOOK_COVER_PLACEHOLDER_URL } from "@/utils/constants";
 import Image from "next/image";
 import Link from "next/link";
 import { Card, CardContent } from "../ui/card";

@@ -1,5 +1,5 @@
 import type { Book } from "@/generated/prisma/client";
-import { BOOK_COVER_PLACEHOLDER_URL } from "@/utils/constants";
+import { BOOK_COVER_PLACEHOLDER_URL } from "@/lib/constants";
 import { PenIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";

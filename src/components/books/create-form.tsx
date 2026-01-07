@@ -20,9 +20,9 @@ import {
 import { Field } from "../ui/field";
 import { Separator } from "../ui/separator";
 import { Spinner } from "../ui/spinner";
-import { BasicInfoSection } from "./create-form/BasicInfoSection";
-import { OptionalInfoSection } from "./create-form/OptionalInfoSection";
-import { CoverUploadSection } from "./create-form/CoverUploadSection";
+import { BasicInfoSection } from "./create-form/basic-info-section";
+import { OptionalInfoSection } from "./create-form/optional-info-section";
+import { CoverUploadSection } from "./create-form/cover-upload-section";
 
 const CreateBookForm = () => {
   const [showUploadButton, setShowUploadButton] = useState<boolean>(true);

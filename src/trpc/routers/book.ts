@@ -4,8 +4,8 @@ import {
   BookScalarFieldEnum,
   BookWhereInput,
 } from "@/generated/prisma/internal/prismaNamespace";
+import { logBookUpdate } from "@/lib/book-utils";
 import { createFormSchema } from "@/lib/schemas/book";
-import { logBookUpdate } from "@/utils/utils";
 import { TRPCError } from "@trpc/server";
 import z from "zod";
 import { authedProcedure, createTRPCRouter } from "../init";

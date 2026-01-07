@@ -22,10 +22,10 @@ import {
 } from "@/components/ui/tooltip";
 import { ReadStatus } from "@/generated/prisma/enums";
 import { useBook } from "@/hooks/use-book";
+import { getStatusButtonStyle, parseReadStatus } from "@/lib/book-utils";
+import { BOOK_COVER_PLACEHOLDER_URL } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/trpc/client";
-import { BOOK_COVER_PLACEHOLDER_URL } from "@/utils/constants";
-import { getStatusButtonStyle, parseReadStatus } from "@/utils/utils";
 import { RedirectToSignIn, useAuth } from "@clerk/nextjs";
 import { TRPCError } from "@trpc/server";
 import { PenIcon } from "lucide-react";
