@@ -24,14 +24,24 @@ const t = initTRPC.context<Context>().create({
   transformer: superjson,
 });
 
-const isAuthed = t.middleware(({ next, ctx }) => {
+const isAuthed = t.middleware(async ({ next, ctx }) => {
   if (!ctx.auth.userId) {
     throw new TRPCError({ code: "UNAUTHORIZED" });
   }
+
+  const currentUser = await ctx.db.user.findUnique({
+    where: { clerkId: ctx.auth.userId },
+  });
+
+  if (!currentUser) {
+    throw new TRPCError({ code: "UNAUTHORIZED" });
+  }
+
   return next({
     ctx: {
       ...ctx,
       auth: ctx.auth,
+      currentUser,
     },
   });
 });
