@@ -5,6 +5,7 @@ import {
   ShieldXIcon,
   WifiOffIcon,
 } from "lucide-react";
+
 import BaseState from "./base-state";
 
 interface ErrorStateProps {
@@ -41,9 +42,7 @@ const ErrorState = ({
     text = message;
   }
 
-  return (
-    <BaseState Icon={Icon} text={text} linkText={linkText} href={href} />
-  );
+  return <BaseState Icon={Icon} text={text} linkText={linkText} href={href} />;
 };
 
 export default ErrorState;

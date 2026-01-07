@@ -1,6 +1,8 @@
 import { LucideIcon } from "lucide-react";
-import { Card, CardContent } from "../ui/card";
+
 import { cn } from "@/lib/utils";
+
+import { Card, CardContent } from "../ui/card";
 
 export interface DashboardCardProps {
   header: string;

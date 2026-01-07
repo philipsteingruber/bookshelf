@@ -1,5 +1,19 @@
 "use client";
 
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+
+import {
+  ClerkLoaded,
+  ClerkLoading,
+  SignedIn,
+  SignedOut,
+  SignInButton,
+  UserButton,
+} from "@clerk/nextjs";
+import type { LucideIcon } from "lucide-react";
+import { BookIcon, BookOpenIcon, LibraryIcon, ScrollIcon } from "lucide-react";
+
 import {
   Sidebar,
   SidebarContent,
@@ -11,18 +25,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
-import {
-  ClerkLoaded,
-  ClerkLoading,
-  SignedIn,
-  SignedOut,
-  SignInButton,
-  UserButton,
-} from "@clerk/nextjs";
-import type { LucideIcon } from "lucide-react";
-import { BookIcon, BookOpenIcon, LibraryIcon, ScrollIcon } from "lucide-react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+
 import ThemeToggle from "../theme-toggle";
 import { Button } from "../ui/button";
 import { Spinner } from "../ui/spinner";

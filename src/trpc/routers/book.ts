@@ -27,11 +27,7 @@ const bookFiltersSchema = z
     search: z.string().optional(), // Search in title/author
     sortBy: z.enum(Object.values(BookScalarFieldEnum)).optional(),
     sortDirection: z.enum(["asc", "desc"]).optional(),
-    limit: z
-      .number()
-      .min(1)
-      .max(VALIDATION_LIMITS.BOOKS_QUERY_MAX)
-      .optional(),
+    limit: z.number().min(1).max(VALIDATION_LIMITS.BOOKS_QUERY_MAX).optional(),
   })
   .optional();
 

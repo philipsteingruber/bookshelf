@@ -1,9 +1,12 @@
+import Image from "next/image";
+import Link from "next/link";
+
 import { Book } from "@/generated/prisma/client";
 import { BOOK_COVER_PLACEHOLDER_URL } from "@/lib/constants";
 import { cn } from "@/lib/utils";
-import Image from "next/image";
-import Link from "next/link";
+
 import { Card, CardContent } from "../ui/card";
+
 import ReadStatusButton from "./readstatus-button";
 
 interface BookCardProps {

@@ -1,5 +1,7 @@
-import { LucideIcon } from "lucide-react";
 import Link from "next/link";
+
+import { LucideIcon } from "lucide-react";
+
 import { Spinner } from "./ui/spinner";
 
 interface Props {

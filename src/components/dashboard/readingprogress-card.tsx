@@ -1,9 +1,12 @@
-import type { Book } from "@/generated/prisma/client";
-import { BOOK_COVER_PLACEHOLDER_URL } from "@/lib/constants";
-import { PenIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
+
+import { PenIcon } from "lucide-react";
+
+import type { Book } from "@/generated/prisma/client";
+import { BOOK_COVER_PLACEHOLDER_URL } from "@/lib/constants";
+
 import { Button } from "../ui/button";
 import { Card, CardContent } from "../ui/card";
 import {

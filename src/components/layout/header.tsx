@@ -1,5 +1,7 @@
-import { PlusIcon } from "lucide-react";
 import Link from "next/link";
+
+import { PlusIcon } from "lucide-react";
+
 import { Button } from "../ui/button";
 import { SidebarTrigger } from "../ui/sidebar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";

@@ -1,7 +1,9 @@
 "use client";
 
-import { BookIcon, PlusIcon } from "lucide-react";
 import Link from "next/link";
+
+import { BookIcon, PlusIcon } from "lucide-react";
+
 import { Button } from "../ui/button";
 import { Separator } from "../ui/separator";
 import { SidebarTrigger } from "../ui/sidebar";

@@ -1,7 +1,10 @@
 import { useCallback, useMemo } from "react";
+
 import { useDebounce } from "use-debounce";
 
+import { Book } from "@/generated/prisma/client";
 import { trpc } from "@/trpc/client";
+
 import type { BookFilters } from "./../trpc/routers/book";
 
 export const useBooks = (options?: BookFilters & { enabled?: boolean }) => {
@@ -31,7 +34,7 @@ export const useBooks = (options?: BookFilters & { enabled?: boolean }) => {
     { enabled },
   );
 
-  const books = useMemo(() => data?.books || [], [data?.books]);
+  const books: Book[] = useMemo(() => data?.books || [], [data?.books]);
 
   const isEmpty = books.length === 0 && !isLoading;
   const count = books.length;

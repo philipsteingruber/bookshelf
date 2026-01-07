@@ -1,8 +1,10 @@
 "use client"; // Required since we use hooks
+import { useEffect, useState } from "react";
+
 import { motion } from "framer-motion";
 import { Moon, Sun } from "lucide-react"; // Or any other icons
 import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
+
 import { Button } from "./ui/button";
 
 export default function ThemeToggle() {
