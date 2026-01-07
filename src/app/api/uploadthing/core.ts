@@ -2,7 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { createUploadthing, type FileRouter } from "uploadthing/next";
 import { UploadThingError } from "uploadthing/server";
 
-import { trpc } from "@/trpc/server";
+import { logger } from "@/lib/logger";
 
 const f = createUploadthing();
 
@@ -27,20 +27,15 @@ export const bookshelfFileRouter = {
       if (!isAuthenticated || !clerkId)
         throw new UploadThingError("Unauthorized");
 
-      const { user } = await trpc.user.getUserByClerkId();
-      const userId = user.id;
-
       // If you throw, the user will not be able to upload
 
       // Whatever is returned here is accessible in onUploadComplete as `metadata`
-      return { clerkId, userId, user };
+      return {};
     })
-    .onUploadComplete(async ({ metadata, file }) => {
-      console.log("Upload complete for userId:", metadata.userId);
-      console.log("File url", file.ufsUrl);
+    .onUploadComplete(async ({ file }) => {
+      logger.info({ fileUrl: file.ufsUrl }, "Upload complete");
 
       return {
-        uploadedBy: metadata.userId,
         fileUrl: file.ufsUrl,
         fileKey: file.key,
       };

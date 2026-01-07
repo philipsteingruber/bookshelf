@@ -1,7 +1,3 @@
-import { authedProcedure, createTRPCRouter } from "../init";
+import { createTRPCRouter } from "../init";
 
-export const userRouter = createTRPCRouter({
-  getUserByClerkId: authedProcedure.query(async ({ ctx }) => {
-    return { user: ctx.currentUser };
-  }),
-});
+export const userRouter = createTRPCRouter({});
