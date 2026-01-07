@@ -5,7 +5,7 @@ import { trpc } from "@/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import z from "zod";
 import { Button } from "../ui/button";
@@ -17,13 +17,12 @@ import {
   CardHeader,
   CardTitle,
 } from "../ui/card";
-import { Field, FieldError, FieldGroup, FieldLabel } from "../ui/field";
-import { Input } from "../ui/input";
-import { Label } from "../ui/label";
+import { Field } from "../ui/field";
 import { Separator } from "../ui/separator";
 import { Spinner } from "../ui/spinner";
-import { Textarea } from "../ui/textarea";
-import { UploadButton } from "../uploadthing";
+import { BasicInfoSection } from "./create-form/BasicInfoSection";
+import { OptionalInfoSection } from "./create-form/OptionalInfoSection";
+import { CoverUploadSection } from "./create-form/CoverUploadSection";
 
 const CreateBookForm = () => {
   const [showUploadButton, setShowUploadButton] = useState<boolean>(true);
@@ -99,241 +98,15 @@ const CreateBookForm = () => {
       </CardHeader>
       <CardContent>
         <form id="create-book-form" onSubmit={form.handleSubmit(onSubmit)}>
-          <FieldGroup>
-            <Controller
-              name="title"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid} className="gap-y-1">
-                  <FieldLabel htmlFor="create-book-form-title">
-                    Title <MandatoryFieldMarker />
-                  </FieldLabel>
-                  <Input
-                    {...field}
-                    id="create-book-form-title"
-                    aria-invalid={fieldState.invalid}
-                    placeholder="Fellowship of the Ring"
-                    autoComplete="off"
-                  />
-                  {fieldState.invalid && (
-                    <FieldError errors={[fieldState.error]} />
-                  )}
-                </Field>
-              )}
-            />
-            <Controller
-              name="author"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid} className="gap-y-1">
-                  <FieldLabel htmlFor="create-book-form-author">
-                    Author <MandatoryFieldMarker />
-                  </FieldLabel>
-                  <Input
-                    {...field}
-                    id="create-book-form-author"
-                    aria-invalid={fieldState.invalid}
-                    placeholder="J.R.R. Tolkien"
-                    autoComplete="off"
-                  />
-                  {fieldState.invalid && (
-                    <FieldError errors={[fieldState.error]} />
-                  )}
-                </Field>
-              )}
-            />
-            <Controller
-              name="publishedYear"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid} className="gap-y-1">
-                  <FieldLabel htmlFor="create-book-form-publishedYear">
-                    Published Year <MandatoryFieldMarker />
-                  </FieldLabel>
-                  <Input
-                    {...field}
-                    value={field.value ?? ""}
-                    id="create-book-form-publishedYear"
-                    aria-invalid={fieldState.invalid}
-                    placeholder="1954"
-                    autoComplete="off"
-                    type="number"
-                    onChange={(e) => {
-                      const val = e.target.valueAsNumber;
-                      field.onChange(isNaN(val) ? undefined : val);
-                    }}
-                  />
-                  {fieldState.invalid && (
-                    <FieldError errors={[fieldState.error]} />
-                  )}
-                </Field>
-              )}
-            />
-          </FieldGroup>
+          <BasicInfoSection form={form} />
           <Separator className="my-4" />
-          <FieldGroup>
-            <Controller
-              name="pageCount"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid} className="gap-y-1">
-                  <FieldLabel htmlFor="create-book-form-pageCount">
-                    Page Count
-                  </FieldLabel>
-                  <Input
-                    {...field}
-                    value={field.value ?? ""}
-                    id="create-book-form-pageCount"
-                    aria-invalid={fieldState.invalid}
-                    placeholder="432"
-                    autoComplete="off"
-                    type="number"
-                    onChange={(e) => {
-                      const val = e.target.valueAsNumber;
-                      field.onChange(isNaN(val) ? undefined : val);
-                    }}
-                  />
-                  {fieldState.invalid && (
-                    <FieldError errors={[fieldState.error]} />
-                  )}
-                </Field>
-              )}
-            />
-            <Controller
-              name="series"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid} className="gap-y-1">
-                  <FieldLabel htmlFor="create-book-form-series">
-                    Series
-                  </FieldLabel>
-                  <Input
-                    {...field}
-                    id="create-book-form-series"
-                    aria-invalid={fieldState.invalid}
-                    placeholder="Lord of the Rings"
-                    autoComplete="off"
-                  />
-                  {fieldState.invalid && (
-                    <FieldError errors={[fieldState.error]} />
-                  )}
-                </Field>
-              )}
-            />
-            <Controller
-              name="seriesIndex"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid} className="gap-y-1">
-                  <FieldLabel htmlFor="create-book-form-seriesIndex">
-                    Series Index{" "}
-                    <span className="text-muted-foreground text-xs">
-                      (First book is index 1)
-                    </span>
-                  </FieldLabel>
-                  <Input
-                    {...field}
-                    value={field.value ?? ""}
-                    id="create-book-form-seriesIndex"
-                    aria-invalid={fieldState.invalid}
-                    placeholder="1"
-                    autoComplete="off"
-                    type="number"
-                    onChange={(e) => {
-                      const val = e.target.valueAsNumber;
-                      field.onChange(isNaN(val) ? undefined : val);
-                    }}
-                  />
-                  {fieldState.invalid && (
-                    <FieldError errors={[fieldState.error]} />
-                  )}
-                </Field>
-              )}
-            />
-            <Controller
-              name="isbn"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid} className="gap-y-1">
-                  <FieldLabel htmlFor="create-book-form-isbn">
-                    ISBN{" "}
-                    <span className="text-muted-foreground text-xs">
-                      {" "}
-                      (10 or 13 digits)
-                    </span>
-                  </FieldLabel>
-                  <Input
-                    {...field}
-                    id="create-book-form-isbn"
-                    aria-invalid={fieldState.invalid}
-                    placeholder="9780007203543"
-                    autoComplete="off"
-                  />
-                  {fieldState.invalid && (
-                    <FieldError errors={[fieldState.error]} />
-                  )}
-                </Field>
-              )}
-            />
-            <Controller
-              name="summary"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid} className="gap-y-1">
-                  <FieldLabel htmlFor="create-book-form-summary">
-                    Summary
-                  </FieldLabel>
-                  <Textarea
-                    {...field}
-                    id="create-book-form-summary"
-                    aria-invalid={fieldState.invalid}
-                    placeholder={`Sauron, the Dark Lord, has gathered to him all the Rings of Power – the means by which he intends to rule Middle-earth. All he lacks in his plans for dominion is the One Ring – the ring that rules them all – which has fallen into the hands of the hobbit, Bilbo Baggins.
-
-In a sleepy village in the Shire, young Frodo Baggins finds himself faced with an immense task, as his elderly cousin Bilbo entrusts the Ring to his care. Frodo must leave his home and make a perilous journey across Middle-earth to the Cracks of Doom, there to destroy the Ring and foil the Dark Lord in his evil purpose.`}
-                    autoComplete="off"
-                    className="h-48 resize-none overflow-y-auto"
-                  />
-                  {fieldState.invalid && (
-                    <FieldError errors={[fieldState.error]} />
-                  )}
-                </Field>
-              )}
-            />
-          </FieldGroup>
+          <OptionalInfoSection form={form} />
         </form>
-        {showUploadButton && (
-          <div className="mt-4 flex flex-col items-start gap-y-2">
-            <Label>Upload cover</Label>
-            <UploadButton
-              endpoint="imageUploader"
-              onUploadError={(error: Error) => {
-                // Provide specific error messages based on error type
-                if (error.message.includes("file too large") || error.message.includes("FileSizeMismatch")) {
-                  toast.error("Image too large. Please use an image under 4MB.");
-                } else if (error.message.includes("file type") || error.message.includes("InvalidFileType")) {
-                  toast.error("Invalid file type. Please upload a JPG or PNG image.");
-                } else if (error.message.includes("network") || error.message.includes("fetch")) {
-                  toast.error("Network error. Please check your connection and try again.");
-                } else {
-                  toast.error("Upload failed. Please try again.");
-                }
-                console.error("Upload error:", error);
-              }}
-              onClientUploadComplete={async (res) => {
-                try {
-                  const fileUrl = res[0].ufsUrl;
-                  form.setValue("coverUrl", fileUrl);
-                  toast.success("Cover successfully uploaded.");
-                  setShowUploadButton(false);
-                } catch (err) {
-                  toast.error("Failed to save cover URL. Please try uploading again.");
-                  console.error("Upload complete error:", err);
-                }
-              }}
-              className="ut-button:bg-primary ut-button:text-foreground"
-            />
-          </div>
-        )}
+        <CoverUploadSection
+          form={form}
+          showUploadButton={showUploadButton}
+          setShowUploadButton={setShowUploadButton}
+        />
         <CardFooter>
           <Field
             orientation="horizontal"
@@ -373,10 +146,6 @@ In a sleepy village in the Shire, young Frodo Baggins finds himself faced with a
       </CardContent>
     </Card>
   );
-};
-
-const MandatoryFieldMarker = () => {
-  return <span className="text-destructive">*</span>;
 };
 
 export default CreateBookForm;
