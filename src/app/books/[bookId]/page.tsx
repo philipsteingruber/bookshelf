@@ -1,6 +1,5 @@
 "use client";
 
-import { ReadStatus } from "@/app/generated/prisma/enums";
 import ErrorState from "@/components/error-state";
 import LoadingState from "@/components/loading-state";
 import { Button } from "@/components/ui/button";
@@ -21,6 +20,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { ReadStatus } from "@/generated/prisma/enums";
 import { useBook } from "@/hooks/use-book";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/trpc/client";

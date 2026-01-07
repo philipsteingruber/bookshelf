@@ -1,4 +1,4 @@
-import { ReadStatus } from "@/app/generated/prisma/enums";
+import { ReadStatus } from "@/generated/prisma/enums";
 import prisma from "@/lib/prisma";
 import { config } from "dotenv";
 

@@ -1,5 +1,5 @@
-import { ReadStatus } from "@/app/generated/prisma/enums";
-import { BookScalarFieldEnum } from "@/app/generated/prisma/internal/prismaNamespace";
+import { ReadStatus } from "@/generated/prisma/enums";
+import { BookScalarFieldEnum } from "@/generated/prisma/internal/prismaNamespace";
 
 export const parseReadStatus = (readStatus: ReadStatus) => {
   switch (readStatus) {

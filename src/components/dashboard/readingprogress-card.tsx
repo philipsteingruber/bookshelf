@@ -1,4 +1,4 @@
-import type { Book } from "@/app/generated/prisma/client";
+import type { Book } from "@/generated/prisma/client";
 import { BOOK_COVER_PLACEHOLDER_URL } from "@/utils/constants";
 import { PenIcon } from "lucide-react";
 import Image from "next/image";

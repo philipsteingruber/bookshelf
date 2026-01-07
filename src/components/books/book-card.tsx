@@ -1,4 +1,4 @@
-import { Book } from "@/app/generated/prisma/client";
+import { Book } from "@/generated/prisma/client";
 import { cn } from "@/lib/utils";
 import { BOOK_COVER_PLACEHOLDER_URL } from "@/utils/constants";
 import Image from "next/image";
