@@ -34,9 +34,7 @@ export const bookRouter = createTRPCRouter({
   getBooks: authedProcedure
     .input(bookFiltersSchema)
     .query(async ({ ctx, input }) => {
-      const clerkId = ctx.auth.userId;
-      const user = await ctx.db.user.findUniqueOrThrow({ where: { clerkId } });
-      const userId = user.id;
+      const userId = ctx.currentUser.id;
 
       const where: BookWhereInput = { userId };
 
@@ -72,14 +70,11 @@ export const bookRouter = createTRPCRouter({
   getBook: authedProcedure
     .input(z.number().min(0))
     .query(async ({ ctx, input: bookId }) => {
-      const clerkId = ctx.auth.userId;
-      const user = await ctx.db.user.findUnique({ where: { clerkId } });
-
       const book = await ctx.db.book.findUniqueOrThrow({
         where: { id: bookId },
       });
 
-      if (user?.id !== book?.userId) {
+      if (book.userId !== ctx.currentUser.id) {
         throw new TRPCError({ code: "FORBIDDEN" });
       }
 
@@ -88,15 +83,13 @@ export const bookRouter = createTRPCRouter({
   createBook: authedProcedure
     .input(createFormSchema)
     .mutation(async ({ ctx, input }) => {
-      const user = await ctx.db.user.findUniqueOrThrow({
-        where: { clerkId: ctx.auth.userId },
-      });
+      const userId = ctx.currentUser.id;
 
       // Check for duplicate series entry
       if (input.series && input.seriesIndex) {
         const duplicateSeries = await ctx.db.book.findFirst({
           where: {
-            userId: user.id,
+            userId,
             series: { equals: input.series, mode: "insensitive" },
             seriesIndex: input.seriesIndex,
           },
@@ -114,7 +107,7 @@ export const bookRouter = createTRPCRouter({
       if (input.isbn) {
         const duplicateIsbn = await ctx.db.book.findFirst({
           where: {
-            userId: user.id,
+            userId,
             isbn: input.isbn,
           },
         });
@@ -138,7 +131,7 @@ export const bookRouter = createTRPCRouter({
           publishedYear: input.publishedYear,
           summary: input.summary,
           coverUrl: input.coverUrl,
-          userId: user.id,
+          userId,
         },
       });
 
