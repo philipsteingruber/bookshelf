@@ -58,15 +58,17 @@ const Page = () => {
     },
     {
       header: "PAGES TODAY",
-      value: -1,
-      footer: "TODO",
+      value: 0,
+      footer: "Coming Soon",
       icon: TrendingUpIcon,
+      className: "opacity-50",
     },
     {
       header: "AVG. PAGES/DAY",
-      value: -1,
-      footer: "TODO",
+      value: 0,
+      footer: "Coming Soon",
       icon: FlameIcon,
+      className: "opacity-50",
     },
   ];
 
