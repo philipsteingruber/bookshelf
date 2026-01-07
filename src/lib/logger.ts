@@ -15,7 +15,7 @@ export const logger = pino({
     deployment: process.env.VERCEL_URL,
     region: process.env.VERCEL_REGION,
   },
-  //timestamp: pino.stdTimeFunctions.isoTime
+  timestamp: pino.stdTimeFunctions.isoTime,
 });
 
 export interface LogContext {
