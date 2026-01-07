@@ -1,5 +1,4 @@
 import { ReadStatus } from "@/generated/prisma/enums";
-import { BookScalarFieldEnum } from "@/generated/prisma/internal/prismaNamespace";
 
 export const parseReadStatus = (readStatus: ReadStatus) => {
   switch (readStatus) {
@@ -29,19 +28,4 @@ export const getStatusButtonStyle = (readStatus: ReadStatus) => {
     case "READ_NEXT":
       return "bg-gradient-to-r from-purple-400 to-purple-700 hover:from-purple-500 hover:to-purple-800 text-white";
   }
-};
-
-export const logBookUpdate = (
-  title: string,
-  bookId: number,
-  field: BookScalarFieldEnum,
-  newValue: unknown,
-) => {
-  console.log(
-    `Book ${title} (ID ${bookId}) updated - ${capitaliseFirstLetter(field)}: ${newValue}`,
-  );
-};
-
-const capitaliseFirstLetter = (str: string) => {
-  return str.charAt(0).toUpperCase() + str.slice(1);
 };

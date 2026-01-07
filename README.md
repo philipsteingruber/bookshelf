@@ -11,6 +11,8 @@ A full-stack web application for tracking your personal reading journey, built w
 - **Styling:** Tailwind CSS 4 with ShadCN UI components
 - **File Upload:** UploadThing
 - **Form Management:** React Hook Form with Zod validation
+- **State Management:** TanStack React Query
+- **Logging:** Pino with pino-pretty
 
 ---
 
@@ -37,11 +39,12 @@ A full-stack web application for tracking your personal reading journey, built w
 
 #### Development Environment
 
-- [x] ESLint configuration
+- [x] ESLint configuration with auto-fix script
 - [x] Prettier configuration with Tailwind plugin
 - [x] Import sorting with simple-import-sort plugin
 - [x] TypeScript strict mode configuration
 - [x] Development scripts and hot reload
+- [x] Pre-commit hooks for code quality (ESLint auto-fix)
 
 ---
 
@@ -174,6 +177,49 @@ A full-stack web application for tracking your personal reading journey, built w
 - [x] Application header
 - [x] Breadcrumb navigation
 - [x] Layout system with proper nesting
+
+---
+
+### ✅ Phase 6.5: Monitoring & Observability (Completed)
+
+#### Logging Infrastructure
+
+- [x] Pino logger integration for structured logging
+- [x] Environment-aware log levels (debug in dev, info in prod)
+- [x] Pretty printing for development logs
+- [x] Sensitive data redaction (passwords, tokens, API keys)
+- [x] ISO timestamp formatting
+- [x] Context-aware logging with request tracking
+  - [x] Request ID tracking across requests
+  - [x] User ID tracking in logs
+  - [x] Route/pathname logging
+- [x] Performance logging utility
+  - [x] Operation duration tracking
+  - [x] Slow operation warnings (configurable thresholds)
+  - [x] Database query performance monitoring
+
+#### Error Handling & User Experience
+
+- [x] Centralized TRPC error handler with user-friendly messages
+- [x] Specific error messages for common scenarios
+  - [x] Conflict errors (duplicate ISBN, series)
+  - [x] Network errors
+  - [x] Authentication/authorization errors
+  - [x] Not found errors
+  - [x] Validation errors
+- [x] Centralized upload error handler
+  - [x] File size validation messages
+  - [x] File type validation messages
+  - [x] Network error handling
+- [x] Detailed error logging for debugging
+- [x] Error code formatting and display
+
+#### Code Quality & Maintainability
+
+- [x] Enhanced TRPC error logging with formatted output
+- [x] Request metadata tracking in logs
+- [x] Book cover image error handling with fallback
+- [x] Improved code organization with section-based components
 
 ---
 
@@ -583,6 +629,8 @@ Built with modern web technologies:
 - [tRPC](https://trpc.io/) - End-to-end type-safe APIs
 - [Prisma](https://www.prisma.io/) - Next-generation ORM
 - [Clerk](https://clerk.com/) - Authentication and user management
-- [Radix UI](https://www.radix-ui.com/) - Accessible component primitives
+- [shadcn/ui](https://ui.shadcn.com/) - Beautifully designed components
 - [Tailwind CSS](https://tailwindcss.com/) - Utility-first CSS framework
 - [UploadThing](https://uploadthing.com/) - File uploads made easy
+- [Pino](https://getpino.io/) - Fast and low overhead logging
+- [TanStack Query](https://tanstack.com/query) - Powerful data synchronization
