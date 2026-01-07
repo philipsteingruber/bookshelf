@@ -1,6 +1,7 @@
 "use client";
 
 import { createFormSchema } from "@/lib/schemas/book";
+import { handleTRPCError } from "@/lib/error-handler";
 import { trpc } from "@/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
@@ -61,22 +62,7 @@ const CreateBookForm = () => {
         router.push(`/books/${createdBook.id}`);
       },
       onError: (error) => {
-        // Handle different error types with user-friendly messages
-        if (error.data?.code === "CONFLICT") {
-          // Server sends specific messages for ISBN or series conflicts
-          toast.error(error.message);
-        } else if (error.message.includes("unique constraint")) {
-          toast.error("A book with these details already exists in your library.");
-        } else if (error.message.includes("network") || error.message.includes("fetch")) {
-          toast.error("Network error. Please check your connection and try again.");
-        } else if (error.data?.code === "UNAUTHORIZED") {
-          toast.error("Please sign in to create books.");
-        } else if (error.data?.code === "BAD_REQUEST") {
-          toast.error("Invalid book information. Please check your entries.");
-        } else {
-          toast.error("Unable to create book. Please try again or contact support.");
-        }
-        console.error("Book creation failed:", error);
+        handleTRPCError(error, "Book creation");
       },
     });
 

@@ -1,5 +1,6 @@
 import { UseFormReturn } from "react-hook-form";
 import { createFormSchema } from "@/lib/schemas/book";
+import { handleUploadError } from "@/lib/error-handler";
 import { Label } from "@/components/ui/label";
 import { UploadButton } from "@/components/uploadthing";
 import { toast } from "sonner";
@@ -24,28 +25,7 @@ export const CoverUploadSection = ({
       <UploadButton
         endpoint="imageUploader"
         onUploadError={(error: Error) => {
-          // Provide specific error messages based on error type
-          if (
-            error.message.includes("file too large") ||
-            error.message.includes("FileSizeMismatch")
-          ) {
-            toast.error("Image too large. Please use an image under 4MB.");
-          } else if (
-            error.message.includes("file type") ||
-            error.message.includes("InvalidFileType")
-          ) {
-            toast.error("Invalid file type. Please upload a JPG or PNG image.");
-          } else if (
-            error.message.includes("network") ||
-            error.message.includes("fetch")
-          ) {
-            toast.error(
-              "Network error. Please check your connection and try again.",
-            );
-          } else {
-            toast.error("Upload failed. Please try again.");
-          }
-          console.error("Upload error:", error);
+          handleUploadError(error, "Cover upload");
         }}
         onClientUploadComplete={async (res) => {
           try {
