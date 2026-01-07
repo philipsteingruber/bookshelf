@@ -1,9 +1,11 @@
+import { ReadStatus } from "@/app/generated/prisma/enums";
 import {
   BookOrderByWithRelationInput,
   BookScalarFieldEnum,
   BookWhereInput,
 } from "@/app/generated/prisma/internal/prismaNamespace";
 import { createFormSchema } from "@/lib/schemas/book";
+import { logBookUpdate } from "@/utils/utils";
 import { TRPCError } from "@trpc/server";
 import z from "zod";
 import { authedProcedure, createTRPCRouter } from "../init";
@@ -107,5 +109,64 @@ export const bookRouter = createTRPCRouter({
 
       console.log(`Book Created: ${book.title} - ${book.author}`);
       return { book };
+    }),
+  updateReadingStatus: authedProcedure
+    .input(
+      z.object({
+        bookId: z.number(),
+        newStatus: z.enum(Object.values(ReadStatus)),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const book = await ctx.db.book.findUniqueOrThrow({
+        where: { id: input.bookId },
+      });
+
+      if (book.userId !== ctx.currentUser.id) {
+        throw new TRPCError({ code: "FORBIDDEN" });
+      }
+
+      const updatedBook = await ctx.db.book.update({
+        data: { status: input.newStatus },
+        where: { id: input.bookId },
+      });
+
+      if (updatedBook.status === "READ") {
+        const bookUpdatedProgress = await ctx.db.book.update({
+          data: { progress: 100 },
+          where: { id: input.bookId },
+        });
+        logBookUpdate(
+          bookUpdatedProgress.title,
+          bookUpdatedProgress.id,
+          "progress",
+          bookUpdatedProgress.progress,
+        );
+      }
+
+      if (
+        updatedBook.status === "TO_READ" ||
+        updatedBook.status === "READ_NEXT"
+      ) {
+        const bookUpdatedProgress = await ctx.db.book.update({
+          data: { progress: 0 },
+          where: { id: input.bookId },
+        });
+        logBookUpdate(
+          bookUpdatedProgress.title,
+          bookUpdatedProgress.id,
+          "progress",
+          bookUpdatedProgress.progress,
+        );
+      }
+
+      logBookUpdate(
+        updatedBook.title,
+        updatedBook.id,
+        "status",
+        updatedBook.status,
+      );
+
+      return updatedBook;
     }),
 });
