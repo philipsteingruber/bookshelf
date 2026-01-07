@@ -7,7 +7,6 @@ import {
   BookScalarFieldEnum,
   BookWhereInput,
 } from "@/generated/prisma/internal/prismaNamespace";
-import { logBookUpdate } from "@/lib/book-utils";
 import { VALIDATION_LIMITS } from "@/lib/constants";
 import { performanceLogger } from "@/lib/logger";
 import { createFormSchema } from "@/lib/schemas/book";
@@ -37,51 +36,86 @@ export type BookFilters = z.infer<typeof bookFiltersSchema>;
 export const bookRouter = createTRPCRouter({
   getBooks: authedProcedure
     .input(bookFiltersSchema)
-    .query(async ({ ctx, input }) => {
+    .query(async ({ ctx, input: filters }) => {
       const userId = ctx.currentUser.id;
+
+      ctx.logger.info(filters, "Querying books with filters");
 
       const where: BookWhereInput = { userId };
 
-      if (input?.status) {
-        where.status = input.status;
+      if (filters?.status) {
+        where.status = filters.status;
       }
-      if (input?.rating) {
-        where.rating = { gte: input.rating };
+      if (filters?.rating) {
+        where.rating = { gte: filters.rating };
       }
-      if (input?.search) {
+      if (filters?.search) {
         where.OR = [
-          { title: { contains: input.search, mode: "insensitive" } },
-          { author: { contains: input.search, mode: "insensitive" } },
-          { series: { contains: input.search, mode: "insensitive" } },
-          { isbn: { contains: input.search, mode: "insensitive" } },
+          { title: { contains: filters.search, mode: "insensitive" } },
+          { author: { contains: filters.search, mode: "insensitive" } },
+          { series: { contains: filters.search, mode: "insensitive" } },
+          { isbn: { contains: filters.search, mode: "insensitive" } },
         ];
       }
 
-      const orderBy: BookOrderByWithRelationInput = input?.sortBy
-        ? { [input.sortBy]: input.sortDirection || "asc" }
+      const orderBy: BookOrderByWithRelationInput = filters?.sortBy
+        ? { [filters.sortBy]: filters.sortDirection || "asc" }
         : { title: "asc" };
 
-      const limit = input?.limit || VALIDATION_LIMITS.BOOKS_QUERY_DEFAULT;
+      const limit = filters?.limit || VALIDATION_LIMITS.BOOKS_QUERY_DEFAULT;
 
+      const findBooksTimer = performanceLogger(
+        "DB: Fetching books",
+        500,
+        ctx.logger,
+      );
+
+      findBooksTimer.start();
       const books = await ctx.db.book.findMany({
         where,
         orderBy,
         take: limit,
       });
+      findBooksTimer.end({ ...filters, count: books.length });
 
+      ctx.logger.info({ count: books.length }, "Books query completed");
       return { books };
     }),
   getBook: authedProcedure
     .input(z.number().min(0))
     .query(async ({ ctx, input: bookId }) => {
-      const book = await ctx.db.book.findUniqueOrThrow({
+      ctx.logger.info({ bookId }, "Fetching book by ID");
+
+      const fetchBookTimer = performanceLogger(
+        "DB: Fetch book by ID",
+        500,
+        ctx.logger,
+      );
+
+      fetchBookTimer.start();
+      const book = await ctx.db.book.findUnique({
         where: { id: bookId },
       });
+      fetchBookTimer.end({ bookId });
+
+      if (!book) {
+        ctx.logger.warn({ bookId }, "Book not found");
+        throw new TRPCError({ code: "NOT_FOUND" });
+      }
 
       if (book.userId !== ctx.currentUser.id) {
+        ctx.logger.warn(
+          {
+            bookId: book.id,
+            bookOwnerId: book.userId,
+            attemptedBy: ctx.currentUser.id,
+          },
+          "Permission denied: Attempted to access another user's book",
+        );
         throw new TRPCError({ code: "FORBIDDEN" });
       }
 
+      ctx.logger.info({ bookId }, "Successfully fetched book");
       return { book };
     }),
   createBook: authedProcedure
@@ -101,7 +135,7 @@ export const bookRouter = createTRPCRouter({
       // Check for duplicate series entry
       if (input.series && input.seriesIndex) {
         const duplicateSeriesTimer = performanceLogger(
-          "DB: Check for duplicate Series Index",
+          "DB: Check for duplicate series index",
           500,
           ctx.logger,
         );
@@ -191,7 +225,7 @@ export const bookRouter = createTRPCRouter({
       createBookTimer.end({ bookId: book.id });
 
       ctx.logger.info(
-        { bookId: book.id, title: book.title, author: book.author },
+        { bookId: book.id, title: book.title, author: book.author, isbn: book.isbn },
         "Book created successfully",
       );
       return { book };
@@ -204,11 +238,40 @@ export const bookRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const book = await ctx.db.book.findUniqueOrThrow({
+      ctx.logger.info(
+        { bookId: input.bookId, newStatus: input.newStatus },
+        "Updating reading status",
+      );
+
+      const fetchBookTimer = performanceLogger(
+        "DB: Fetch book for status update",
+        500,
+        ctx.logger,
+      );
+
+      fetchBookTimer.start();
+      const book = await ctx.db.book.findUnique({
         where: { id: input.bookId },
       });
+      fetchBookTimer.end({ bookId: input.bookId });
+
+      if (!book) {
+        ctx.logger.warn(
+          { bookId: input.bookId },
+          "No book found for status update",
+        );
+        throw new TRPCError({ code: "NOT_FOUND" });
+      }
 
       if (book.userId !== ctx.currentUser.id) {
+        ctx.logger.warn(
+          {
+            bookId: book.id,
+            bookOwnerId: book.userId,
+            attemptedBy: ctx.currentUser.id,
+          },
+          "Permission denied: Attempted to access another user's book",
+        );
         throw new TRPCError({ code: "FORBIDDEN" });
       }
 
@@ -227,28 +290,29 @@ export const bookRouter = createTRPCRouter({
         updateData.progress = VALIDATION_LIMITS.PROGRESS_NOT_STARTED;
       }
 
-      // Single database update
+      const updateBookStatusTimer = performanceLogger(
+        "DB: Update book status/progress",
+        500,
+        ctx.logger,
+      );
+
+      updateBookStatusTimer.start();
       const updatedBook = await ctx.db.book.update({
         data: updateData,
         where: { id: input.bookId },
       });
+      updateBookStatusTimer.end({ bookId: input.bookId });
 
-      // Log updates
-      logBookUpdate(
-        updatedBook.title,
-        updatedBook.id,
-        "status",
-        updatedBook.status,
+      ctx.logger.info(
+        {
+          bookId: updatedBook.id,
+          oldStatus: book.status,
+          newStatus: updatedBook.status,
+          oldProgress: book.progress,
+          newProgress: updatedBook.progress,
+        },
+        "Book status updated",
       );
-
-      if (updateData.progress !== undefined) {
-        logBookUpdate(
-          updatedBook.title,
-          updatedBook.id,
-          "progress",
-          updatedBook.progress,
-        );
-      }
 
       return updatedBook;
     }),
