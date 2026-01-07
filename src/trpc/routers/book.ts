@@ -1,9 +1,9 @@
-import { ReadStatus } from "@/app/generated/prisma/enums";
+import { ReadStatus } from "@/generated/prisma/enums";
 import {
   BookOrderByWithRelationInput,
   BookScalarFieldEnum,
   BookWhereInput,
-} from "@/app/generated/prisma/internal/prismaNamespace";
+} from "@/generated/prisma/internal/prismaNamespace";
 import { createFormSchema } from "@/lib/schemas/book";
 import { logBookUpdate } from "@/utils/utils";
 import { TRPCError } from "@trpc/server";
