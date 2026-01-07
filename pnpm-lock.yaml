@@ -155,9 +155,6 @@ importers:
       pino:
         specifier: ^10.1.0
         version: 10.1.0
-      pino-pretty:
-        specifier: ^13.1.3
-        version: 13.1.3
       react:
         specifier: 19.2.3
         version: 19.2.3
@@ -234,6 +231,9 @@ importers:
       eslint-plugin-simple-import-sort:
         specifier: ^12.1.1
         version: 12.1.1(eslint@9.39.2(jiti@2.6.1))
+      pino-pretty:
+        specifier: ^13.1.3
+        version: 13.1.3
       prettier:
         specifier: ^3.7.4
         version: 3.7.4
