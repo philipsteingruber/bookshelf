@@ -3,6 +3,32 @@ import { toast } from "sonner";
 
 import type { AppRouter } from "@/trpc/routers/_app";
 
+const formatErrorLog = (error: unknown, context?: string) => {
+  // Check if error has nested data.code property
+  const getTRPCErrorCode = (err: unknown): string | undefined => {
+    if (
+      typeof err === "object" &&
+      err !== null &&
+      "data" in err &&
+      typeof err.data === "object" &&
+      err.data !== null &&
+      "code" in err.data
+    ) {
+      return typeof err.data.code === "string" ? err.data.code : undefined;
+    }
+    return undefined;
+  };
+
+  const errorData = {
+    context,
+    message: error instanceof Error ? error.message : String(error),
+    name: error instanceof Error ? error.name : undefined,
+    code: getTRPCErrorCode(error),
+  };
+
+  return errorData;
+};
+
 /**
  * Centralized TRPC error handler for consistent error messaging
  * @param error - The TRPC error from a mutation or query
@@ -36,11 +62,7 @@ export const handleTRPCError = (
   }
 
   // Log the full error for debugging
-  if (context) {
-    console.error(`${context} failed:`, error);
-  } else {
-    console.error("Operation failed:", error);
-  }
+  console.error("TRPC Error:", formatErrorLog(error, context), error);
 };
 
 /**
@@ -70,9 +92,5 @@ export const handleUploadError = (error: Error, context?: string) => {
   }
 
   // Log the full error for debugging
-  if (context) {
-    console.error(`${context} failed:`, error);
-  } else {
-    console.error("Upload failed:", error);
-  }
+  console.error("Upload Error:", formatErrorLog(error, context), error);
 };
