@@ -5,6 +5,7 @@ import {
   BookWhereInput,
 } from "@/generated/prisma/internal/prismaNamespace";
 import { logBookUpdate } from "@/lib/book-utils";
+import { VALIDATION_LIMITS } from "@/lib/constants";
 import { createFormSchema } from "@/lib/schemas/book";
 import { TRPCError } from "@trpc/server";
 import z from "zod";
@@ -24,7 +25,11 @@ const bookFiltersSchema = z
     search: z.string().optional(), // Search in title/author
     sortBy: z.enum(Object.values(BookScalarFieldEnum)).optional(),
     sortDirection: z.enum(["asc", "desc"]).optional(),
-    limit: z.number().min(1).max(100).optional(),
+    limit: z
+      .number()
+      .min(1)
+      .max(VALIDATION_LIMITS.BOOKS_QUERY_MAX)
+      .optional(),
   })
   .optional();
 
@@ -57,7 +62,7 @@ export const bookRouter = createTRPCRouter({
         ? { [input.sortBy]: input.sortDirection || "asc" }
         : { title: "asc" };
 
-      const limit = input?.limit || 50;
+      const limit = input?.limit || VALIDATION_LIMITS.BOOKS_QUERY_DEFAULT;
 
       const books = await ctx.db.book.findMany({
         where,
@@ -161,12 +166,12 @@ export const bookRouter = createTRPCRouter({
 
       // Set progress based on status
       if (input.newStatus === "READ") {
-        updateData.progress = 100;
+        updateData.progress = VALIDATION_LIMITS.PROGRESS_COMPLETE;
       } else if (
         input.newStatus === "TO_READ" ||
         input.newStatus === "READ_NEXT"
       ) {
-        updateData.progress = 0;
+        updateData.progress = VALIDATION_LIMITS.PROGRESS_NOT_STARTED;
       }
 
       // Single database update

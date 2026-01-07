@@ -1,17 +1,22 @@
 import { parse } from "isbn3";
 import z from "zod";
-
-const maxYear = new Date().getFullYear() + 1;
+import { VALIDATION_LIMITS } from "../constants";
 
 export const createFormSchema = z.object({
   title: z
     .string()
     .min(1, "Title is mandatory.")
-    .max(50, "Title cannot be more than 50 characters."),
+    .max(
+      VALIDATION_LIMITS.TITLE_MAX_LENGTH,
+      `Title cannot be more than ${VALIDATION_LIMITS.TITLE_MAX_LENGTH} characters.`,
+    ),
   author: z
     .string()
     .min(1, "Author is mandatory.")
-    .max(50, "Author cannot be more than 50 characters."),
+    .max(
+      VALIDATION_LIMITS.AUTHOR_MAX_LENGTH,
+      `Author cannot be more than ${VALIDATION_LIMITS.AUTHOR_MAX_LENGTH} characters.`,
+    ),
   pageCount: z
     .number()
     .int()
@@ -29,9 +34,14 @@ export const createFormSchema = z.object({
     }, "Invalid ISBN. Please enter a valid ISBN-10 or ISBN-13.")
     .optional()
     .or(z.literal("")),
-  series: z.string().max(50).optional(),
+  series: z.string().max(VALIDATION_LIMITS.SERIES_MAX_LENGTH).optional(),
   seriesIndex: z.number().int().positive().optional(),
-  publishedYear: z.number().int().positive().min(1800).max(maxYear),
-  summary: z.string().max(2000).optional(),
+  publishedYear: z
+    .number()
+    .int()
+    .positive()
+    .min(VALIDATION_LIMITS.MIN_PUBLISHED_YEAR)
+    .max(VALIDATION_LIMITS.MAX_PUBLISHED_YEAR),
+  summary: z.string().max(VALIDATION_LIMITS.SUMMARY_MAX_LENGTH).optional(),
   coverUrl: z.url().optional().or(z.literal("")),
 });
