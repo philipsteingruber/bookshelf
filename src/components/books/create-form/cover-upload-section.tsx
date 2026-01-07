@@ -2,11 +2,10 @@ import { UseFormReturn } from "react-hook-form";
 import { toast } from "sonner";
 import z from "zod";
 
-import { createFormSchema } from "@/lib/schemas/book";
-import { handleUploadError } from "@/lib/error-handler";
-
 import { Label } from "@/components/ui/label";
 import { UploadButton } from "@/components/uploadthing";
+import { handleUploadError } from "@/lib/error-handler";
+import { createFormSchema } from "@/lib/schemas/book";
 
 interface CoverUploadSectionProps {
   form: UseFormReturn<z.infer<typeof createFormSchema>>;
@@ -36,7 +35,9 @@ export const CoverUploadSection = ({
             toast.success("Cover successfully uploaded.");
             setShowUploadButton(false);
           } catch (err) {
-            toast.error("Failed to save cover URL. Please try uploading again.");
+            toast.error(
+              "Failed to save cover URL. Please try uploading again.",
+            );
             console.error("Upload complete error:", err);
           }
         }}

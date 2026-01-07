@@ -1,10 +1,14 @@
 import { Controller, UseFormReturn } from "react-hook-form";
 import z from "zod";
 
-import { createFormSchema } from "@/lib/schemas/book";
-
-import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { createFormSchema } from "@/lib/schemas/book";
 
 interface BasicInfoSectionProps {
   form: UseFormReturn<z.infer<typeof createFormSchema>>;
