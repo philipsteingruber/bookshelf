@@ -1,9 +1,10 @@
 "use client";
 
+import { RedirectToSignIn, useAuth } from "@clerk/nextjs";
+
 import BookCard from "@/components/books/book-card";
 import LoadingState from "@/components/loading-state";
 import { useBooks } from "@/hooks/use-books";
-import { RedirectToSignIn, useAuth } from "@clerk/nextjs";
 
 const Page = () => {
   const { isSignedIn } = useAuth();
