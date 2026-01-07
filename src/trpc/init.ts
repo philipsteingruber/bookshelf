@@ -1,24 +1,27 @@
 import { cache } from "react";
+import { headers } from "next/headers";
 
 import { auth } from "@clerk/nextjs/server";
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 
+import { createLoggerWithContext } from "@/lib/logger";
 import prisma from "@/lib/prisma";
 
 export const createTRPCContext = cache(async () => {
-  /**
-   * @see: https://trpc.io/docs/server/context
-   */
-  return { db: prisma, auth: await auth() };
+  const headersList = await headers();
+
+  const requestId = headersList.get("x-request-id") ?? undefined;
+  const userId = headersList.get("x-user-id") ?? undefined;
+  const route = headersList.get("x-pathname") ?? undefined;
+
+  const logger = createLoggerWithContext({ requestId, userId, route });
+
+  return { db: prisma, auth: await auth(), logger };
 });
 
 type Context = Awaited<ReturnType<typeof createTRPCContext>>;
 
-// Avoid exporting the entire t-object
-// since it's not very descriptive.
-// For instance, the use of a t variable
-// is common in i18n libraries.
 const t = initTRPC.context<Context>().create({
   /**
    * @see https://trpc.io/docs/server/data-transformers
@@ -42,7 +45,6 @@ const isAuthed = t.middleware(async ({ next, ctx }) => {
   return next({
     ctx: {
       ...ctx,
-      auth: ctx.auth,
       currentUser,
     },
   });
