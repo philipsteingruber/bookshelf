@@ -1,3 +1,6 @@
+import { TRPCError } from "@trpc/server";
+import z from "zod";
+
 import { ReadStatus } from "@/generated/prisma/enums";
 import {
   BookOrderByWithRelationInput,
@@ -7,8 +10,7 @@ import {
 import { logBookUpdate } from "@/lib/book-utils";
 import { VALIDATION_LIMITS } from "@/lib/constants";
 import { createFormSchema } from "@/lib/schemas/book";
-import { TRPCError } from "@trpc/server";
-import z from "zod";
+
 import { authedProcedure, createTRPCRouter } from "../init";
 
 const readStatusEnum = z.enum([

@@ -1,5 +1,20 @@
 "use client";
 
+import { use, useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { RedirectToSignIn, useAuth } from "@clerk/nextjs";
+import { TRPCError } from "@trpc/server";
+import { PenIcon } from "lucide-react";
+import { toast } from "sonner";
+
+import { ReadStatus } from "@/generated/prisma/enums";
+import { useBook } from "@/hooks/use-book";
+import { getStatusButtonStyle, parseReadStatus } from "@/lib/book-utils";
+import { BOOK_COVER_PLACEHOLDER_URL } from "@/lib/constants";
+import { cn } from "@/lib/utils";
+import { trpc } from "@/trpc/client";
+
 import ErrorState from "@/components/error-state";
 import LoadingState from "@/components/loading-state";
 import { Button } from "@/components/ui/button";
@@ -20,19 +35,6 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ReadStatus } from "@/generated/prisma/enums";
-import { useBook } from "@/hooks/use-book";
-import { getStatusButtonStyle, parseReadStatus } from "@/lib/book-utils";
-import { BOOK_COVER_PLACEHOLDER_URL } from "@/lib/constants";
-import { cn } from "@/lib/utils";
-import { trpc } from "@/trpc/client";
-import { RedirectToSignIn, useAuth } from "@clerk/nextjs";
-import { TRPCError } from "@trpc/server";
-import { PenIcon } from "lucide-react";
-import Image from "next/image";
-import Link from "next/link";
-import { use, useState } from "react";
-import { toast } from "sonner";
 
 export default function Page({
   params,

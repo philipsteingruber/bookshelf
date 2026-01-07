@@ -1,5 +1,15 @@
 "use client";
 
+import { RedirectToSignIn, useAuth } from "@clerk/nextjs";
+import {
+  BookCheckIcon,
+  BookIcon,
+  FlameIcon,
+  TrendingUpIcon,
+} from "lucide-react";
+
+import { useBooks } from "@/hooks/use-books";
+
 import BookCard from "@/components/books/book-card";
 import DashboardCard, {
   DashboardCardProps,
@@ -8,14 +18,6 @@ import ReadingProgressCard from "@/components/dashboard/readingprogress-card";
 import ErrorState from "@/components/error-state";
 import LoadingState from "@/components/loading-state";
 import { Separator } from "@/components/ui/separator";
-import { useBooks } from "@/hooks/use-books";
-import { RedirectToSignIn, useAuth } from "@clerk/nextjs";
-import {
-  BookCheckIcon,
-  BookIcon,
-  FlameIcon,
-  TrendingUpIcon,
-} from "lucide-react";
 
 const Page = () => {
   const {
