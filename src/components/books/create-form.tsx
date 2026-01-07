@@ -1,6 +1,5 @@
 "use client";
 
-import { useBooks } from "@/hooks/use-books";
 import { createFormSchema } from "@/lib/schemas/book";
 import { trpc } from "@/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -63,52 +62,20 @@ const CreateBookForm = () => {
         router.push(`/books/${createdBook.id}`);
       },
       onError: (error) => {
-        console.error(error);
-        toast.error("Failed to create book, try again.");
+        // Handle CONFLICT errors from server (duplicate validation)
+        if (error.data?.code === "CONFLICT") {
+          toast.error(error.message);
+        } else {
+          toast.error("Failed to create book. Please try again.");
+        }
+        console.error("Book creation failed:", error);
       },
     });
-
-  const { books: existingBooksInSeries } = useBooks({
-    // eslint-disable-next-line react-hooks/incompatible-library
-    search: form.watch("series"),
-    enabled: !!form.watch("series") && !!form.watch("seriesIndex"),
-  });
-  const { books: existingBooksIsbn } = useBooks({
-    search: form.watch("isbn"),
-    enabled: !!form.watch("isbn"),
-  });
 
   const router = useRouter();
 
   const onSubmit = (data: z.infer<typeof createFormSchema>) => {
-    if (data.series && data.seriesIndex) {
-      const duplicate = existingBooksInSeries.find(
-        (book) =>
-          book.series?.toLowerCase() === data.series?.toLowerCase() &&
-          book.seriesIndex === data.seriesIndex,
-      );
-
-      if (duplicate) {
-        toast.error(
-          `You already have "${duplicate.title}" at position ${duplicate.seriesIndex} in the series ${duplicate.series}`,
-        );
-        return;
-      }
-    }
-
-    if (data.isbn) {
-      const duplicate = existingBooksIsbn.find(
-        (book) => book.isbn === data.isbn,
-      );
-
-      if (duplicate) {
-        toast.error(
-          `You already have "${duplicate.title}" with ISBN ${duplicate.isbn}`,
-        );
-        return;
-      }
-    }
-
+    // Server-side validation handles duplicate checks now
     createBook(data);
   };
 

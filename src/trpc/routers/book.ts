@@ -92,6 +92,41 @@ export const bookRouter = createTRPCRouter({
         where: { clerkId: ctx.auth.userId },
       });
 
+      // Check for duplicate series entry
+      if (input.series && input.seriesIndex) {
+        const duplicateSeries = await ctx.db.book.findFirst({
+          where: {
+            userId: user.id,
+            series: { equals: input.series, mode: "insensitive" },
+            seriesIndex: input.seriesIndex,
+          },
+        });
+
+        if (duplicateSeries) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: `You already have "${duplicateSeries.title}" at position ${input.seriesIndex} in ${input.series}`,
+          });
+        }
+      }
+
+      // Check for duplicate ISBN
+      if (input.isbn) {
+        const duplicateIsbn = await ctx.db.book.findFirst({
+          where: {
+            userId: user.id,
+            isbn: input.isbn,
+          },
+        });
+
+        if (duplicateIsbn) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: `You already have "${duplicateIsbn.title}" with ISBN ${input.isbn}`,
+          });
+        }
+      }
+
       const book = await ctx.db.book.create({
         data: {
           title: input.title,
