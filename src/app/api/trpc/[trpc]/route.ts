@@ -16,7 +16,8 @@ export const OPTIONS = () => {
   return new Response(null, {
     status: 200,
     headers: {
-      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Origin":
+        process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3001",
       "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type",
     },
