@@ -6,7 +6,16 @@ export const logger = pino({
     process.env.NODE_ENV === "development"
       ? { target: "pino-pretty" }
       : undefined,
-  redact: ["password", "token", "apiKey", "authorization"],
+  redact: {
+    paths: ["password", "token", "apiKey", "authorization"],
+    remove: true,
+  },
+  base: {
+    env: process.env.NODE_ENV,
+    deployment: process.env.VERCEL_URL,
+    region: process.env.VERCEL_REGION,
+  },
+  //timestamp: pino.stdTimeFunctions.isoTime
 });
 
 export interface LogContext {
@@ -29,7 +38,7 @@ export const performanceLogger = (
   return {
     start: () => {
       startTime = Date.now();
-      loggerInstance.debug({ operation }, `Starting ${operation}`);
+      loggerInstance.debug({ operation }, `Starting - ${operation}`);
     },
     end: (metadata?: Record<string, unknown>) => {
       const duration = Date.now() - startTime;
@@ -43,7 +52,7 @@ export const performanceLogger = (
       } else {
         loggerInstance.debug(
           logData,
-          `Completed: ${operation} in ${duration}ms`,
+          `Completed - ${operation} in ${duration}ms`,
         );
       }
 
