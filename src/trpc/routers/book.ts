@@ -9,6 +9,7 @@ import {
 } from "@/generated/prisma/internal/prismaNamespace";
 import { logBookUpdate } from "@/lib/book-utils";
 import { VALIDATION_LIMITS } from "@/lib/constants";
+import { performanceLogger } from "@/lib/logger";
 import { createFormSchema } from "@/lib/schemas/book";
 
 import { authedProcedure, createTRPCRouter } from "../init";
@@ -88,8 +89,24 @@ export const bookRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.currentUser.id;
 
+      ctx.logger.info(
+        {
+          title: input.title,
+          author: input.author,
+          isbn: input.isbn,
+        },
+        "Creating book",
+      );
+
       // Check for duplicate series entry
       if (input.series && input.seriesIndex) {
+        const duplicateSeriesTimer = performanceLogger(
+          "DB: Check for duplicate Series Index",
+          500,
+          ctx.logger,
+        );
+
+        duplicateSeriesTimer.start();
         const duplicateSeries = await ctx.db.book.findFirst({
           where: {
             userId,
@@ -97,8 +114,19 @@ export const bookRouter = createTRPCRouter({
             seriesIndex: input.seriesIndex,
           },
         });
+        duplicateSeriesTimer.end();
 
         if (duplicateSeries) {
+          ctx.logger.warn(
+            {
+              series: input.series,
+              seriesIndex: input.seriesIndex,
+              existingBookId: duplicateSeries.id,
+              existingBookTitle: duplicateSeries.title,
+            },
+            "Duplicate series entry detected",
+          );
+
           throw new TRPCError({
             code: "CONFLICT",
             message: `You already have "${duplicateSeries.title}" at position ${input.seriesIndex} in ${input.series}`,
@@ -108,14 +136,31 @@ export const bookRouter = createTRPCRouter({
 
       // Check for duplicate ISBN
       if (input.isbn) {
+        const duplicateIsbnTimer = performanceLogger(
+          "DB: Check for duplicate ISBN",
+          500,
+          ctx.logger,
+        );
+
+        duplicateIsbnTimer.start();
         const duplicateIsbn = await ctx.db.book.findFirst({
           where: {
             userId,
             isbn: input.isbn,
           },
         });
+        duplicateIsbnTimer.end({ isbn: input.isbn });
 
         if (duplicateIsbn) {
+          ctx.logger.warn(
+            {
+              isbn: input.isbn,
+              existingBookId: duplicateIsbn.id,
+              existingBookTitle: duplicateIsbn.title,
+            },
+            "Duplicate ISBN detected",
+          );
+
           throw new TRPCError({
             code: "CONFLICT",
             message: `You already have "${duplicateIsbn.title}" with ISBN ${input.isbn}`,
@@ -123,6 +168,12 @@ export const bookRouter = createTRPCRouter({
         }
       }
 
+      const createBookTimer = performanceLogger(
+        "DB: Create book",
+        500,
+        ctx.logger,
+      );
+      createBookTimer.start();
       const book = await ctx.db.book.create({
         data: {
           title: input.title,
@@ -137,8 +188,12 @@ export const bookRouter = createTRPCRouter({
           userId,
         },
       });
+      createBookTimer.end({ bookId: book.id });
 
-      console.log(`Book Created: ${book.title} - ${book.author}`);
+      ctx.logger.info(
+        { bookId: book.id, title: book.title, author: book.author },
+        "Book created successfully",
+      );
       return { book };
     }),
   updateReadingStatus: authedProcedure
