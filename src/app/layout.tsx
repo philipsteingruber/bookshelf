@@ -1,11 +1,13 @@
-import { AppSidebar } from "@/components/layout/app-sidebar";
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import { TRPCProvider } from "@/trpc/client";
+import "./globals.css";
+
 import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "sonner";
-import "./globals.css";
+
+import { AppSidebar } from "@/components/layout/app-sidebar";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { TRPCProvider } from "@/trpc/client";
 
 export const metadata: Metadata = {
   title: "BookShelf",

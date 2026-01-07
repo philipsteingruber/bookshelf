@@ -1,6 +1,8 @@
-import prisma from "@/lib/prisma";
-import { verifyWebhook } from "@clerk/nextjs/webhooks";
 import { NextRequest } from "next/server";
+
+import { verifyWebhook } from "@clerk/nextjs/webhooks";
+
+import prisma from "@/lib/prisma";
 
 export async function POST(req: NextRequest) {
   try {
@@ -8,7 +10,7 @@ export async function POST(req: NextRequest) {
     const { id } = evt.data;
     const eventType = evt.type;
     console.log(
-      `Received webhook with ID ${id} and event type of ${eventType}`
+      `Received webhook with ID ${id} and event type of ${eventType}`,
     );
 
     if (eventType === "user.created") {
