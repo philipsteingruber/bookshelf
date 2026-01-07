@@ -154,46 +154,43 @@ export const bookRouter = createTRPCRouter({
         throw new TRPCError({ code: "FORBIDDEN" });
       }
 
+      // Prepare update data with status and progress in one operation
+      const updateData: { status: ReadStatus; progress?: number } = {
+        status: input.newStatus,
+      };
+
+      // Set progress based on status
+      if (input.newStatus === "READ") {
+        updateData.progress = 100;
+      } else if (
+        input.newStatus === "TO_READ" ||
+        input.newStatus === "READ_NEXT"
+      ) {
+        updateData.progress = 0;
+      }
+
+      // Single database update
       const updatedBook = await ctx.db.book.update({
-        data: { status: input.newStatus },
+        data: updateData,
         where: { id: input.bookId },
       });
 
-      if (updatedBook.status === "READ") {
-        const bookUpdatedProgress = await ctx.db.book.update({
-          data: { progress: 100 },
-          where: { id: input.bookId },
-        });
-        logBookUpdate(
-          bookUpdatedProgress.title,
-          bookUpdatedProgress.id,
-          "progress",
-          bookUpdatedProgress.progress,
-        );
-      }
-
-      if (
-        updatedBook.status === "TO_READ" ||
-        updatedBook.status === "READ_NEXT"
-      ) {
-        const bookUpdatedProgress = await ctx.db.book.update({
-          data: { progress: 0 },
-          where: { id: input.bookId },
-        });
-        logBookUpdate(
-          bookUpdatedProgress.title,
-          bookUpdatedProgress.id,
-          "progress",
-          bookUpdatedProgress.progress,
-        );
-      }
-
+      // Log updates
       logBookUpdate(
         updatedBook.title,
         updatedBook.id,
         "status",
         updatedBook.status,
       );
+
+      if (updateData.progress !== undefined) {
+        logBookUpdate(
+          updatedBook.title,
+          updatedBook.id,
+          "progress",
+          updatedBook.progress,
+        );
+      }
 
       return updatedBook;
     }),
