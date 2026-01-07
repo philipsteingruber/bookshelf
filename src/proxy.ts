@@ -1,6 +1,26 @@
+import { NextRequest, NextResponse } from "next/server";
+
 import { clerkMiddleware } from "@clerk/nextjs/server";
 
-export default clerkMiddleware();
+export default clerkMiddleware(async (auth, request: NextRequest) => {
+  const requestId = crypto.randomUUID();
+
+  const { userId } = await auth();
+
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-request-id", requestId);
+  requestHeaders.set("x-pathname", request.nextUrl.pathname);
+
+  if (userId) {
+    requestHeaders.set("x-user-id", userId);
+  }
+
+  return NextResponse.next({
+    request: {
+      headers: requestHeaders,
+    },
+  });
+});
 
 export const config = {
   matcher: [
