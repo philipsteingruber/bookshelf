@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "postinstall": "prisma generate"
+    "lint:fix": "eslint --fix",
+    "postinstall": "prisma generate",
+    "prepare": "node -e \"try { require('fs').mkdirSync('.git/hooks', { recursive: true }); require('fs').copyFileSync('scripts/pre-commit', '.git/hooks/pre-commit'); require('fs').chmodSync('.git/hooks/pre-commit', '755'); } catch (e) {}\""
   },
   "dependencies": {
     "@clerk/nextjs": "^6.36.5",

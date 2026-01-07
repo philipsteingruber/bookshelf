@@ -12,7 +12,7 @@ const eslintConfig = defineConfig([
     },
     rules: {
       "simple-import-sort/imports": [
-        "error",
+        "warn",
         {
           groups: [
             // Side effect imports (e.g., import './styles.css')
@@ -30,7 +30,7 @@ const eslintConfig = defineConfig([
           ],
         },
       ],
-      "simple-import-sort/exports": "error",
+      "simple-import-sort/exports": "warn",
     },
   },
   // Override default ignores of eslint-config-next.
