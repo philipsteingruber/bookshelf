@@ -33,6 +33,7 @@ export type BookAvgAggregateOutputType = {
   rating: number | null
   seriesIndex: number | null
   publishedYear: number | null
+  goodreadsRating: runtime.Decimal | null
 }
 
 export type BookSumAggregateOutputType = {
@@ -42,6 +43,7 @@ export type BookSumAggregateOutputType = {
   rating: number | null
   seriesIndex: number | null
   publishedYear: number | null
+  goodreadsRating: runtime.Decimal | null
 }
 
 export type BookMinAggregateOutputType = {
@@ -58,6 +60,9 @@ export type BookMinAggregateOutputType = {
   seriesIndex: number | null
   publishedYear: number | null
   summary: string | null
+  goodreadsRating: runtime.Decimal | null
+  goodreadsUrl: string | null
+  googleBooksUrl: string | null
   status: $Enums.ReadStatus | null
   userId: string | null
   startedAt: Date | null
@@ -80,6 +85,9 @@ export type BookMaxAggregateOutputType = {
   seriesIndex: number | null
   publishedYear: number | null
   summary: string | null
+  goodreadsRating: runtime.Decimal | null
+  goodreadsUrl: string | null
+  googleBooksUrl: string | null
   status: $Enums.ReadStatus | null
   userId: string | null
   startedAt: Date | null
@@ -102,6 +110,9 @@ export type BookCountAggregateOutputType = {
   seriesIndex: number
   publishedYear: number
   summary: number
+  goodreadsRating: number
+  goodreadsUrl: number
+  googleBooksUrl: number
   status: number
   userId: number
   startedAt: number
@@ -119,6 +130,7 @@ export type BookAvgAggregateInputType = {
   rating?: true
   seriesIndex?: true
   publishedYear?: true
+  goodreadsRating?: true
 }
 
 export type BookSumAggregateInputType = {
@@ -128,6 +140,7 @@ export type BookSumAggregateInputType = {
   rating?: true
   seriesIndex?: true
   publishedYear?: true
+  goodreadsRating?: true
 }
 
 export type BookMinAggregateInputType = {
@@ -144,6 +157,9 @@ export type BookMinAggregateInputType = {
   seriesIndex?: true
   publishedYear?: true
   summary?: true
+  goodreadsRating?: true
+  goodreadsUrl?: true
+  googleBooksUrl?: true
   status?: true
   userId?: true
   startedAt?: true
@@ -166,6 +182,9 @@ export type BookMaxAggregateInputType = {
   seriesIndex?: true
   publishedYear?: true
   summary?: true
+  goodreadsRating?: true
+  goodreadsUrl?: true
+  googleBooksUrl?: true
   status?: true
   userId?: true
   startedAt?: true
@@ -188,6 +207,9 @@ export type BookCountAggregateInputType = {
   seriesIndex?: true
   publishedYear?: true
   summary?: true
+  goodreadsRating?: true
+  goodreadsUrl?: true
+  googleBooksUrl?: true
   status?: true
   userId?: true
   startedAt?: true
@@ -297,6 +319,9 @@ export type BookGroupByOutputType = {
   seriesIndex: number | null
   publishedYear: number
   summary: string | null
+  goodreadsRating: runtime.Decimal | null
+  goodreadsUrl: string | null
+  googleBooksUrl: string | null
   status: $Enums.ReadStatus
   userId: string
   startedAt: Date | null
@@ -342,6 +367,9 @@ export type BookWhereInput = {
   seriesIndex?: Prisma.IntNullableFilter<"Book"> | number | null
   publishedYear?: Prisma.IntFilter<"Book"> | number
   summary?: Prisma.StringNullableFilter<"Book"> | string | null
+  goodreadsRating?: Prisma.DecimalNullableFilter<"Book"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  goodreadsUrl?: Prisma.StringNullableFilter<"Book"> | string | null
+  googleBooksUrl?: Prisma.StringNullableFilter<"Book"> | string | null
   status?: Prisma.EnumReadStatusFilter<"Book"> | $Enums.ReadStatus
   userId?: Prisma.StringFilter<"Book"> | string
   startedAt?: Prisma.DateTimeNullableFilter<"Book"> | Date | string | null
@@ -366,6 +394,9 @@ export type BookOrderByWithRelationInput = {
   seriesIndex?: Prisma.SortOrderInput | Prisma.SortOrder
   publishedYear?: Prisma.SortOrder
   summary?: Prisma.SortOrderInput | Prisma.SortOrder
+  goodreadsRating?: Prisma.SortOrderInput | Prisma.SortOrder
+  goodreadsUrl?: Prisma.SortOrderInput | Prisma.SortOrder
+  googleBooksUrl?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   startedAt?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -395,6 +426,9 @@ export type BookWhereUniqueInput = Prisma.AtLeast<{
   seriesIndex?: Prisma.IntNullableFilter<"Book"> | number | null
   publishedYear?: Prisma.IntFilter<"Book"> | number
   summary?: Prisma.StringNullableFilter<"Book"> | string | null
+  goodreadsRating?: Prisma.DecimalNullableFilter<"Book"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  goodreadsUrl?: Prisma.StringNullableFilter<"Book"> | string | null
+  googleBooksUrl?: Prisma.StringNullableFilter<"Book"> | string | null
   status?: Prisma.EnumReadStatusFilter<"Book"> | $Enums.ReadStatus
   userId?: Prisma.StringFilter<"Book"> | string
   startedAt?: Prisma.DateTimeNullableFilter<"Book"> | Date | string | null
@@ -419,6 +453,9 @@ export type BookOrderByWithAggregationInput = {
   seriesIndex?: Prisma.SortOrderInput | Prisma.SortOrder
   publishedYear?: Prisma.SortOrder
   summary?: Prisma.SortOrderInput | Prisma.SortOrder
+  goodreadsRating?: Prisma.SortOrderInput | Prisma.SortOrder
+  goodreadsUrl?: Prisma.SortOrderInput | Prisma.SortOrder
+  googleBooksUrl?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   startedAt?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -449,6 +486,9 @@ export type BookScalarWhereWithAggregatesInput = {
   seriesIndex?: Prisma.IntNullableWithAggregatesFilter<"Book"> | number | null
   publishedYear?: Prisma.IntWithAggregatesFilter<"Book"> | number
   summary?: Prisma.StringNullableWithAggregatesFilter<"Book"> | string | null
+  goodreadsRating?: Prisma.DecimalNullableWithAggregatesFilter<"Book"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  goodreadsUrl?: Prisma.StringNullableWithAggregatesFilter<"Book"> | string | null
+  googleBooksUrl?: Prisma.StringNullableWithAggregatesFilter<"Book"> | string | null
   status?: Prisma.EnumReadStatusWithAggregatesFilter<"Book"> | $Enums.ReadStatus
   userId?: Prisma.StringWithAggregatesFilter<"Book"> | string
   startedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Book"> | Date | string | null
@@ -470,6 +510,9 @@ export type BookCreateInput = {
   seriesIndex?: number | null
   publishedYear: number
   summary?: string | null
+  goodreadsRating?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  goodreadsUrl?: string | null
+  googleBooksUrl?: string | null
   status?: $Enums.ReadStatus
   startedAt?: Date | string | null
   finishedAt?: Date | string | null
@@ -493,6 +536,9 @@ export type BookUncheckedCreateInput = {
   seriesIndex?: number | null
   publishedYear: number
   summary?: string | null
+  goodreadsRating?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  goodreadsUrl?: string | null
+  googleBooksUrl?: string | null
   status?: $Enums.ReadStatus
   userId: string
   startedAt?: Date | string | null
@@ -515,6 +561,9 @@ export type BookUpdateInput = {
   seriesIndex?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   publishedYear?: Prisma.IntFieldUpdateOperationsInput | number
   summary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  goodreadsRating?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  goodreadsUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleBooksUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumReadStatusFieldUpdateOperationsInput | $Enums.ReadStatus
   startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   finishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -538,6 +587,9 @@ export type BookUncheckedUpdateInput = {
   seriesIndex?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   publishedYear?: Prisma.IntFieldUpdateOperationsInput | number
   summary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  goodreadsRating?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  goodreadsUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleBooksUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumReadStatusFieldUpdateOperationsInput | $Enums.ReadStatus
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -561,6 +613,9 @@ export type BookCreateManyInput = {
   seriesIndex?: number | null
   publishedYear: number
   summary?: string | null
+  goodreadsRating?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  goodreadsUrl?: string | null
+  googleBooksUrl?: string | null
   status?: $Enums.ReadStatus
   userId: string
   startedAt?: Date | string | null
@@ -582,6 +637,9 @@ export type BookUpdateManyMutationInput = {
   seriesIndex?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   publishedYear?: Prisma.IntFieldUpdateOperationsInput | number
   summary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  goodreadsRating?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  goodreadsUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleBooksUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumReadStatusFieldUpdateOperationsInput | $Enums.ReadStatus
   startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   finishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -603,6 +661,9 @@ export type BookUncheckedUpdateManyInput = {
   seriesIndex?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   publishedYear?: Prisma.IntFieldUpdateOperationsInput | number
   summary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  goodreadsRating?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  goodreadsUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleBooksUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumReadStatusFieldUpdateOperationsInput | $Enums.ReadStatus
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -646,6 +707,9 @@ export type BookCountOrderByAggregateInput = {
   seriesIndex?: Prisma.SortOrder
   publishedYear?: Prisma.SortOrder
   summary?: Prisma.SortOrder
+  goodreadsRating?: Prisma.SortOrder
+  goodreadsUrl?: Prisma.SortOrder
+  googleBooksUrl?: Prisma.SortOrder
   status?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   startedAt?: Prisma.SortOrder
@@ -661,6 +725,7 @@ export type BookAvgOrderByAggregateInput = {
   rating?: Prisma.SortOrder
   seriesIndex?: Prisma.SortOrder
   publishedYear?: Prisma.SortOrder
+  goodreadsRating?: Prisma.SortOrder
 }
 
 export type BookMaxOrderByAggregateInput = {
@@ -677,6 +742,9 @@ export type BookMaxOrderByAggregateInput = {
   seriesIndex?: Prisma.SortOrder
   publishedYear?: Prisma.SortOrder
   summary?: Prisma.SortOrder
+  goodreadsRating?: Prisma.SortOrder
+  goodreadsUrl?: Prisma.SortOrder
+  googleBooksUrl?: Prisma.SortOrder
   status?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   startedAt?: Prisma.SortOrder
@@ -699,6 +767,9 @@ export type BookMinOrderByAggregateInput = {
   seriesIndex?: Prisma.SortOrder
   publishedYear?: Prisma.SortOrder
   summary?: Prisma.SortOrder
+  goodreadsRating?: Prisma.SortOrder
+  goodreadsUrl?: Prisma.SortOrder
+  googleBooksUrl?: Prisma.SortOrder
   status?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   startedAt?: Prisma.SortOrder
@@ -714,6 +785,7 @@ export type BookSumOrderByAggregateInput = {
   rating?: Prisma.SortOrder
   seriesIndex?: Prisma.SortOrder
   publishedYear?: Prisma.SortOrder
+  goodreadsRating?: Prisma.SortOrder
 }
 
 export type BookScalarRelationFilter = {
@@ -783,6 +855,14 @@ export type NullableStringFieldUpdateOperationsInput = {
   set?: string | null
 }
 
+export type NullableDecimalFieldUpdateOperationsInput = {
+  set?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  increment?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  decrement?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  multiply?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  divide?: runtime.Decimal | runtime.DecimalJsLike | number | string
+}
+
 export type EnumReadStatusFieldUpdateOperationsInput = {
   set?: $Enums.ReadStatus
 }
@@ -818,6 +898,9 @@ export type BookCreateWithoutUserInput = {
   seriesIndex?: number | null
   publishedYear: number
   summary?: string | null
+  goodreadsRating?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  goodreadsUrl?: string | null
+  googleBooksUrl?: string | null
   status?: $Enums.ReadStatus
   startedAt?: Date | string | null
   finishedAt?: Date | string | null
@@ -840,6 +923,9 @@ export type BookUncheckedCreateWithoutUserInput = {
   seriesIndex?: number | null
   publishedYear: number
   summary?: string | null
+  goodreadsRating?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  goodreadsUrl?: string | null
+  googleBooksUrl?: string | null
   status?: $Enums.ReadStatus
   startedAt?: Date | string | null
   finishedAt?: Date | string | null
@@ -891,6 +977,9 @@ export type BookScalarWhereInput = {
   seriesIndex?: Prisma.IntNullableFilter<"Book"> | number | null
   publishedYear?: Prisma.IntFilter<"Book"> | number
   summary?: Prisma.StringNullableFilter<"Book"> | string | null
+  goodreadsRating?: Prisma.DecimalNullableFilter<"Book"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  goodreadsUrl?: Prisma.StringNullableFilter<"Book"> | string | null
+  googleBooksUrl?: Prisma.StringNullableFilter<"Book"> | string | null
   status?: Prisma.EnumReadStatusFilter<"Book"> | $Enums.ReadStatus
   userId?: Prisma.StringFilter<"Book"> | string
   startedAt?: Prisma.DateTimeNullableFilter<"Book"> | Date | string | null
@@ -912,6 +1001,9 @@ export type BookCreateWithoutReadingProgressesInput = {
   seriesIndex?: number | null
   publishedYear: number
   summary?: string | null
+  goodreadsRating?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  goodreadsUrl?: string | null
+  googleBooksUrl?: string | null
   status?: $Enums.ReadStatus
   startedAt?: Date | string | null
   finishedAt?: Date | string | null
@@ -934,6 +1026,9 @@ export type BookUncheckedCreateWithoutReadingProgressesInput = {
   seriesIndex?: number | null
   publishedYear: number
   summary?: string | null
+  goodreadsRating?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  goodreadsUrl?: string | null
+  googleBooksUrl?: string | null
   status?: $Enums.ReadStatus
   userId: string
   startedAt?: Date | string | null
@@ -971,6 +1066,9 @@ export type BookUpdateWithoutReadingProgressesInput = {
   seriesIndex?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   publishedYear?: Prisma.IntFieldUpdateOperationsInput | number
   summary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  goodreadsRating?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  goodreadsUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleBooksUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumReadStatusFieldUpdateOperationsInput | $Enums.ReadStatus
   startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   finishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -993,6 +1091,9 @@ export type BookUncheckedUpdateWithoutReadingProgressesInput = {
   seriesIndex?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   publishedYear?: Prisma.IntFieldUpdateOperationsInput | number
   summary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  goodreadsRating?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  goodreadsUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleBooksUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumReadStatusFieldUpdateOperationsInput | $Enums.ReadStatus
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1015,6 +1116,9 @@ export type BookCreateManyUserInput = {
   seriesIndex?: number | null
   publishedYear: number
   summary?: string | null
+  goodreadsRating?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  goodreadsUrl?: string | null
+  googleBooksUrl?: string | null
   status?: $Enums.ReadStatus
   startedAt?: Date | string | null
   finishedAt?: Date | string | null
@@ -1035,6 +1139,9 @@ export type BookUpdateWithoutUserInput = {
   seriesIndex?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   publishedYear?: Prisma.IntFieldUpdateOperationsInput | number
   summary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  goodreadsRating?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  goodreadsUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleBooksUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumReadStatusFieldUpdateOperationsInput | $Enums.ReadStatus
   startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   finishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1057,6 +1164,9 @@ export type BookUncheckedUpdateWithoutUserInput = {
   seriesIndex?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   publishedYear?: Prisma.IntFieldUpdateOperationsInput | number
   summary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  goodreadsRating?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  goodreadsUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleBooksUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumReadStatusFieldUpdateOperationsInput | $Enums.ReadStatus
   startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   finishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1079,6 +1189,9 @@ export type BookUncheckedUpdateManyWithoutUserInput = {
   seriesIndex?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   publishedYear?: Prisma.IntFieldUpdateOperationsInput | number
   summary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  goodreadsRating?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  goodreadsUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleBooksUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumReadStatusFieldUpdateOperationsInput | $Enums.ReadStatus
   startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   finishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1131,6 +1244,9 @@ export type BookSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   seriesIndex?: boolean
   publishedYear?: boolean
   summary?: boolean
+  goodreadsRating?: boolean
+  goodreadsUrl?: boolean
+  googleBooksUrl?: boolean
   status?: boolean
   userId?: boolean
   startedAt?: boolean
@@ -1156,6 +1272,9 @@ export type BookSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   seriesIndex?: boolean
   publishedYear?: boolean
   summary?: boolean
+  goodreadsRating?: boolean
+  goodreadsUrl?: boolean
+  googleBooksUrl?: boolean
   status?: boolean
   userId?: boolean
   startedAt?: boolean
@@ -1179,6 +1298,9 @@ export type BookSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   seriesIndex?: boolean
   publishedYear?: boolean
   summary?: boolean
+  goodreadsRating?: boolean
+  goodreadsUrl?: boolean
+  googleBooksUrl?: boolean
   status?: boolean
   userId?: boolean
   startedAt?: boolean
@@ -1202,6 +1324,9 @@ export type BookSelectScalar = {
   seriesIndex?: boolean
   publishedYear?: boolean
   summary?: boolean
+  goodreadsRating?: boolean
+  goodreadsUrl?: boolean
+  googleBooksUrl?: boolean
   status?: boolean
   userId?: boolean
   startedAt?: boolean
@@ -1210,7 +1335,7 @@ export type BookSelectScalar = {
   updatedAt?: boolean
 }
 
-export type BookOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "title" | "author" | "pageCount" | "progress" | "rating" | "review" | "coverUrl" | "isbn" | "series" | "seriesIndex" | "publishedYear" | "summary" | "status" | "userId" | "startedAt" | "finishedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["book"]>
+export type BookOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "title" | "author" | "pageCount" | "progress" | "rating" | "review" | "coverUrl" | "isbn" | "series" | "seriesIndex" | "publishedYear" | "summary" | "goodreadsRating" | "goodreadsUrl" | "googleBooksUrl" | "status" | "userId" | "startedAt" | "finishedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["book"]>
 export type BookInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   readingProgresses?: boolean | Prisma.Book$readingProgressesArgs<ExtArgs>
@@ -1243,6 +1368,9 @@ export type $BookPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     seriesIndex: number | null
     publishedYear: number
     summary: string | null
+    goodreadsRating: runtime.Decimal | null
+    goodreadsUrl: string | null
+    googleBooksUrl: string | null
     status: $Enums.ReadStatus
     userId: string
     startedAt: Date | null
@@ -1687,6 +1815,9 @@ export interface BookFieldRefs {
   readonly seriesIndex: Prisma.FieldRef<"Book", 'Int'>
   readonly publishedYear: Prisma.FieldRef<"Book", 'Int'>
   readonly summary: Prisma.FieldRef<"Book", 'String'>
+  readonly goodreadsRating: Prisma.FieldRef<"Book", 'Decimal'>
+  readonly goodreadsUrl: Prisma.FieldRef<"Book", 'String'>
+  readonly googleBooksUrl: Prisma.FieldRef<"Book", 'String'>
   readonly status: Prisma.FieldRef<"Book", 'ReadStatus'>
   readonly userId: Prisma.FieldRef<"Book", 'String'>
   readonly startedAt: Prisma.FieldRef<"Book", 'DateTime'>

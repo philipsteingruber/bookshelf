@@ -693,6 +693,9 @@ export const BookScalarFieldEnum = {
   seriesIndex: 'seriesIndex',
   publishedYear: 'publishedYear',
   summary: 'summary',
+  goodreadsRating: 'goodreadsRating',
+  goodreadsUrl: 'goodreadsUrl',
+  googleBooksUrl: 'googleBooksUrl',
   status: 'status',
   userId: 'userId',
   startedAt: 'startedAt',
@@ -785,6 +788,20 @@ export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'In
  * Reference to a field of type 'Int[]'
  */
 export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
+    
+
+
+/**
+ * Reference to a field of type 'Decimal'
+ */
+export type DecimalFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Decimal'>
+    
+
+
+/**
+ * Reference to a field of type 'Decimal[]'
+ */
+export type ListDecimalFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Decimal[]'>
     
 
 
