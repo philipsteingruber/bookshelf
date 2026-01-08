@@ -35,6 +35,7 @@ async function main() {
       finishedAt: new Date(),
       userId,
       publishedYear: 2017,
+      pageCount: 336,
     },
     {
       title: "Fall of Cadia",
@@ -53,6 +54,7 @@ This is a tale told at epic scale, from the tables of high command to the slaugh
 This is the story of Abaddon’s greatest conquest. This is Cadia’s last stand.`,
       publishedYear: 2023,
       progress: 23,
+      pageCount: 711,
     },
     {
       title: "Xenos",
@@ -90,6 +92,7 @@ READ IT BECAUSE
 Dan Abnett returns to the Horus Heresy! Experience one of the crucial stages of the Siege, as Rogal Dorn and Horus match wits in a game of Regicide where the board is the Throneworld itself, and one wrong move could lead to utter devastation… 
 THE STORY
 The Traitor Host of Horus Lupercal tightens its iron grip on the Palace of Terra, and one by one the walls and bastions begin to crumple and collapse. Rogal Dorn, Praetorian of Terra, redoubles his efforts to keep the relentless enemy at bay, but his forces are vastly outnumbered and hopelessly outgunned. Dorn simply cannot defend everything. Any chance of survival now requires sacrifice, but what battles dare he lose so that others can be won? Is there one tactical stroke, one crucial combat, that could turn the tide forever and win the war outright?`,
+      pageCount: 607,
     },
     {
       title: "The Regent's Shadow",

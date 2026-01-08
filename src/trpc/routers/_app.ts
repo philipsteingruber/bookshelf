@@ -1,12 +1,13 @@
 import { createTRPCRouter } from "../init";
 
 import { bookRouter } from "./book";
+import { readingProgressRouter } from "./reading-progress";
 import { userRouter } from "./user";
 
 export const appRouter = createTRPCRouter({
   user: userRouter,
   book: bookRouter,
-  // Add more routers here as needed
+  readingProgress: readingProgressRouter,
 });
 
 export type AppRouter = typeof appRouter;

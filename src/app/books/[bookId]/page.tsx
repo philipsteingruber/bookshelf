@@ -9,6 +9,7 @@ import { TRPCError } from "@trpc/server";
 import { PenIcon } from "lucide-react";
 import { toast } from "sonner";
 
+import UpdateReadingProgressCard from "@/components/books/update-reading-progress-card";
 import ErrorState from "@/components/error-state";
 import LoadingState from "@/components/loading-state";
 import { Button } from "@/components/ui/button";
@@ -172,20 +173,23 @@ export default function Page({
                   </div>
                 ))}
               </RadioGroup>
-              {selectedStatus === "READ" && (
-                <div className="flex flex-col">
-                  <Separator className="my-4" />
-                  <div className="mb-2 flex gap-x-2">
-                    <Label htmlFor="pageCount">Page Count</Label>
-                    <Input
-                      id="pageCount"
-                      value={pageCountLabelContent}
-                      onChange={(e) => setPageCountLabelContent(e.target.value)}
-                      className="max-w-1/2"
-                    />
+              {selectedStatus === "READ" ||
+                (selectedStatus == "READING" && (
+                  <div className="flex flex-col">
+                    <Separator className="my-4" />
+                    <div className="mb-2 flex gap-x-2">
+                      <Label htmlFor="pageCount">Page Count</Label>
+                      <Input
+                        id="pageCount"
+                        value={pageCountLabelContent}
+                        onChange={(e) =>
+                          setPageCountLabelContent(e.target.value)
+                        }
+                        className="max-w-1/2"
+                      />
+                    </div>
                   </div>
-                </div>
-              )}
+                ))}
               <DialogFooter>
                 <DialogClose asChild>
                   <Button variant={"outline"}>Cancel</Button>
@@ -206,7 +210,8 @@ export default function Page({
                   }}
                   disabled={
                     !selectedStatus ||
-                    (selectedStatus === "READ" &&
+                    ((selectedStatus === "READ" ||
+                      selectedStatus === "READING") &&
                       !book.pageCount &&
                       (!pageCountLabelContent ||
                         parseInt(pageCountLabelContent) <= 0))
@@ -259,6 +264,7 @@ export default function Page({
               </span>
             </div>
           )}
+          {isReading && <UpdateReadingProgressCard book={book} />}
           <div className="w-3/4 text-xs leading-5 font-semibold text-pretty whitespace-pre-line">
             {book.summary || ""}
           </div>

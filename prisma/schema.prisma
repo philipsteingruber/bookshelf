@@ -87,7 +87,7 @@ model ReadingProgress {
 
     progress Int
 
-    comments String @db.Text
+    comments String? @db.Text
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
