@@ -281,18 +281,26 @@ export const bookRouter = createTRPCRouter({
       }
 
       // Prepare update data with status and progress in one operation
-      const updateData: { status: ReadStatus; progress?: number } = {
+      const updateData: {
+        status: ReadStatus;
+        progress?: number;
+        startedAt?: Date;
+        finishedAt?: Date;
+      } = {
         status: input.newStatus,
       };
 
-      // Set progress based on status
+      // Set progress/timestamps based on status
       if (input.newStatus === "READ") {
         updateData.progress = VALIDATION_LIMITS.PROGRESS_COMPLETE;
+        updateData.finishedAt = new Date();
       } else if (
         input.newStatus === "TO_READ" ||
         input.newStatus === "READ_NEXT"
       ) {
         updateData.progress = VALIDATION_LIMITS.PROGRESS_NOT_STARTED;
+      } else if (input.newStatus === "READING") {
+        updateData.startedAt = new Date();
       }
 
       const updateBookStatusTimer = performanceLogger(
@@ -315,8 +323,12 @@ export const bookRouter = createTRPCRouter({
           newStatus: updatedBook.status,
           oldProgress: book.progress,
           newProgress: updatedBook.progress,
+          oldStartedAt: book.startedAt,
+          newStartedAt: updatedBook.startedAt,
+          oldFinishedAt: book.finishedAt,
+          newFinishedAt: updatedBook.finishedAt,
         },
-        "Book status updated",
+        "Book status (and progress/timestamps if relevant) updated",
       );
 
       return updatedBook;
