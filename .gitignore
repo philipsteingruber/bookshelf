@@ -1,7 +1,5 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-mprocs.log
-
 # dependencies
 /node_modules
 /.pnp
@@ -42,10 +40,10 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-/src/app/generated/prisma
 mprocs.log
 .claude/settings.local.json
 NUL
 .vscode/settings.json
 .vscode/settings.json
 /.claude
+/src/generated/
