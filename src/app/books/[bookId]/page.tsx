@@ -20,6 +20,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -44,7 +45,12 @@ export default function Page({
   const { bookId } = use(params);
   const { book, isPending, isForbidden, isNotFound, error, isReading } =
     useBook(bookId);
+
   const [imageError, setImageError] = useState(false);
+  const [pageCountLabelContent, setPageCountLabelContent] = useState<string>(
+    book?.pageCount.toString() || "",
+  );
+
   const coverUrl = book?.coverUrl || BOOK_COVER_PLACEHOLDER_URL;
   const statusOptions: ReadStatus[] = [
     "TO_READ",
@@ -71,6 +77,7 @@ export default function Page({
       trpcUtils.book.getBook.invalidate(parseInt(bookId));
     },
   });
+  const { mutate: updatePageCount } = trpc.book.updatePageCount.useMutation();
 
   const { isSignedIn } = useAuth();
   if (!isSignedIn) {
@@ -110,7 +117,7 @@ export default function Page({
                         d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
                       />
                     </svg>
-                    <p className="text-lg font-medium text-slate-600 line-clamp-4">
+                    <p className="line-clamp-4 text-lg font-medium text-slate-600">
                       {book.title}
                     </p>
                   </div>
@@ -165,6 +172,20 @@ export default function Page({
                   </div>
                 ))}
               </RadioGroup>
+              {selectedStatus === "READ" && (
+                <div className="flex flex-col">
+                  <Separator className="my-4" />
+                  <div className="mb-2 flex gap-x-2">
+                    <Label htmlFor="pageCount">Page Count</Label>
+                    <Input
+                      id="pageCount"
+                      value={pageCountLabelContent}
+                      onChange={(e) => setPageCountLabelContent(e.target.value)}
+                      className="max-w-1/2"
+                    />
+                  </div>
+                </div>
+              )}
               <DialogFooter>
                 <DialogClose asChild>
                   <Button variant={"outline"}>Cancel</Button>
@@ -172,18 +193,24 @@ export default function Page({
                 <Button
                   className="w-1/4 cursor-pointer"
                   onClick={() => {
-                    if (selectedStatus === "READ" && !book.pageCount) {
-                      toast.error(
-                        "Page count needs to be set before marking book as read.",
-                      );
-                      return;
+                    if (pageCountLabelContent) {
+                      updatePageCount({
+                        bookId: parseInt(bookId),
+                        newPageCount: parseInt(pageCountLabelContent),
+                      });
                     }
-
                     updateStatus({
                       bookId: parseInt(bookId),
                       newStatus: selectedStatus as ReadStatus,
                     });
                   }}
+                  disabled={
+                    !selectedStatus ||
+                    (selectedStatus === "READ" &&
+                      !book.pageCount &&
+                      (!pageCountLabelContent ||
+                        parseInt(pageCountLabelContent) <= 0))
+                  }
                 >
                   Confirm
                 </Button>

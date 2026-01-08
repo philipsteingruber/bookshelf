@@ -225,7 +225,12 @@ export const bookRouter = createTRPCRouter({
       createBookTimer.end({ bookId: book.id });
 
       ctx.logger.info(
-        { bookId: book.id, title: book.title, author: book.author, isbn: book.isbn },
+        {
+          bookId: book.id,
+          title: book.title,
+          author: book.author,
+          isbn: book.isbn,
+        },
         "Book created successfully",
       );
       return { book };
@@ -312,6 +317,66 @@ export const bookRouter = createTRPCRouter({
           newProgress: updatedBook.progress,
         },
         "Book status updated",
+      );
+
+      return updatedBook;
+    }),
+  updatePageCount: authedProcedure
+    .input(z.object({ bookId: z.number(), newPageCount: z.int().positive() }))
+    .mutation(async ({ ctx, input }) => {
+      ctx.logger.info("Updating book pagecount");
+
+      const fetchBookTimer = performanceLogger(
+        "DB: Fetch book for pagecount update",
+        500,
+        ctx.logger,
+      );
+
+      fetchBookTimer.start();
+      const book = await ctx.db.book.findUnique({
+        where: { id: input.bookId },
+      });
+      fetchBookTimer.end({ bookId: input.bookId });
+
+      if (!book) {
+        ctx.logger.warn(
+          { bookId: input.bookId },
+          `No book with ID ${input.bookId} found for pagecount update`,
+        );
+        throw new TRPCError({ code: "NOT_FOUND" });
+      }
+      if (book.userId !== ctx.currentUser.id) {
+        ctx.logger.warn(
+          {
+            bookId: input.bookId,
+            bookOwnerId: book.userId,
+            attemptedBy: ctx.currentUser.id,
+          },
+          "Permission denied: Attempted to access another user's book",
+        );
+        throw new TRPCError({ code: "FORBIDDEN" });
+      }
+
+      const updatePageCountTimer = performanceLogger(
+        "DB: Update book pagecount",
+        500,
+        ctx.logger,
+      );
+
+      updatePageCountTimer.start();
+      const updatedBook = await ctx.db.book.update({
+        data: { pageCount: input.newPageCount },
+        where: { id: input.bookId },
+      });
+      updatePageCountTimer.end({ bookId: input.bookId });
+
+      ctx.logger.info(
+        {
+          bookId: input.bookId,
+          oldPageCount: book.pageCount,
+          newPageCount: updatedBook.pageCount,
+        },
+        "Book pagecount updated",
       );
 
       return updatedBook;
