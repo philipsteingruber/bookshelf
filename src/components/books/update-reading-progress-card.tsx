@@ -15,6 +15,7 @@ import {
 } from "../ui/dropdown-menu";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
+import { Spinner } from "../ui/spinner";
 import { Textarea } from "../ui/textarea";
 
 const UpdateReadingProgressCard = ({ book }: { book: Book }) => {
@@ -27,10 +28,12 @@ const UpdateReadingProgressCard = ({ book }: { book: Book }) => {
   const [enteredProgress, setEnteredProgress] = useState<string>("");
   const [enteredComments, setEnteredComments] = useState<string>("");
   const [validationError, setValidationError] = useState<string | null>(null);
-  const { mutate: updateReadingProgress } =
+  const { mutate: updateReadingProgress, isPending } =
     trpc.readingProgress.createReadingProgressInstance.useMutation({
       onSuccess: () => {
         utils.book.getBook.invalidate();
+        setEnteredProgress("");
+        setEnteredComments("");
         toast.success("Successfully updated reading progress.");
       },
     });
@@ -120,8 +123,9 @@ const UpdateReadingProgressCard = ({ book }: { book: Book }) => {
             </div>
             <div className="flex w-1/3 items-end">
               <Button
-                className="w-full rounded-[6px]"
+                className="w-full cursor-pointer rounded-[6px]"
                 disabled={
+                  isPending ||
                   !enteredProgress ||
                   isNaN(parseInt(enteredProgress)) ||
                   (selectedProgressType === "%" &&
@@ -154,7 +158,7 @@ const UpdateReadingProgressCard = ({ book }: { book: Book }) => {
                   }
                 }}
               >
-                Submit
+                {isPending ? <Spinner /> : "Submit"}
               </Button>
             </div>
           </div>

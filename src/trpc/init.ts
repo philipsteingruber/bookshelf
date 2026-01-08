@@ -37,7 +37,7 @@ const isAuthed = t.middleware(async ({ next, ctx }) => {
 
   const fetchUserTimer = performanceLogger(
     "DB: Fetch user for auth check",
-    500,
+    2000,
     ctx.logger,
   );
 
@@ -55,7 +55,10 @@ const isAuthed = t.middleware(async ({ next, ctx }) => {
     throw new TRPCError({ code: "UNAUTHORIZED" });
   }
 
-  ctx.logger.debug({ userId: currentUser.id }, "User authenticated successfully");
+  ctx.logger.debug(
+    { userId: currentUser.id },
+    "User authenticated successfully",
+  );
 
   return next({
     ctx: {
