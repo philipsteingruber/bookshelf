@@ -39,7 +39,7 @@ export const bookRouter = createTRPCRouter({
     .query(async ({ ctx, input: filters }) => {
       const userId = ctx.currentUser.id;
 
-      ctx.logger.info(filters, "Querying books with filters");
+      ctx.logger.debug(filters, "Querying books with filters");
 
       const where: BookWhereInput = { userId };
 
@@ -78,13 +78,13 @@ export const bookRouter = createTRPCRouter({
       });
       findBooksTimer.end({ ...filters, count: books.length });
 
-      ctx.logger.info({ count: books.length }, "Books query completed");
+      ctx.logger.debug({ count: books.length }, "Books query completed");
       return { books };
     }),
   getBook: authedProcedure
     .input(z.number().min(0))
     .query(async ({ ctx, input: bookId }) => {
-      ctx.logger.info({ bookId }, "Fetching book by ID");
+      ctx.logger.debug({ bookId }, "Fetching book by ID");
 
       const fetchBookTimer = performanceLogger(
         "DB: Fetch book by ID",
@@ -115,7 +115,7 @@ export const bookRouter = createTRPCRouter({
         throw new TRPCError({ code: "FORBIDDEN" });
       }
 
-      ctx.logger.info({ bookId }, "Successfully fetched book");
+      ctx.logger.debug({ bookId }, "Successfully fetched book");
       return { book };
     }),
   createBook: authedProcedure
@@ -336,7 +336,7 @@ export const bookRouter = createTRPCRouter({
   updatePageCount: authedProcedure
     .input(z.object({ bookId: z.number(), newPageCount: z.int().positive() }))
     .mutation(async ({ ctx, input }) => {
-      ctx.logger.info("Updating book pagecount");
+      ctx.logger.debug({ bookId: input.bookId }, "Updating book pagecount");
 
       const fetchBookTimer = performanceLogger(
         "DB: Fetch book for pagecount update",

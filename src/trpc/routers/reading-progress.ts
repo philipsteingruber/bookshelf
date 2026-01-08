@@ -17,7 +17,7 @@ export const readingProgressRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      ctx.logger.info("Creating new ReadingProgress instance");
+      ctx.logger.debug("Creating new ReadingProgress instance");
 
       if (!input.newPagesRead && !input.newProgress) {
         ctx.logger.error(
