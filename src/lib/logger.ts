@@ -36,12 +36,40 @@ export const logger =
           },
           timestamp: pino.stdTimeFunctions.isoTime,
         },
-        pino.transport({
-          target: "@logtail/pino",
-          options: {
-            sourceToken: process.env.BETTERSTACK_TOKEN,
+        {
+          write: (log: string) => {
+            try {
+              const logEntry = JSON.parse(log);
+
+              // Send to Logtail via HTTP
+              if (process.env.BETTERSTACK_TOKEN) {
+                fetch("https://in.logtail.com/", {
+                  method: "POST",
+                  headers: {
+                    Authorization: `Bearer ${process.env.BETTERSTACK_TOKEN}`,
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    dt: logEntry.time
+                      ? new Date(logEntry.time).toISOString()
+                      : new Date().toISOString(),
+                    level: logEntry.level,
+                    message: logEntry.msg || "",
+                    ...logEntry,
+                  }),
+                }).catch((err) => {
+                  // Don't break the app if logging fails
+                  console.error("Logtail error:", err);
+                });
+              } else {
+                // Fallback to console if no token
+                console.log(log);
+              }
+            } catch (err) {
+              console.error("Log parsing error:", err);
+            }
           },
-        }),
+        },
       );
 
 export interface LogContext {

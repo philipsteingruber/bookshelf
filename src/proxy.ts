@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { clerkMiddleware } from "@clerk/nextjs/server";
 
+import { logger } from "@/lib/logger";
+
 export default clerkMiddleware(async (auth, request: NextRequest) => {
   const requestId = crypto.randomUUID();
-
   const { userId } = await auth();
 
   const requestHeaders = new Headers(request.headers);
@@ -15,22 +16,16 @@ export default clerkMiddleware(async (auth, request: NextRequest) => {
     requestHeaders.set("x-user-id", userId);
   }
 
-  if (process.env.NODE_ENV === "development") {
-    try {
-      const { logger } = await import("@/lib/logger");
-      logger.debug(
-        {
-          requestId,
-          userId,
-          pathname: request.nextUrl.pathname,
-          method: request.method,
-        },
-        "Request context initialized",
-      );
-    } catch (error) {
-      console.error("Logger import failed:", error);
-    }
-  }
+  // Works in all environments now!
+  logger.debug(
+    {
+      requestId,
+      userId,
+      pathname: request.nextUrl.pathname,
+      method: request.method,
+    },
+    "Request context initialized",
+  );
 
   return NextResponse.next({
     request: {
@@ -38,12 +33,3 @@ export default clerkMiddleware(async (auth, request: NextRequest) => {
     },
   });
 });
-
-export const config = {
-  matcher: [
-    // Skip Next.js internals and all static files, unless found in search params
-    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
-    // Always run for API routes
-    "/(api|trpc)(.*)",
-  ],
-};
