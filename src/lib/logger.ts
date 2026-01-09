@@ -40,7 +40,6 @@ export const logger =
           target: "@logtail/pino",
           options: {
             sourceToken: process.env.BETTERSTACK_TOKEN,
-            options: { endpoint: process.env.BETTERSTACK_INGESTING_HOST },
           },
         }),
       );
