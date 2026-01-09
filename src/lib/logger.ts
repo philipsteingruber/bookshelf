@@ -41,26 +41,62 @@ export const logger =
             try {
               const logEntry = JSON.parse(log);
 
+              // Map Pino numeric levels to string names
+              const levelMap: Record<number, string> = {
+                10: "trace",
+                20: "debug",
+                30: "info",
+                40: "warn",
+                50: "error",
+                60: "fatal",
+              };
+
               // Send to Logtail via HTTP
               if (process.env.BETTERSTACK_TOKEN) {
-                fetch("https://in.logtail.com/", {
+                const endpoint =
+                  process.env.BETTERSTACK_INGESTING_HOST ||
+                  "https://in.logtail.com/";
+
+                // Prepare payload with only relevant fields
+                const payload = {
+                  dt: logEntry.time
+                    ? new Date(logEntry.time).toISOString()
+                    : new Date().toISOString(),
+                  level: levelMap[logEntry.level] || "info",
+                  message: logEntry.msg || "",
+                  // Include metadata fields (excluding internal Pino fields)
+                  ...(logEntry.requestId && { requestId: logEntry.requestId }),
+                  ...(logEntry.userId && { userId: logEntry.userId }),
+                  ...(logEntry.pathname && { pathname: logEntry.pathname }),
+                  ...(logEntry.method && { method: logEntry.method }),
+                  ...(logEntry.operation && { operation: logEntry.operation }),
+                  ...(logEntry.duration && { duration: logEntry.duration }),
+                  ...(logEntry.env && { env: logEntry.env }),
+                  ...(logEntry.deployment && {
+                    deployment: logEntry.deployment,
+                  }),
+                  ...(logEntry.region && { region: logEntry.region }),
+                };
+
+                fetch(endpoint, {
                   method: "POST",
                   headers: {
                     Authorization: `Bearer ${process.env.BETTERSTACK_TOKEN}`,
                     "Content-Type": "application/json",
                   },
-                  body: JSON.stringify({
-                    dt: logEntry.time
-                      ? new Date(logEntry.time).toISOString()
-                      : new Date().toISOString(),
-                    level: logEntry.level,
-                    message: logEntry.msg || "",
-                    ...logEntry,
-                  }),
-                }).catch((err) => {
-                  // Don't break the app if logging fails
-                  console.error("Logtail error:", err);
-                });
+                  body: JSON.stringify(payload),
+                })
+                  .then((res) => {
+                    if (!res.ok) {
+                      console.error(
+                        `Logtail error: ${res.status} ${res.statusText}`,
+                      );
+                    }
+                  })
+                  .catch((err) => {
+                    // Don't break the app if logging fails
+                    console.error("Logtail fetch error:", err);
+                  });
               } else {
                 // Fallback to console if no token
                 console.log(log);
