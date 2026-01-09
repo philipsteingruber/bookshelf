@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { clerkMiddleware } from "@clerk/nextjs/server";
 
-import { logger } from "@/lib/logger";
-
 export default clerkMiddleware(async (auth, request: NextRequest) => {
   const requestId = crypto.randomUUID();
 
@@ -17,15 +15,22 @@ export default clerkMiddleware(async (auth, request: NextRequest) => {
     requestHeaders.set("x-user-id", userId);
   }
 
-  logger.debug(
-    {
-      requestId,
-      userId,
-      pathname: request.nextUrl.pathname,
-      method: request.method,
-    },
-    "Request context initialized",
-  );
+  if (process.env.NODE_ENV === "development") {
+    try {
+      const { logger } = await import("@/lib/logger");
+      logger.debug(
+        {
+          requestId,
+          userId,
+          pathname: request.nextUrl.pathname,
+          method: request.method,
+        },
+        "Request context initialized",
+      );
+    } catch (error) {
+      console.error("Logger import failed:", error);
+    }
+  }
 
   return NextResponse.next({
     request: {
