@@ -10,9 +10,9 @@ export const readingProgressRouter = createTRPCRouter({
   createReadingProgressInstance: authedProcedure
     .input(
       z.object({
-        bookId: z.int().positive(),
+        bookId: z.int().min(1),
         newProgress: z.int().min(0).max(100).optional(),
-        newPagesRead: z.int().positive().optional(),
+        newPagesRead: z.int().min(0).optional(),
         comments: z.string().optional(),
       }),
     )
@@ -163,7 +163,7 @@ export const readingProgressRouter = createTRPCRouter({
       };
     }),
   getProgressHistory: authedProcedure
-    .input(z.int().min(0))
+    .input(z.int().min(1))
     .query(async ({ ctx, input: bookId }) => {
       ctx.logger.debug({ bookId }, "Getting reading progress history");
 
@@ -205,8 +205,8 @@ export const readingProgressRouter = createTRPCRouter({
 
       fetchReadingProgressHistoryTimer.start();
       const readingProgressHistory = await ctx.db.readingProgress.findMany({
-        where: { bookId },
-        orderBy: { updatedAt: "asc" },
+        where: { bookId, userId: ctx.currentUser.id },
+        orderBy: { createdAt: "asc" },
       });
       fetchReadingProgressHistoryTimer.end({ bookId });
 

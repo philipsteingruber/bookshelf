@@ -11,22 +11,21 @@ export const useReadingHistory = (bookId: number) => {
   const { data, isPending, isError, error } =
     trpc.readingProgress.getProgressHistory.useQuery(bookId);
 
-  const readingHistory: ReadingProgress[] = useMemo(
-    () => data?.readingProgressHistory || [],
-    [data?.readingProgressHistory],
-  );
+  const result = useMemo(() => {
+    const history = data?.readingProgressHistory || [];
+    const transformed: ReadingProgressWithProgressSinceLast[] = [];
+    let lastProgress = 0;
 
-  const result: ReadingProgressWithProgressSinceLast[] = [];
-  let lastProgress: number = 0;
-  for (let index = 0; index < readingHistory.length; index++) {
-    const element = readingHistory[index];
-
-    result.push({
-      ...element,
-      progressSinceLast: element.progress - lastProgress,
+    history.forEach((element) => {
+      transformed.push({
+        ...element,
+        progressSinceLast: element.progress - lastProgress,
+      });
+      lastProgress = element.progress;
     });
-    lastProgress = element.progress;
-  }
+
+    return transformed;
+  }, [data?.readingProgressHistory]);
 
   return { result, isPending, isError, error };
 };
