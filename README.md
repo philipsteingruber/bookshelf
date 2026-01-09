@@ -236,19 +236,10 @@ A full-stack web application for tracking your personal reading journey, built w
 ### Advanced Progress Tracking
 
 - [x] Manual progress updates (e.g., "I'm on page 150")
-- [ ] Progress history timeline
-- [ ] Estimated finish date based on reading pace
-- [ ] Reading session timer
+- [x] Progress history timeline
+- [x] Estimated finish date based on reading pace
 - [ ] Daily/weekly reading statistics
 - [ ] Average reading speed calculation (pages per day/hour)
-
-### Notes & Highlights
-
-- [ ] Reading notes with timestamps
-- [ ] Quote/highlight capture with page numbers
-- [ ] Note categorization (thoughts, quotes, questions)
-- [ ] Full-text search across notes
-- [ ] Export notes functionality
 
 ---
 
