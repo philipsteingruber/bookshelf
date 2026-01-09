@@ -111,12 +111,17 @@ export const readingProgressRouter = createTRPCRouter({
             },
           });
 
-          const updateData: { progress: number; status?: "READ" } = {
+          const updateData: {
+            progress: number;
+            status?: "READ";
+            finishedAt?: Date;
+          } = {
             progress,
           };
 
           if (progress === 100) {
             updateData.status = "READ";
+            updateData.finishedAt = new Date();
           }
 
           const updatedBook = await tx.book.update({
@@ -147,6 +152,8 @@ export const readingProgressRouter = createTRPCRouter({
           readingProgressId: result.readingProgress.id,
           oldProgress: book.progress,
           newProgress: result.updatedBook.progress,
+          oldStatus: book.status,
+          newStatus: result.updatedBook.status,
         },
         "ReadingProcess created, Book progress updated",
       );
