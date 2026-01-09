@@ -235,7 +235,7 @@ A full-stack web application for tracking your personal reading journey, built w
 
 ### Advanced Progress Tracking
 
-- [ ] Manual progress updates (e.g., "I'm on page 150")
+- [x] Manual progress updates (e.g., "I'm on page 150")
 - [ ] Progress history timeline
 - [ ] Estimated finish date based on reading pace
 - [ ] Reading session timer
