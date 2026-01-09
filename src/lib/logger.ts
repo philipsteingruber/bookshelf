@@ -58,24 +58,15 @@ export const logger =
                   "https://in.logtail.com/";
 
                 // Prepare payload with only relevant fields
+                const { time, level, msg, ...customFields } = logEntry;
+
                 const payload = {
-                  dt: logEntry.time
-                    ? new Date(logEntry.time).toISOString()
+                  dt: time
+                    ? new Date(time).toISOString()
                     : new Date().toISOString(),
-                  level: levelMap[logEntry.level] || "info",
-                  message: logEntry.msg || "",
-                  // Include metadata fields (excluding internal Pino fields)
-                  ...(logEntry.requestId && { requestId: logEntry.requestId }),
-                  ...(logEntry.userId && { userId: logEntry.userId }),
-                  ...(logEntry.pathname && { pathname: logEntry.pathname }),
-                  ...(logEntry.method && { method: logEntry.method }),
-                  ...(logEntry.operation && { operation: logEntry.operation }),
-                  ...(logEntry.duration && { duration: logEntry.duration }),
-                  ...(logEntry.env && { env: logEntry.env }),
-                  ...(logEntry.deployment && {
-                    deployment: logEntry.deployment,
-                  }),
-                  ...(logEntry.region && { region: logEntry.region }),
+                  level: levelMap[level] || "info",
+                  message: msg || "",
+                  ...customFields, // Includes ALL your custom metadata
                 };
 
                 fetch(endpoint, {
