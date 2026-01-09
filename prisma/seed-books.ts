@@ -1,3 +1,4 @@
+import { subDays } from "date-fns";
 import { config } from "dotenv";
 
 import { ReadStatus } from "@/generated/prisma/enums";
@@ -23,6 +24,14 @@ async function main() {
 
   const user = await prisma.user.findFirst();
   const userId = user!.id;
+
+  const progressValues = [16, 27, 28, 45, 62];
+  const readingProgressData = progressValues.map((val, index) => {
+    return {
+      progress: val,
+      date: subDays(new Date(), progressValues.length - index),
+    };
+  });
 
   // Sample books data
   const books: Book[] = [
@@ -86,7 +95,7 @@ This is the story of Abaddon’s greatest conquest. This is Cadia’s last stand
       seriesIndex: 4,
       publishedYear: 2020,
       status: "READING",
-      progress: 71,
+      progress: 62,
       summary: `As the traitors tighten their grip on Terra, Rogal Dorn must marshal the Imperial hosts to weather the storm. But not all of the defenders will survive the onslaught… 
 READ IT BECAUSE
 Dan Abnett returns to the Horus Heresy! Experience one of the crucial stages of the Siege, as Rogal Dorn and Horus match wits in a game of Regicide where the board is the Throneworld itself, and one wrong move could lead to utter devastation… 
@@ -120,8 +129,28 @@ The Traitor Host of Horus Lupercal tightens its iron grip on the Palace of Terra
   console.log("Seeding books... ⏳");
   for (const book of books) {
     console.log(`Creating ${book.title} by ${book.author}... ⏳`);
-    await prisma.book.create({ data: book });
+    const createdBook = await prisma.book.create({ data: book });
     console.log(`${book.title} by ${book.author} created. ✅`);
+    if (book.title === "Saturnine") {
+      console.log("Seeding ReadingProgress... ⏳");
+      for (const readingProgress of readingProgressData) {
+        console.log(
+          `Creating ReadingProgress with progress ${readingProgress.progress} (${readingProgress.date.toISOString().substring(0, 10)}) for ${book.title} ⏳`,
+        );
+        await prisma.readingProgress.create({
+          data: {
+            bookId: createdBook.id,
+            userId,
+            progress: readingProgress.progress,
+            createdAt: readingProgress.date,
+            updatedAt: readingProgress.date,
+          },
+        });
+        console.log(
+          `ReadingProgress with progress ${readingProgress.progress} (${readingProgress.date.toISOString().substring(0, 10)}) for ${book.title} created ✅`,
+        );
+      }
+    }
   }
 
   console.log("Seeding completed! ✅");
