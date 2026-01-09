@@ -1,22 +1,49 @@
 import pino from "pino";
 
-export const logger = pino({
-  level: process.env.NODE_ENV === "development" ? "debug" : "info",
-  transport:
-    process.env.NODE_ENV === "development"
-      ? { target: "pino-pretty" }
-      : undefined,
-  redact: {
-    paths: ["password", "token", "apiKey", "authorization"],
-    remove: true,
-  },
-  base: {
-    env: process.env.NODE_ENV,
-    deployment: process.env.VERCEL_URL,
-    region: process.env.VERCEL_REGION,
-  },
-  timestamp: pino.stdTimeFunctions.isoTime,
-});
+export const logger =
+  process.env.NODE_ENV === "development"
+    ? pino(
+        {
+          level: "debug",
+          redact: {
+            paths: ["password", "token", "apiKey", "authorization"],
+            remove: true,
+          },
+        },
+        pino.transport({
+          target: "pino-pretty",
+          options: {
+            colorize: true,
+            translateTime: "HH:MM:ss Z",
+            ignore: "pid,hostname",
+            singleLine: false,
+            levelFirst: true,
+            errorLikeObjectKeys: ["err", "error"],
+          },
+        }),
+      )
+    : pino(
+        {
+          level: "info",
+          redact: {
+            paths: ["password", "token", "apiKey", "authorization"],
+            remove: true,
+          },
+          base: {
+            env: process.env.NODE_ENV,
+            deployment: process.env.VERCEL_URL,
+            region: process.env.VERCEL_REGION,
+          },
+          timestamp: pino.stdTimeFunctions.isoTime,
+        },
+        pino.transport({
+          target: "@logtail/pino",
+          options: {
+            sourceToken: process.env.BETTERSTACK_TOKEN,
+            options: { endpoint: process.env.BETTERSTACK_INGESTING_HOST },
+          },
+        }),
+      );
 
 export interface LogContext {
   requestId?: string;
