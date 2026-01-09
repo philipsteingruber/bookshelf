@@ -162,4 +162,54 @@ export const readingProgressRouter = createTRPCRouter({
         updatedBook: result.updatedBook,
       };
     }),
+  getProgressHistory: authedProcedure
+    .input(z.int().min(0))
+    .query(async ({ ctx, input: bookId }) => {
+      ctx.logger.debug({ bookId }, "Getting reading progress history");
+
+      const fetchBookTimer = performanceLogger(
+        "DB: Fetch book for reading progress history",
+        500,
+        ctx.logger,
+      );
+
+      fetchBookTimer.start();
+      const book = await ctx.db.book.findUnique({ where: { id: bookId } });
+      fetchBookTimer.end({ bookId });
+
+      if (!book) {
+        ctx.logger.warn(
+          { bookId },
+          "No book found for fetching reading progress history",
+        );
+        throw new TRPCError({ code: "NOT_FOUND" });
+      }
+
+      if (book.userId !== ctx.currentUser.id) {
+        ctx.logger.warn(
+          {
+            bookId: book.id,
+            bookOwnerId: book.userId,
+            attemptedBy: ctx.currentUser.id,
+          },
+          "Permission denied: Attempted to access another user's book",
+        );
+        throw new TRPCError({ code: "FORBIDDEN" });
+      }
+
+      const fetchReadingProgressHistoryTimer = performanceLogger(
+        "DB: Fetch reading progress history",
+        500,
+        ctx.logger,
+      );
+
+      fetchReadingProgressHistoryTimer.start();
+      const readingProgressHistory = await ctx.db.readingProgress.findMany({
+        where: { bookId },
+        orderBy: { updatedAt: "asc" },
+      });
+      fetchReadingProgressHistoryTimer.end({ bookId });
+
+      return { readingProgressHistory };
+    }),
 });
