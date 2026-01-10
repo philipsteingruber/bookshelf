@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import z from "zod";
+import type z from "zod";
 
 import { handleTRPCError } from "@/lib/error-handler";
 import { createFormSchema } from "@/lib/schemas/book";

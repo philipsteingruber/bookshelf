@@ -1,11 +1,11 @@
-import { UseFormReturn } from "react-hook-form";
+import type { UseFormReturn } from "react-hook-form";
 import { toast } from "sonner";
-import z from "zod";
+import type z from "zod";
 
 import { Label } from "@/components/ui/label";
 import { UploadButton } from "@/components/uploadthing";
 import { handleUploadError } from "@/lib/error-handler";
-import { createFormSchema } from "@/lib/schemas/book";
+import type { createFormSchema } from "@/lib/schemas/book";
 
 interface CoverUploadSectionProps {
   form: UseFormReturn<z.infer<typeof createFormSchema>>;

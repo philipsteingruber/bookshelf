@@ -2,7 +2,7 @@ import {
   defaultShouldDehydrateQuery,
   QueryClient,
 } from "@tanstack/react-query";
-import { TRPCError } from "@trpc/server";
+import type { TRPCError } from "@trpc/server";
 import superjson from "superjson";
 
 export function makeQueryClient() {

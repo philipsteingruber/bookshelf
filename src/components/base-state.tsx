@@ -1,8 +1,8 @@
 import Link from "next/link";
 
-import { LucideIcon } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
-import { Spinner } from "./ui/spinner";
+import type { Spinner } from "./ui/spinner";
 
 interface Props {
   Icon: LucideIcon | typeof Spinner;

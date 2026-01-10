@@ -1,7 +1,7 @@
 import { subDays } from "date-fns";
 import { config } from "dotenv";
 
-import { ReadStatus } from "@/generated/prisma/enums";
+import type { ReadStatus } from "@/generated/prisma/enums";
 import prisma from "@/lib/prisma";
 
 config();

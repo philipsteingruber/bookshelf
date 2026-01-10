@@ -1,4 +1,4 @@
-import { TRPC_ERROR_CODE_KEY } from "@trpc/server";
+import type { TRPC_ERROR_CODE_KEY } from "@trpc/server";
 import {
   SearchAlertIcon,
   ShieldBan,

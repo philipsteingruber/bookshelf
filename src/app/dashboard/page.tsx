@@ -9,9 +9,10 @@ import {
 } from "lucide-react";
 
 import BookCard from "@/components/books/book-card";
-import DashboardCard, {
+import type {
   DashboardCardProps,
 } from "@/components/dashboard/dashboard-card";
+import DashboardCard from "@/components/dashboard/dashboard-card";
 import ReadingProgressCard from "@/components/dashboard/readingprogress-card";
 import ErrorState from "@/components/error-state";
 import LoadingState from "@/components/loading-state";

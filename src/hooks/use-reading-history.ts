@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 
-import { ReadingProgress } from "@/generated/prisma/client";
+import type { ReadingProgress } from "@/generated/prisma/client";
 import { trpc } from "@/trpc/client";
 
 export type ReadingProgressWithProgressSinceLast = ReadingProgress & {

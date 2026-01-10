@@ -2,7 +2,7 @@ import { useCallback, useMemo } from "react";
 
 import { useDebounce } from "use-debounce";
 
-import { Book } from "@/generated/prisma/client";
+import type { Book } from "@/generated/prisma/client";
 import { trpc } from "@/trpc/client";
 
 import type { BookFilters } from "./../trpc/routers/book";

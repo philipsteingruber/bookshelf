@@ -1,4 +1,4 @@
-import { ReadStatus } from "@/generated/prisma/enums";
+import type { ReadStatus } from "@/generated/prisma/enums";
 
 export const parseReadStatus = (readStatus: ReadStatus) => {
   switch (readStatus) {

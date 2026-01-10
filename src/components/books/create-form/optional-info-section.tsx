@@ -1,5 +1,6 @@
-import { Controller, UseFormReturn } from "react-hook-form";
-import z from "zod";
+import type { UseFormReturn } from "react-hook-form";
+import { Controller } from "react-hook-form";
+import type z from "zod";
 
 import {
   Field,
@@ -9,7 +10,7 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { createFormSchema } from "@/lib/schemas/book";
+import type { createFormSchema } from "@/lib/schemas/book";
 
 interface OptionalInfoSectionProps {
   form: UseFormReturn<z.infer<typeof createFormSchema>>;

@@ -1,4 +1,4 @@
-import { ReadStatus } from "@/generated/prisma/enums";
+import type { ReadStatus } from "@/generated/prisma/enums";
 
 export const BOOK_COVER_PLACEHOLDER_URL = "/book-placeholder.png";
 

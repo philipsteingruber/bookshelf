@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { RedirectToSignIn, useAuth } from "@clerk/nextjs";
-import { TRPCError } from "@trpc/server";
+import type { TRPCError } from "@trpc/server";
 import { PenIcon } from "lucide-react";
 import { toast } from "sonner";
 
@@ -33,7 +33,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ReadStatus } from "@/generated/prisma/enums";
+import type { ReadStatus } from "@/generated/prisma/enums";
 import { useBook } from "@/hooks/use-book";
 import { useReadingHistory } from "@/hooks/use-reading-history";
 import { getStatusButtonStyle, parseReadStatus } from "@/lib/book-utils";
