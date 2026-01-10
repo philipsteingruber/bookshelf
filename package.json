@@ -10,6 +10,7 @@
     "lint:fix": "eslint --fix",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:watch:verbose": "vitest --reporter verbose",
     "test:ui": "vitest --ui",
     "postinstall": "prisma generate",
     "prepare": "node -e \"try { require('fs').mkdirSync('.git/hooks', { recursive: true }); require('fs').copyFileSync('scripts/pre-commit', '.git/hooks/pre-commit'); require('fs').chmodSync('.git/hooks/pre-commit', '755'); } catch (e) {}\""
