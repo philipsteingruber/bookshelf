@@ -4,6 +4,7 @@ import { DropdownMenuTrigger } from "@radix-ui/react-dropdown-menu";
 import { toast } from "sonner";
 
 import type { Book } from "@/generated/prisma/client";
+import { useProgressValidation } from "@/hooks/use-progress-validation";
 import { trpc } from "@/trpc/client";
 
 import { Button } from "../ui/button";
@@ -25,54 +26,24 @@ const UpdateReadingProgressCard = ({ book }: { book: Book }) => {
   const [selectedProgressType, setSelectedProgressType] = useState<
     "%" | "pages"
   >("%");
-  const [enteredProgress, setEnteredProgress] = useState<string>("");
   const [enteredComments, setEnteredComments] = useState<string>("");
-  const [validationError, setValidationError] = useState<string | null>(null);
   const { mutate: updateReadingProgress, isPending } =
     trpc.readingProgress.createReadingProgressInstance.useMutation({
       onSuccess: () => {
         utils.book.getBook.invalidate();
         utils.readingProgress.getProgressHistory.invalidate();
-        setEnteredProgress("");
+        resetProgressInput();
         setEnteredComments("");
         toast.success("Successfully updated reading progress.");
       },
     });
-
-  const handleProgressChange = (value: string) => {
-    setEnteredProgress(value);
-
-    const numValue = parseInt(value);
-
-    if (isNaN(numValue)) {
-      setValidationError("Enter a valid number");
-      return;
-    }
-
-    if (selectedProgressType === "%") {
-      if (numValue < 0 || numValue > 100) {
-        setValidationError("Progress must be between 0 and 100");
-      } else if (numValue <= book.progress) {
-        setValidationError(`Progress must be greater than ${book.progress}`);
-      } else {
-        setValidationError(null);
-      }
-    } else {
-      if (numValue < 0) {
-        setValidationError("Progress must be a positive number");
-      } else if (numValue > book.pageCount) {
-        setValidationError(
-          `Progress cannot be greater than pagecount (${book.pageCount})`,
-        );
-      } else if (Math.floor((numValue / pageCount) * 100) <= book.progress) {
-        setValidationError(
-          `Progress must be greater than current progress (${Math.floor((book.progress / 100) * pageCount)})`,
-        );
-      } else {
-        setValidationError(null);
-      }
-    }
-  };
+  const {
+    inputValue: progressValue,
+    error: progressValidationError,
+    isValid: isValidProgress,
+    handleChange: handleProgressChange,
+    resetInput: resetProgressInput,
+  } = useProgressValidation(book, selectedProgressType);
 
   return (
     <Card className="bg-card/40 h-80 w-3/4 rounded-[6px]">
@@ -85,18 +56,18 @@ const UpdateReadingProgressCard = ({ book }: { book: Book }) => {
                 id="value"
                 type="number"
                 step="1"
-                className={`rounded-[6px] ${validationError ? "border-red-500" : ""}`}
+                className={`rounded-[6px] ${progressValidationError ? "border-red-500" : ""}`}
                 placeholder={
                   selectedProgressType === "%"
                     ? progress.toString()
                     : Math.floor((progress / 100) * pageCount).toString()
                 }
-                value={enteredProgress}
+                value={progressValue}
                 onChange={(e) => handleProgressChange(e.target.value)}
               />
-              {validationError && (
+              {progressValidationError && (
                 <p className="absolute -bottom-6 left-0 text-xs whitespace-nowrap text-red-400">
-                  {validationError}
+                  {progressValidationError}
                 </p>
               )}
             </div>
@@ -125,21 +96,7 @@ const UpdateReadingProgressCard = ({ book }: { book: Book }) => {
             <div className="flex w-1/3 items-end">
               <Button
                 className="w-full cursor-pointer rounded-[6px]"
-                disabled={
-                  isPending ||
-                  !enteredProgress ||
-                  isNaN(parseInt(enteredProgress)) ||
-                  (selectedProgressType === "%" &&
-                    (parseInt(enteredProgress) < 0 ||
-                      parseInt(enteredProgress) > 100 ||
-                      parseInt(enteredProgress) <= book.progress)) ||
-                  (selectedProgressType === "pages" &&
-                    (parseInt(enteredProgress) < 0 ||
-                      parseInt(enteredProgress) > book.pageCount ||
-                      Math.floor(
-                        (parseInt(enteredProgress) / book.pageCount) * 100,
-                      ) <= book.progress))
-                }
+                disabled={isPending || !isValidProgress}
                 onClick={() => {
                   const basePayload = {
                     bookId: book.id,
@@ -149,12 +106,12 @@ const UpdateReadingProgressCard = ({ book }: { book: Book }) => {
                   if (selectedProgressType === "%") {
                     updateReadingProgress({
                       ...basePayload,
-                      newProgress: parseInt(enteredProgress),
+                      newProgress: parseInt(progressValue),
                     });
                   } else {
                     updateReadingProgress({
                       ...basePayload,
-                      newPagesRead: parseInt(enteredProgress),
+                      newPagesRead: parseInt(progressValue),
                     });
                   }
                 }}
