@@ -1,8 +1,13 @@
-import { auth } from "@clerk/nextjs/server";
+import type { auth } from "@clerk/nextjs/server";
 import type { Logger } from "pino";
 import { vi } from "vitest";
 
-import type { Book, PrismaClient, ReadingProgress, User } from "@/generated/prisma/client";
+import type {
+  Book,
+  PrismaClient,
+  ReadingProgress,
+  User,
+} from "@/generated/prisma/client";
 
 // Extract the auth type from Clerk's auth() function
 export type AuthType = Awaited<ReturnType<typeof auth>>;
@@ -16,6 +21,7 @@ export function createMockDb() {
     book: {
       findUnique: vi.fn(),
       findMany: vi.fn(),
+      findFirst: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
@@ -81,6 +87,7 @@ export function createFakeBook(overrides: Partial<Book> = {}): Book {
     title: "Test Book",
     author: "Test Author",
     isbn: "1234567890",
+    publishedYear: 2026,
     pageCount: 300,
     progress: 0,
     status: "READING",
@@ -141,8 +148,16 @@ export function createMockContext(
  *   { userId: "custom-user-id" }
  * );
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function createMockCaller<TRouter extends { createCaller: (...args: any[]) => any }>(
+export function createMockCaller<
+  TRouter extends {
+    createCaller: (ctx: {
+      db: PrismaClient;
+      auth: AuthType;
+      logger: Logger;
+    }) => TCaller;
+  },
+  TCaller = ReturnType<TRouter["createCaller"]>,
+>(
   router: TRouter,
   options: {
     userId?: string;
@@ -163,7 +178,7 @@ export function createMockCaller<TRouter extends { createCaller: (...args: any[]
   vi.mocked(mockDb.user.findUnique).mockResolvedValue(mockUser);
 
   const context = createMockContext(mockDb, mockLogger, { clerkId });
-  const caller = router.createCaller(context);
+  const caller = router.createCaller(context) as TCaller;
 
   return {
     caller,
