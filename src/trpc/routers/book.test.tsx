@@ -1,3 +1,4 @@
+import { subDays } from "date-fns";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { ReadStatus } from "@/generated/prisma/enums";
@@ -12,9 +13,8 @@ import { bookRouter } from "./book";
 
 describe("bookRouter", () => {
   describe("createBook", () => {
-    beforeEach(() => {
-      vi.clearAllMocks();
-    });
+    beforeEach(() => vi.clearAllMocks());
+
     it("should create book successfully with valid data", async () => {
       const { caller, mockDb } = createMockCaller(bookRouter);
 
@@ -32,7 +32,6 @@ describe("bookRouter", () => {
       const result = await caller.createBook(fakeBookData);
 
       expect(result.book).toEqual(createdBook);
-      expect(result.book.title).toBe(fakeBookData.title);
     });
 
     it("should detect duplicate series book (same series+index+user)", async () => {
@@ -82,9 +81,7 @@ describe("bookRouter", () => {
     });
   });
   describe("updateReadingStatus", () => {
-    beforeEach(() => {
-      vi.clearAllMocks();
-    });
+    beforeEach(() => vi.clearAllMocks());
 
     it("should update status to READ (and set finishedAt and progress to 100)", async () => {
       const { mockDb, caller } = createMockCaller(bookRouter);
@@ -318,6 +315,228 @@ describe("bookRouter", () => {
 
       await expect(caller.getBook(1)).rejects.toMatchObject({
         code: "NOT_FOUND",
+      });
+    });
+  });
+  describe("getBooks", () => {
+    const baseQuery = {
+      orderBy: { title: "asc" },
+      take: VALIDATION_LIMITS.BOOKS_QUERY_DEFAULT,
+    };
+
+    beforeEach(() => vi.clearAllMocks());
+
+    it("should return all books when no filters applied", async () => {
+      const { mockDb, caller } = createMockCaller(bookRouter);
+
+      const fakeBook1Data = {
+        title: "Book 1",
+      };
+      const fakeBook2Data = {
+        title: "Book 2",
+      };
+      const fakeBook1 = createFakeBook(fakeBook1Data);
+      const fakeBook2 = createFakeBook(fakeBook2Data);
+
+      vi.mocked(mockDb.book.findMany).mockResolvedValue([fakeBook1, fakeBook2]);
+
+      const result = await caller.getBooks();
+
+      expect(result.books).toEqual([fakeBook1, fakeBook2]);
+      expect(mockDb.book.findMany).toHaveBeenCalledWith({
+        where: { userId: fakeBook1.userId },
+        ...baseQuery,
+      });
+    });
+
+    it("should filter by status (READING, READ, TO_READ)", async () => {
+      const { mockDb, caller } = createMockCaller(bookRouter);
+
+      const fakeBook1 = createFakeBook({ status: "READING" });
+
+      vi.mocked(mockDb.book.findMany).mockResolvedValue([fakeBook1]);
+
+      const result = await caller.getBooks({ status: "READING" });
+
+      expect(result.books).toEqual([fakeBook1]);
+      expect(mockDb.book.findMany).toHaveBeenCalledWith({
+        where: {
+          userId: fakeBook1.userId,
+          status: "READING",
+        },
+        ...baseQuery,
+      });
+    });
+
+    it("should filter by search term", async () => {
+      const { mockDb, caller } = createMockCaller(bookRouter);
+
+      const fakeBook = createFakeBook({
+        title: "The filter should pick up this book",
+      });
+
+      vi.mocked(mockDb.book.findMany).mockResolvedValue([fakeBook]);
+
+      const result = await caller.getBooks({ search: "filter" });
+
+      expect(result.books).toEqual([fakeBook]);
+      expect(mockDb.book.findMany).toHaveBeenCalledWith({
+        where: {
+          userId: fakeBook.userId,
+          OR: [
+            { title: { contains: "filter", mode: "insensitive" } },
+            { author: { contains: "filter", mode: "insensitive" } },
+            { series: { contains: "filter", mode: "insensitive" } },
+            { isbn: { contains: "filter", mode: "insensitive" } },
+          ],
+        },
+        ...baseQuery,
+      });
+    });
+
+    it("should sort by title ascending", async () => {
+      const { mockDb, caller } = createMockCaller(bookRouter);
+
+      const fakeBook1 = createFakeBook({ title: "Book 1" });
+      const fakeBook2 = createFakeBook({ title: "Book 2" });
+
+      vi.mocked(mockDb.book.findMany).mockResolvedValue([fakeBook1, fakeBook2]);
+
+      const result = await caller.getBooks({
+        sortBy: "title",
+        sortDirection: "asc",
+      });
+
+      expect(result.books).toEqual([fakeBook1, fakeBook2]);
+      expect(mockDb.book.findMany).toHaveBeenCalledWith({
+        where: { userId: fakeBook1.userId },
+        take: VALIDATION_LIMITS.BOOKS_QUERY_DEFAULT,
+        orderBy: { title: "asc" },
+      });
+    });
+
+    it("should sort by title descending", async () => {
+      const { mockDb, caller } = createMockCaller(bookRouter);
+
+      const fakeBook1 = createFakeBook({ title: "Book 1" });
+      const fakeBook2 = createFakeBook({ title: "Book 2" });
+
+      vi.mocked(mockDb.book.findMany).mockResolvedValue([fakeBook2, fakeBook1]);
+
+      const result = await caller.getBooks({
+        sortBy: "title",
+        sortDirection: "desc",
+      });
+
+      expect(result.books).toEqual([fakeBook2, fakeBook1]);
+      expect(mockDb.book.findMany).toHaveBeenCalledWith({
+        where: { userId: fakeBook1.userId },
+        take: VALIDATION_LIMITS.BOOKS_QUERY_DEFAULT,
+        orderBy: { title: "desc" },
+      });
+    });
+
+    it("should sort by createdAt ascending", async () => {
+      const { mockDb, caller } = createMockCaller(bookRouter);
+
+      const fakeBook1 = createFakeBook({ createdAt: subDays(new Date(), 1) });
+      const fakeBook2 = createFakeBook({ createdAt: new Date() });
+
+      vi.mocked(mockDb.book.findMany).mockResolvedValue([fakeBook1, fakeBook2]);
+
+      const result = await caller.getBooks({
+        sortBy: "createdAt",
+        sortDirection: "asc",
+      });
+
+      expect(result.books).toEqual([fakeBook1, fakeBook2]);
+      expect(mockDb.book.findMany).toHaveBeenCalledWith({
+        where: { userId: fakeBook1.userId },
+        take: VALIDATION_LIMITS.BOOKS_QUERY_DEFAULT,
+        orderBy: { createdAt: "asc" },
+      });
+    });
+
+    it("should sort by createdAt descending", async () => {
+      const { mockDb, caller } = createMockCaller(bookRouter);
+
+      const fakeBook1 = createFakeBook({ createdAt: subDays(new Date(), 1) });
+      const fakeBook2 = createFakeBook({ createdAt: new Date() });
+
+      vi.mocked(mockDb.book.findMany).mockResolvedValue([fakeBook2, fakeBook1]);
+
+      const result = await caller.getBooks({
+        sortBy: "createdAt",
+        sortDirection: "desc",
+      });
+
+      expect(result.books).toEqual([fakeBook2, fakeBook1]);
+      expect(mockDb.book.findMany).toHaveBeenCalledWith({
+        where: { userId: fakeBook1.userId },
+        take: VALIDATION_LIMITS.BOOKS_QUERY_DEFAULT,
+        orderBy: { createdAt: "desc" },
+      });
+    });
+
+    it("should respect limit parameter", async () => {
+      const { mockDb, caller } = createMockCaller(bookRouter);
+
+      const fakeBook = createFakeBook();
+
+      vi.mocked(mockDb.book.findMany).mockResolvedValue([fakeBook]);
+
+      const limit = 1;
+      const result = await caller.getBooks({ limit });
+
+      expect(result.books).toEqual([fakeBook]);
+      expect(mockDb.book.findMany).toHaveBeenCalledWith({
+        where: { userId: fakeBook.userId },
+        take: limit,
+        orderBy: { title: "asc" },
+      });
+    });
+
+    it("should combine filters and sorting correctly", async () => {
+      const { mockDb, caller } = createMockCaller(bookRouter);
+
+      const fakeBook1 = createFakeBook({ title: "Book 1" });
+      const fakeBook2 = createFakeBook({ title: "Book 2" });
+
+      vi.mocked(mockDb.book.findMany).mockResolvedValue([fakeBook2, fakeBook1]);
+
+      const result = await caller.getBooks({
+        search: "book",
+        sortBy: "title",
+        sortDirection: "desc",
+      });
+
+      expect(result.books).toEqual([fakeBook2, fakeBook1]);
+      expect(mockDb.book.findMany).toHaveBeenCalledWith({
+        where: {
+          userId: fakeBook1.userId,
+          OR: [
+            { title: { contains: "book", mode: "insensitive" } },
+            { author: { contains: "book", mode: "insensitive" } },
+            { series: { contains: "book", mode: "insensitive" } },
+            { isbn: { contains: "book", mode: "insensitive" } },
+          ],
+        },
+        orderBy: { title: "desc" },
+        take: VALIDATION_LIMITS.BOOKS_QUERY_DEFAULT,
+      });
+    });
+
+    it("should return empty array when no matches found", async () => {
+      const { mockDb, caller, mockUser } = createMockCaller(bookRouter);
+
+      vi.mocked(mockDb.book.findMany).mockResolvedValue([]);
+
+      const result = await caller.getBooks();
+
+      expect(result.books).toEqual([]);
+      expect(mockDb.book.findMany).toHaveBeenCalledWith({
+        where: { userId: mockUser.id },
+        ...baseQuery,
       });
     });
   });
