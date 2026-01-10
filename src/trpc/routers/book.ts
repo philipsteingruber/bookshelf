@@ -4,10 +4,9 @@ import z from "zod";
 import { ReadStatus } from "@/generated/prisma/enums";
 import type {
   BookOrderByWithRelationInput,
-  BookWhereInput} from "@/generated/prisma/internal/prismaNamespace";
-import {
-  BookScalarFieldEnum
+  BookWhereInput,
 } from "@/generated/prisma/internal/prismaNamespace";
+import { BookScalarFieldEnum } from "@/generated/prisma/internal/prismaNamespace";
 import { VALIDATION_LIMITS } from "@/lib/constants";
 import { performanceLogger } from "@/lib/logger";
 import { createFormSchema } from "@/lib/schemas/book";
@@ -285,8 +284,8 @@ export const bookRouter = createTRPCRouter({
       const updateData: {
         status: ReadStatus;
         progress?: number;
-        startedAt?: Date;
-        finishedAt?: Date;
+        startedAt?: Date | null;
+        finishedAt?: Date | null;
       } = {
         status: input.newStatus,
       };
@@ -300,6 +299,7 @@ export const bookRouter = createTRPCRouter({
         input.newStatus === "READ_NEXT"
       ) {
         updateData.progress = VALIDATION_LIMITS.PROGRESS_NOT_STARTED;
+        updateData.startedAt = null;
       } else if (input.newStatus === "READING") {
         updateData.startedAt = new Date();
       }
