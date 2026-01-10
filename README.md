@@ -1,3 +1,7 @@
+### Random Ideas
+
+- Import from GoodReads/Google Books
+
 # Bookshelf - Personal Reading Tracker
 
 A full-stack web application for tracking your personal reading journey, built with Next.js, tRPC, Prisma, and PostgreSQL.
