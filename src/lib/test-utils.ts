@@ -95,6 +95,7 @@ export function createFakeBook(overrides: Partial<Book> = {}): Book {
     notes: null,
     createdAt: new Date(),
     updatedAt: new Date(),
+    startedAt: null,
     finishedAt: null,
     ...overrides,
   } as Book;

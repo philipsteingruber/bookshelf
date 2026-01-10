@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { PrismaClient } from "@/generated/prisma/client";
 import {
@@ -11,6 +11,9 @@ import { readingProgressRouter } from "./reading-progress";
 
 describe("readingProgressRouter", () => {
   describe("createReadingProgressInstance", () => {
+    beforeEach(() => {
+      vi.clearAllMocks();
+    });
     it("should create reading progress when book exists and user owns it", async () => {
       // Create the mock caller (auto-mocks user lookup)
       const { caller, mockDb } = createMockCaller(readingProgressRouter);
@@ -55,7 +58,9 @@ describe("readingProgressRouter", () => {
     });
 
     it("should throw error when book does not exist", async () => {
-      const { caller, mockDb, mockLogger } = createMockCaller(readingProgressRouter);
+      const { caller, mockDb, mockLogger } = createMockCaller(
+        readingProgressRouter,
+      );
 
       // Mock book not found
       vi.mocked(mockDb.book.findUnique).mockResolvedValue(null);
@@ -69,7 +74,9 @@ describe("readingProgressRouter", () => {
     });
 
     it("should throw error when user does not own the book", async () => {
-      const { caller, mockDb, mockLogger } = createMockCaller(readingProgressRouter);
+      const { caller, mockDb, mockLogger } = createMockCaller(
+        readingProgressRouter,
+      );
 
       const bookOwnedByOther = createFakeBook({
         id: 1,
