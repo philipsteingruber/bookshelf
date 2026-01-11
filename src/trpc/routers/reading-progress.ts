@@ -79,7 +79,7 @@ export const readingProgressRouter = createTRPCRouter({
         throw new TRPCError({ code: "BAD_REQUEST" });
       }
 
-      if (progress < book.progress) {
+      if (progress <= book.progress) {
         ctx.logger.warn(
           {
             newProgress: progress,
