@@ -7,8 +7,7 @@ import prisma from "@/lib/prisma";
 
 export async function POST(req: NextRequest) {
   try {
-    // TEMPORARY DEBUGGING
-    logger.info(
+    logger.debug(
       {
         hasSecret: !!process.env.CLERK_WEBHOOK_SIGNING_SECRET,
         secretPrefix: process.env.CLERK_WEBHOOK_SIGNING_SECRET?.substring(
