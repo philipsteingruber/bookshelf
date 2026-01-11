@@ -9,9 +9,7 @@ import {
 } from "lucide-react";
 
 import BookCard from "@/components/books/book-card";
-import type {
-  DashboardCardProps,
-} from "@/components/dashboard/dashboard-card";
+import type { DashboardCardProps } from "@/components/dashboard/dashboard-card";
 import DashboardCard from "@/components/dashboard/dashboard-card";
 import ReadingProgressCard from "@/components/dashboard/readingprogress-card";
 import ErrorState from "@/components/error-state";
@@ -114,7 +112,7 @@ const Page = () => {
                 <BookCard
                   book={book}
                   key={book.id}
-                  className="width-1/6"
+                  className="w-1/3 rounded-[6px]"
                   showStatusButton={false}
                   orientation="vertical"
                   priority
