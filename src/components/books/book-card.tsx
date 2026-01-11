@@ -55,7 +55,7 @@ const BookCard = ({
                       d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
                     />
                   </svg>
-                  <p className="text-sm font-medium text-slate-600 line-clamp-3">
+                  <p className="line-clamp-3 text-sm font-medium text-slate-600">
                     {book.title}
                   </p>
                 </div>
@@ -76,14 +76,14 @@ const BookCard = ({
           </div>
           <div className="mt-2 flex flex-col gap-y-2 px-2 pb-4">
             <div className="flex w-full justify-between pr-2">
-              <p className="text-sm font-semibold">{`${book.title}`}</p>
+              <p className="text-base font-semibold">{`${book.title}`}</p>
               {book.series && book.seriesIndex && (
-                <p className="text-sm italic">
+                <p className="font-serif text-sm leading-5 font-light italic">
                   {`${book.series} #${book.seriesIndex}`}
                 </p>
               )}
             </div>
-            <p className="text-sm italic">{book.author}</p>
+            <p className="font-serif text-sm italic">{book.author}</p>
             {showStatusButton && <ReadStatusButton book={book} />}
           </div>
         </CardContent>

@@ -48,7 +48,7 @@
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
   --font-serif: Lora, serif;
-  --radius: 1.25rem;
+  --radius: 0.5rem;
   --tracking-tighter: calc(var(--tracking-normal) - 0.05em);
   --tracking-tight: calc(var(--tracking-normal) - 0.025em);
   --tracking-wide: calc(var(--tracking-normal) + 0.025em);
@@ -75,7 +75,7 @@
 }
 
 :root {
-  --radius: 1.25rem;
+  --radius: 0.5rem;
   --background: oklch(0.9232 0.0026 48.7171);
   --foreground: oklch(0.2795 0.0368 260.031);
   --card: oklch(0.9699 0.0013 106.4238);
@@ -173,7 +173,7 @@
   --sidebar-border: oklch(0.3359 0.0077 59.4197);
   --sidebar-ring: oklch(0.6801 0.1583 276.9349);
   --destructive-foreground: oklch(0.2244 0.0074 67.437);
-  --radius: 1.25rem;
+  --radius: 0.5rem;
   --font-sans: Josefin Sans, ui-sans-serif, sans-serif, system-ui;
   --font-serif: Lora, serif;
   --font-mono: Roboto Mono, monospace;

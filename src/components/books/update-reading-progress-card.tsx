@@ -46,7 +46,7 @@ const UpdateReadingProgressCard = ({ book }: { book: Book }) => {
   } = useProgressValidation(book, selectedProgressType);
 
   return (
-    <Card className="bg-card/40 h-80 w-3/4 rounded-[6px]">
+    <Card className="bg-card/40 h-80 w-3/4 rounded-md">
       <CardContent>
         <div className="flex h-full flex-col gap-y-2">
           <div className="flex gap-x-6">
@@ -56,7 +56,7 @@ const UpdateReadingProgressCard = ({ book }: { book: Book }) => {
                 id="value"
                 type="number"
                 step="1"
-                className={`rounded-[6px] ${progressValidationError ? "border-red-500" : ""}`}
+                className={`rounded-md ${progressValidationError ? "border-red-500" : ""}`}
                 placeholder={
                   selectedProgressType === "%"
                     ? progress.toString()
@@ -75,7 +75,7 @@ const UpdateReadingProgressCard = ({ book }: { book: Book }) => {
               <Label htmlFor="progressType">Progress Type</Label>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button className="dark:bg-primary w-full cursor-pointer rounded-[6px]">
+                  <Button className="dark:bg-primary w-full cursor-pointer rounded-md">
                     {selectedProgressType}
                   </Button>
                 </DropdownMenuTrigger>
@@ -95,7 +95,7 @@ const UpdateReadingProgressCard = ({ book }: { book: Book }) => {
             </div>
             <div className="flex w-1/3 items-end">
               <Button
-                className="w-full cursor-pointer rounded-[6px]"
+                className="w-full cursor-pointer rounded-md"
                 disabled={isPending || !isValidProgress}
                 onClick={() => {
                   const basePayload = {

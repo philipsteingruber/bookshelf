@@ -28,7 +28,7 @@ const ReadingProgressCard = ({ book }: { book: Book }) => {
 
   return (
     <div className="w-1/4">
-      <Card className="hover:bg-card/80 w-full overflow-hidden py-0" style={{ borderRadius: "6px" }}>
+      <Card className="hover:bg-card/80 w-full overflow-hidden py-0 rounded-md">
         <CardContent className="p-0 flex">
           <div className="relative aspect-2/3 w-32 shrink-0 bg-linear-to-br from-gray-100 to-gray-200">
             {imageError ? (

@@ -131,7 +131,7 @@ export default function Page({
         <div className="flex w-3/4 justify-center gap-x-4">
           <div className="flex flex-col gap-y-4">
             <Link href={coverUrl} target="_blank">
-              <div className="relative h-[600px] w-[400px] overflow-hidden rounded-[6px] bg-linear-to-br from-gray-100 to-gray-200">
+              <div className="relative h-[600px] w-[400px] overflow-hidden rounded-md bg-linear-to-br from-gray-100 to-gray-200">
                 {imageError ? (
                   <div className="flex h-full w-full items-center justify-center bg-linear-to-br from-slate-200 via-slate-300 to-slate-400 p-12">
                     <div className="flex flex-col items-center gap-6 text-center">
@@ -159,7 +159,7 @@ export default function Page({
                     alt={`${book.title} cover`}
                     width={400}
                     height={600}
-                    className="rounded-[6px]"
+                    className="rounded-md"
                     placeholder="blur"
                     blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjYwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImciIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPjxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNmMWY1ZjkiLz48c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNlMmU4ZjAiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjYwMCIgZmlsbD0idXJsKCNnKSIvPjwvc3ZnPg=="
                     onError={() => setImageError(true)}
@@ -175,7 +175,7 @@ export default function Page({
                 <Button
                   className={cn(
                     getStatusButtonStyle(book.status),
-                    "h-8 w-full cursor-pointer rounded-[5px]",
+                    "h-8 w-full cursor-pointer rounded-md",
                   )}
                 >
                   {parseReadStatus(book.status)}
@@ -272,7 +272,7 @@ export default function Page({
               </TooltipContent>
             </Tooltip>
 
-            <span className="font-serif text-xl">{book.author}</span>
+            <span className="font-serif text-xl italic">{book.author}</span>
             <div className="text-primary flex items-center gap-x-4">
               <div className="group flex cursor-pointer items-center gap-x-1 text-sm font-semibold">
                 <span className="group-hover:underline">
@@ -283,7 +283,9 @@ export default function Page({
               <span className="text-secondary align-middle">•</span>
               <span className="text-sm">
                 Published{" "}
-                <span className="text-sm italic">{book.publishedYear}</span>
+                <span className="text-sm font-semibold">
+                  {book.publishedYear}
+                </span>
               </span>
             </div>
             {isReading && (
@@ -295,7 +297,7 @@ export default function Page({
               </div>
             )}
             {isReading && <UpdateReadingProgressCard book={book} />}
-            <div className="w-3/4 text-xs leading-5 font-semibold text-pretty whitespace-pre-line">
+            <div className="w-3/4 rounded-md border p-1 text-xs leading-5 font-normal text-pretty whitespace-pre-line shadow-md">
               {book.summary || ""}
             </div>
           </div>
