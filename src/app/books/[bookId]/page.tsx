@@ -105,6 +105,10 @@ export default function Page({
       });
       setIsReadingStatusDialogOpen(false);
       trpcUtils.book.getBook.invalidate(parseInt(bookId));
+      trpcUtils.book.getBooks.invalidate({
+        sortBy: "progress",
+        sortDirection: "desc",
+      });
     },
   });
   const { mutate: updatePageCount } = trpc.book.updatePageCount.useMutation();
@@ -255,7 +259,7 @@ export default function Page({
           </div>
           <div className="flex w-3/4 flex-col gap-y-2">
             {book.series && book.seriesIndex && (
-              <p className="font-sm font-serif font-light italic">{`${book.series} #${book.seriesIndex}`}</p>
+              <p className="font-serif text-sm font-light italic">{`${book.series} #${book.seriesIndex}`}</p>
             )}
             <Tooltip>
               <TooltipTrigger asChild>

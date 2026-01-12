@@ -29,7 +29,7 @@ const Page = () => {
     finishedThisYearBooksCount,
     readBooksCount,
   } = useBooks({
-    sortBy: "title",
+    sortBy: "progress",
     sortDirection: "desc",
   });
 
@@ -40,9 +40,9 @@ const Page = () => {
   }
 
   let sliceLength = Math.min(3, readingBooksCount);
-  const topThreeReading = readingBooks.slice(0, sliceLength);
-  sliceLength = Math.min(3, readNextBooksCount);
-  const topThreeReadNext = readNextBooks.slice(0, sliceLength);
+  const readingBooksToShow = readingBooks.slice(0, sliceLength);
+  sliceLength = Math.min(5, readNextBooksCount);
+  const readNextBooksToShow = readNextBooks.slice(0, sliceLength);
 
   const dashBoardCardData: DashboardCardProps[] = [
     {
@@ -97,7 +97,7 @@ const Page = () => {
             count={readingBooksCount}
           />
           <div className="flex gap-x-4">
-            {topThreeReading.map((book) => (
+            {readingBooksToShow.map((book) => (
               <ReadingProgressCard book={book} key={book.id} />
             ))}
           </div>
@@ -108,7 +108,7 @@ const Page = () => {
           <div className="flex flex-col gap-y-2">
             <StatusCategoryHeader text="Up Next" count={readNextBooksCount} />
             <div className="flex gap-x-4">
-              {topThreeReadNext.map((book) => (
+              {readNextBooksToShow.map((book) => (
                 <BookCard
                   book={book}
                   key={book.id}
@@ -140,7 +140,7 @@ const StatusCategoryHeader = ({
   count: number;
 }) => {
   return (
-    <p className="text-xl font-semibold">
+    <p className="mb-2 text-xl font-semibold">
       {text} <span className="text-primary text-md font-normal">({count})</span>
     </p>
   );
