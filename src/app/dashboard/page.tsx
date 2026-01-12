@@ -16,6 +16,7 @@ import ErrorState from "@/components/error-state";
 import LoadingState from "@/components/loading-state";
 import { Separator } from "@/components/ui/separator";
 import { useBooks } from "@/hooks/use-books";
+import { useReadingStats } from "@/hooks/use-reading-stats";
 
 const Page = () => {
   const {
@@ -32,6 +33,8 @@ const Page = () => {
     sortBy: "progress",
     sortDirection: "desc",
   });
+  const { pagesToday, avgPagesPerDay, avgPagesPerWeek, totalPagesRead } =
+    useReadingStats();
 
   const { isSignedIn } = useAuth();
 
@@ -48,7 +51,7 @@ const Page = () => {
     {
       header: "BOOKS READ THIS YEAR",
       value: finishedThisYearBooksCount,
-      footer: `${readBooksCount} total`,
+      footer: `${readBooksCount} all time`,
       icon: BookCheckIcon,
     },
     {
@@ -59,17 +62,15 @@ const Page = () => {
     },
     {
       header: "PAGES TODAY",
-      value: 0,
-      footer: "Coming Soon",
+      value: pagesToday,
+      footer: `${totalPagesRead} total pages read`,
       icon: TrendingUpIcon,
-      className: "opacity-50",
     },
     {
       header: "AVG. PAGES/DAY",
-      value: 0,
-      footer: "Coming Soon",
+      value: avgPagesPerDay,
+      footer: `${avgPagesPerWeek} per week`,
       icon: FlameIcon,
-      className: "opacity-50",
     },
   ];
 
