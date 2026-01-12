@@ -212,4 +212,31 @@ export const readingProgressRouter = createTRPCRouter({
 
       return { readingProgressHistory };
     }),
+  getAllReadingProgress: authedProcedure.query(async ({ ctx }) => {
+    ctx.logger.debug("Fetching all reading progress for stats calculation");
+
+    const fetchAllProgressTimer = performanceLogger(
+      "DB: Fetch all reading progress",
+      500,
+      ctx.logger,
+    );
+
+    fetchAllProgressTimer.start();
+    const allProgress = await ctx.db.readingProgress.findMany({
+      where: { userId: ctx.currentUser.id },
+      include: {
+        book: {
+          select: {
+            pageCount: true,
+            id: true,
+            title: true,
+          },
+        },
+      },
+      orderBy: { createdAt: "asc" },
+    });
+    fetchAllProgressTimer.end({ count: allProgress.length });
+
+    return { allProgress };
+  }),
 });

@@ -242,8 +242,27 @@ A full-stack web application for tracking your personal reading journey, built w
 - [x] Manual progress updates (e.g., "I'm on page 150")
 - [x] Progress history timeline
 - [x] Estimated finish date based on reading pace
-- [ ] Daily/weekly reading statistics
-- [ ] Average reading speed calculation (pages per day/hour)
+- [x] Daily/weekly reading statistics (BACKEND COMPLETE)
+  - [x] Backend: `getAllReadingProgress` tRPC procedure
+  - [x] Backend: Calculation utilities (`reading-stats-utils.ts`)
+    - [x] Pages read today counter
+    - [x] Average pages per day calculation
+    - [x] Weekly totals (this week, last week)
+    - [x] Active reading days tracking
+    - [x] Total pages read calculation
+    - [x] Average pages per week calculation
+  - [x] React hook: `useReadingStats` with memoization
+  - [ ] UI: Dashboard statistics cards integration (NEXT)
+  - [ ] UI: Replace "Coming Soon" placeholders with real data
+- [x] Reading streaks tracking (BACKEND COMPLETE)
+  - [x] Backend: Streak calculation algorithm
+    - [x] Current streak counter
+    - [x] Longest streak tracking
+    - [x] Streak start date tracking
+    - [x] Active today detection
+  - [x] Streak model added to database schema
+  - [ ] UI: Streak display on dashboard (NEXT)
+  - [ ] Backend: Streak persistence/updates (Future enhancement)
 
 ---
 
@@ -259,6 +278,11 @@ A full-stack web application for tracking your personal reading journey, built w
 
 ### Advanced Filtering & Organization
 
+- [ ] Comprehensive filtering UI component
+  - [ ] Rating filter (backend complete, UI pending)
+  - [ ] Status filter improvements
+  - [ ] Combined filter display
+  - [ ] Clear all filters button
 - [ ] Genre/category tagging system
 - [ ] Custom tags/labels
 - [ ] Multiple tag assignment per book
