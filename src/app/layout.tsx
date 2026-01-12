@@ -22,7 +22,11 @@ export default function RootLayout({
   return (
     <TRPCProvider>
       <ClerkProvider>
-        <html lang="en" suppressHydrationWarning>
+        <html
+          lang="en"
+          suppressHydrationWarning
+          style={{ scrollbarGutter: "stable" }}
+        >
           <body
             className={`flex h-full w-full flex-col antialiased`}
             suppressHydrationWarning
