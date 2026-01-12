@@ -29,7 +29,7 @@ async function main() {
   const readingProgressData = progressValues.map((val, index) => {
     return {
       progress: val,
-      date: subDays(new Date(), progressValues.length - index),
+      date: subDays(new Date(), progressValues.length - (index + 1)),
     };
   });
 
