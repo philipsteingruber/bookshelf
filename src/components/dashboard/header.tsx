@@ -2,7 +2,10 @@
 
 import Link from "next/link";
 
-import { BookIcon, PlusIcon } from "lucide-react";
+import { BookIcon, FlameIcon, PlusIcon } from "lucide-react";
+
+import { useReadingStats } from "@/hooks/use-reading-stats";
+import { cn } from "@/lib/utils";
 
 import { Button } from "../ui/button";
 import { Separator } from "../ui/separator";
@@ -21,14 +24,43 @@ const Header = () => {
             <p className="text-xl">Welcome back to Bookshelf</p>
           </div>
         </div>
-        <Link href={"/books/create"}>
-          <Button className="cursor-pointer">
-            <PlusIcon /> Add
-          </Button>
-        </Link>
+        <div className="flex items-center gap-x-8 pr-4">
+          <StreakIndicator />
+          <Link href={"/books/create"}>
+            <Button className="cursor-pointer">
+              <PlusIcon /> Add
+            </Button>
+          </Link>
+        </div>
       </header>
       <Separator />
     </>
+  );
+};
+
+const StreakIndicator = () => {
+  const { isStreakActive, currentStreak, isPending } = useReadingStats();
+
+  return (
+    <div
+      className={cn(
+        isStreakActive ? "rounded-md border-2 font-semibold shadow-md" : null,
+        "flex cursor-default items-center gap-x-2 px-4 py-2",
+      )}
+    >
+      {isPending ? null : (
+        <>
+          <FlameIcon
+            className={cn(isStreakActive ? "text-red-400" : "text-white")}
+          />
+          <span className="text-primary">
+            {isStreakActive
+              ? `You're on a ${currentStreak} day streak, keep it going!`
+              : "You lost your streak, get back on the horse!"}
+          </span>
+        </>
+      )}
+    </div>
   );
 };
 
