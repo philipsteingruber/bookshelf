@@ -1,6 +1,5 @@
 import { useState } from "react";
 
-import { DropdownMenuTrigger } from "@radix-ui/react-dropdown-menu";
 import { toast } from "sonner";
 
 import type { Book } from "@/generated/prisma/client";
@@ -9,13 +8,15 @@ import { trpc } from "@/trpc/client";
 
 import { Button } from "../ui/button";
 import { Card, CardContent } from "../ui/card";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-} from "../ui/dropdown-menu";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
 import { Spinner } from "../ui/spinner";
 import { Textarea } from "../ui/textarea";
 
@@ -73,25 +74,20 @@ const UpdateReadingProgressCard = ({ book }: { book: Book }) => {
             </div>
             <div className="flex w-1/3 flex-col items-center gap-y-2">
               <Label htmlFor="progressType">Progress Type</Label>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button className="dark:bg-primary w-full cursor-pointer rounded-md">
-                    {selectedProgressType}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  <DropdownMenuItem
-                    onClick={() => setSelectedProgressType("%")}
-                  >
-                    %
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => setSelectedProgressType("pages")}
-                  >
-                    pages
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <Select
+                value={selectedProgressType}
+                onValueChange={(value) =>
+                  setSelectedProgressType(value as "%" | "pages")
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent position="popper">
+                  <SelectItem value="%">%</SelectItem>
+                  <SelectItem value="pages">pages</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex w-1/3 items-end">
               <Button
