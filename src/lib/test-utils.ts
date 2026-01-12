@@ -119,6 +119,25 @@ export function createFakeReadingProgress(
   } as ReadingProgress;
 }
 
+export const createFakeReadingProgressWithBook = (
+  overrides?: Partial<
+    ReadingProgress & { book: Pick<Book, "pageCount" | "id" | "title"> }
+  >,
+) => {
+  const fakeBook = createFakeBook();
+  const fakeProgress = createFakeReadingProgress();
+
+  return {
+    ...fakeProgress,
+    book: {
+      pageCount: fakeBook.pageCount,
+      id: fakeBook.id,
+      title: fakeBook.title,
+    },
+    ...overrides,
+  };
+};
+
 /**
  * Creates a mock tRPC context with sensible defaults.
  * This is the context object you pass to router.createCaller().

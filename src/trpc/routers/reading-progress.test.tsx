@@ -1,9 +1,11 @@
+import { subDays } from "date-fns";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { PrismaClient, ReadingProgress } from "@/generated/prisma/client";
 import {
   createFakeBook,
   createFakeReadingProgress,
+  createFakeReadingProgressWithBook,
   createMockCaller,
 } from "@/lib/test-utils";
 
@@ -363,6 +365,126 @@ describe("readingProgressRouter", () => {
       const result = await caller.getProgressHistory(fakeBook.id);
 
       expect(result.readingProgressHistory).toEqual(expectedResult);
+    });
+  });
+  describe("getAllReadingProgress", () => {
+    beforeEach(() => vi.clearAllMocks());
+
+    it("should return all reading progress entries for authenticated user", async () => {
+      const { mockDb, caller } = createMockCaller(readingProgressRouter);
+
+      const fakeReadingProgress = createFakeReadingProgress();
+      const fakeReadingProgress2 = createFakeReadingProgress();
+
+      vi.mocked(mockDb.readingProgress.findMany).mockResolvedValue([
+        fakeReadingProgress,
+        fakeReadingProgress2,
+      ]);
+
+      const result = await caller.getAllReadingProgress();
+
+      expect(result.allProgress).toEqual([
+        fakeReadingProgress,
+        fakeReadingProgress2,
+      ]);
+    });
+    it("should include book data (page count) with each progress entry", async () => {
+      const { mockDb, caller } = createMockCaller(readingProgressRouter);
+
+      const fakeReadingProgressWithBook = createFakeReadingProgressWithBook();
+
+      vi.mocked(mockDb.readingProgress.findMany).mockResolvedValue([
+        fakeReadingProgressWithBook,
+      ]);
+
+      const result = await caller.getAllReadingProgress();
+
+      expect(result.allProgress[0].book).toMatchObject({
+        pageCount: expect.any(Number),
+        id: expect.any(Number),
+        title: expect.any(String),
+      });
+    });
+    it("should return entries in chronological order (oldest to newest)", async () => {
+      const { mockDb, caller } = createMockCaller(readingProgressRouter);
+
+      const olderFakeReadingProgress = createFakeReadingProgress({
+        createdAt: subDays(new Date(), 1),
+      });
+      const newerFakeReadingProgress = createFakeReadingProgress({
+        createdAt: new Date(),
+      });
+
+      vi.mocked(mockDb.readingProgress.findMany).mockResolvedValue([
+        olderFakeReadingProgress,
+        newerFakeReadingProgress,
+      ]);
+
+      const result = await caller.getAllReadingProgress();
+
+      expect(mockDb.readingProgress.findMany).toHaveBeenCalledWith({
+        where: expect.any(Object),
+        include: expect.any(Object),
+        orderBy: { createdAt: "asc" },
+      });
+      expect(result.allProgress).toEqual([
+        olderFakeReadingProgress,
+        newerFakeReadingProgress,
+      ]);
+    });
+    it("should return empty array for users with no reading history", async () => {
+      const { mockDb, caller } = createMockCaller(readingProgressRouter);
+
+      vi.mocked(mockDb.readingProgress.findMany).mockResolvedValue([]);
+
+      const result = await caller.getAllReadingProgress();
+
+      expect(result.allProgress).toEqual([]);
+    });
+    it("should only return progress entries owned by requesting user", async () => {
+      const { mockDb, caller, mockUser } = createMockCaller(
+        readingProgressRouter,
+      );
+
+      const ownedReadingProgress = createFakeReadingProgress({
+        userId: mockUser.id,
+      });
+
+      vi.mocked(mockDb.readingProgress.findMany).mockResolvedValue([
+        ownedReadingProgress,
+      ]);
+
+      const result = await caller.getAllReadingProgress();
+
+      expect(result.allProgress).toEqual([ownedReadingProgress]);
+      expect(mockDb.readingProgress.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { userId: mockUser.id } }),
+      );
+    });
+    it("should include progress from all books (not just one book)", async () => {
+      const { mockDb, caller } = createMockCaller(readingProgressRouter);
+
+      const fakeBook = createFakeBook({ id: 1 });
+      const otherBook = createFakeBook({ id: 2 });
+
+      const readingProgress = createFakeReadingProgressWithBook({
+        bookId: fakeBook.id,
+      });
+      const otherReadingPro = createFakeReadingProgressWithBook({
+        bookId: otherBook.id,
+      });
+
+      vi.mocked(mockDb.readingProgress.findMany).mockResolvedValue([
+        readingProgress,
+        otherReadingPro,
+      ]);
+
+      const result = await caller.getAllReadingProgress();
+
+      expect(result.allProgress).toHaveLength(2);
+      expect(result.allProgress[0].bookId).not.toEqual(
+        result.allProgress[1].bookId,
+      );
     });
   });
 });
