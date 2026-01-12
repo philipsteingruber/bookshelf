@@ -470,21 +470,23 @@ describe("readingProgressRouter", () => {
       const readingProgress = createFakeReadingProgressWithBook({
         bookId: fakeBook.id,
       });
-      const otherReadingPro = createFakeReadingProgressWithBook({
+      const otherReadingProgress = createFakeReadingProgressWithBook({
         bookId: otherBook.id,
       });
 
       vi.mocked(mockDb.readingProgress.findMany).mockResolvedValue([
         readingProgress,
-        otherReadingPro,
+        otherReadingProgress,
       ]);
 
       const result = await caller.getAllReadingProgress();
 
       expect(result.allProgress).toHaveLength(2);
-      expect(result.allProgress[0].bookId).not.toEqual(
-        result.allProgress[1].bookId,
-      );
+      expect(mockDb.readingProgress.findMany).toHaveBeenCalledWith({
+        where: { userId: expect.any(String) },
+        include: expect.any(Object),
+        orderBy: expect.any(Object),
+      });
     });
   });
 });
