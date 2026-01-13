@@ -8,16 +8,24 @@ import {
   ArrowDownAZIcon,
   ArrowUpAZIcon,
   ArrowUpDown,
+  BookCheckIcon,
+  BookmarkIcon,
+  BookOpenIcon,
   CalendarPlusIcon,
+  ClockIcon,
   FileTextIcon,
   FilterIcon,
+  LibraryIcon,
+  SearchIcon,
   TrendingDown,
   TrendingUp,
 } from "lucide-react";
+import type { ChangeEvent } from "react";
 
 import BookCard from "@/components/books/book-card";
 import LoadingState from "@/components/loading-state";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -25,6 +33,7 @@ import {
   SelectItem,
   SelectTrigger,
 } from "@/components/ui/select";
+import type { ReadStatus } from "@/generated/prisma/enums";
 import type { BookScalarFieldEnum } from "@/generated/prisma/internal/prismaNamespace";
 import { useBooks } from "@/hooks/use-books";
 
@@ -38,13 +47,6 @@ const sortGroups: { text: string; items: SortItem[] }[] = [
         Icon: CalendarPlusIcon,
         value: "RECENTLY_ADDED",
       },
-      /* 
-        {
-          text: "Recently Read",
-          Icon: BookCheckIcon,
-          value: "RECENTLY_READ",
-        },
-        */
       {
         text: "Oldest First",
         Icon: CalendarPlusIcon,
@@ -73,6 +75,39 @@ const sortGroups: { text: string; items: SortItem[] }[] = [
 ] as const;
 type SortOptions = (typeof sortGroups)[number]["items"][number]["value"];
 
+type StatusFilterOption = {
+  Icon: LucideIcon;
+  text: string;
+  value: ReadStatus | "ALL_BOOKS";
+};
+const statusFilterOptions: StatusFilterOption[] = [
+  {
+    Icon: LibraryIcon,
+    text: "All Books",
+    value: "ALL_BOOKS",
+  },
+  {
+    Icon: BookmarkIcon,
+    text: "To Read",
+    value: "TO_READ",
+  },
+  {
+    Icon: ClockIcon,
+    text: "Read Next",
+    value: "READ_NEXT",
+  },
+  {
+    Icon: BookOpenIcon,
+    text: "Reading",
+    value: "READING",
+  },
+  {
+    Icon: BookCheckIcon,
+    text: "Read",
+    value: "READ",
+  },
+];
+
 const SORT_CONFIG: Record<
   SortOptions,
   { sortBy: BookScalarFieldEnum; sortDirection: "asc" | "desc" }
@@ -97,16 +132,33 @@ const parseSelectedSort = (value: string) => {
     }
   );
 };
+const parseSelectedFilter = (value: ReadStatus | "ALL_BOOKS") => {
+  console.log(value);
+  if (value === "ALL_BOOKS") {
+    return undefined;
+  }
+  return value;
+};
 
 const Page = () => {
   const [selectedSorting, setSelectedSorting] =
     useState<SortOptions>("RECENTLY_ADDED");
+  const [selectedFilter, setSelectedFilter] = useState<
+    ReadStatus | "ALL_BOOKS"
+  >("ALL_BOOKS");
+  const [inputSearch, setInputSearch] = useState<string>("");
+  const handleSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setInputSearch(e.target.value);
+  };
+
   const { isSignedIn } = useAuth();
 
   const { sortBy, sortDirection } = parseSelectedSort(selectedSorting);
   const { books, isPending, isError, error } = useBooks({
     sortBy,
     sortDirection,
+    search: inputSearch,
+    status: parseSelectedFilter(selectedFilter),
   });
 
   if (!isSignedIn) {
@@ -126,6 +178,10 @@ const Page = () => {
       <LibraryFilterPicker
         selectedSorting={selectedSorting}
         onSortingChange={setSelectedSorting}
+        inputSearch={inputSearch}
+        onSearchChange={handleSearchChange}
+        selectedFilter={selectedFilter}
+        onFilterChange={setSelectedFilter}
       />
       <div className="grid w-5/6 grid-cols-5 items-center gap-x-8 gap-y-4 pt-4">
         {books.map((book) => (
@@ -144,27 +200,38 @@ const Page = () => {
 const LibraryFilterPicker = ({
   selectedSorting,
   onSortingChange,
+  inputSearch,
+  onSearchChange,
+  selectedFilter,
+  onFilterChange,
 }: {
   selectedSorting: SortOptions;
   onSortingChange: (value: SortOptions) => void;
+  inputSearch: string;
+  onSearchChange: (event: ChangeEvent<HTMLInputElement>) => void;
+  selectedFilter: ReadStatus | "ALL_BOOKS";
+  onFilterChange: (value: ReadStatus) => void;
 }) => {
-  const getSelectedItem = () => {
+  const getSelectedSort = () => {
     return sortGroups
       .flatMap((group) => group.items)
       .find((item) => item.value === selectedSorting);
   };
+  const getSelectedFilter = () => {
+    return statusFilterOptions.find((item) => item.value === selectedFilter);
+  };
 
   return (
-    <Card className="flex w-5/6 flex-col items-center">
-      <div className="flex w-full items-center justify-between px-6">
+    <Card className="flex w-5/6 flex-col items-center justify-center rounded-md px-6 py-4">
+      <div className="flex w-full items-center justify-between">
         <span className="flex items-center gap-x-2 text-sm">
-          <FilterIcon />
+          <FilterIcon className="size-6" />
           Filters & Sorting
         </span>
         <Select value={selectedSorting} onValueChange={onSortingChange}>
           <SelectTrigger className="w-[175px]">
             <span className="flex items-center gap-x-2">
-              <ArrowUpDown /> {getSelectedItem()?.text}
+              <ArrowUpDown /> {getSelectedSort()?.text}
             </span>
           </SelectTrigger>
           <SelectContent position="popper">
@@ -183,6 +250,40 @@ const LibraryFilterPicker = ({
                   </SelectItem>
                 ))}
               </SelectGroup>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="flex w-full">
+        <div className="bg-background flex w-full items-center gap-x-1 rounded-md border px-4 py-2">
+          <SearchIcon />
+          <Input
+            value={inputSearch}
+            onChange={onSearchChange}
+            className="dark:bg-background border-0 focus-visible:ring-0"
+            placeholder="Search"
+            autoFocus
+          />
+        </div>
+      </div>
+      <div className="flex items-center gap-x-2">
+        <Select
+          value={selectedFilter ?? undefined}
+          onValueChange={onFilterChange}
+        >
+          <SelectTrigger>
+            <FilterIcon /> {getSelectedFilter()?.text}
+          </SelectTrigger>
+          <SelectContent position="popper">
+            {statusFilterOptions.map((item) => (
+              <SelectItem
+                className="flex items-center gap-x-1"
+                key={item.text}
+                value={item.value}
+              >
+                <item.Icon />
+                {item.text}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
