@@ -77,9 +77,8 @@ export default function Page({
   );
 
   const [imageError, setImageError] = useState(false);
-  const [pageCountLabelContent, setPageCountLabelContent] = useState<string>(
-    book?.pageCount.toString() || "",
-  );
+  const [pageCountLabelContent, setPageCountLabelContent] =
+    useState<string>("");
 
   const coverUrl = book?.coverUrl || BOOK_COVER_PLACEHOLDER_URL;
   const statusOptions: ReadStatus[] = [
@@ -106,12 +105,14 @@ export default function Page({
       setIsReadingStatusDialogOpen(false);
       trpcUtils.book.getBook.invalidate(parseInt(bookId));
       trpcUtils.book.getBooks.invalidate({
-        sortBy: "progress",
+        sortBy: "updatedAt",
         sortDirection: "desc",
       });
     },
   });
-  const { mutate: updatePageCount } = trpc.book.updatePageCount.useMutation();
+  const { mutate: updatePageCount } = trpc.book.updatePageCount.useMutation({
+    onSuccess: () => trpcUtils.book.getBook.invalidate(parseInt(bookId)),
+  });
 
   const { isSignedIn } = useAuth();
   if (!isSignedIn) {
@@ -173,7 +174,13 @@ export default function Page({
             </Link>
             <Dialog
               open={isReadingStatusDialogOpen}
-              onOpenChange={setIsReadingStatusDialogOpen}
+              onOpenChange={(open) => {
+                setIsReadingStatusDialogOpen(open);
+                if (!open) {
+                  setSelectedStatus(book.status);
+                  setPageCountLabelContent("");
+                }
+              }}
             >
               <DialogTrigger asChild>
                 <Button
@@ -207,23 +214,25 @@ export default function Page({
                     </div>
                   ))}
                 </RadioGroup>
-                {selectedStatus === "READ" ||
-                  (selectedStatus == "READING" && (
-                    <div className="flex flex-col">
-                      <Separator className="my-4" />
-                      <div className="mb-2 flex gap-x-2">
-                        <Label htmlFor="pageCount">Page Count</Label>
-                        <Input
-                          id="pageCount"
-                          value={pageCountLabelContent}
-                          onChange={(e) =>
-                            setPageCountLabelContent(e.target.value)
-                          }
-                          className="max-w-1/2"
-                        />
-                      </div>
+                {(selectedStatus === "READ" || selectedStatus == "READING") && (
+                  <div className="flex flex-col">
+                    <Separator className="my-4" />
+                    <div className="mb-2 flex gap-x-2">
+                      <Label htmlFor="pageCount">Page Count</Label>
+                      <Input
+                        id="pageCount"
+                        value={pageCountLabelContent}
+                        onChange={(e) =>
+                          setPageCountLabelContent(e.target.value)
+                        }
+                        className="max-w-1/2"
+                        placeholder={
+                          book.pageCount.toString() || pageCountLabelContent
+                        }
+                      />
                     </div>
-                  ))}
+                  </div>
+                )}
                 <DialogFooter>
                   <DialogClose asChild>
                     <Button variant={"outline"}>Cancel</Button>
@@ -296,7 +305,8 @@ export default function Page({
               <div className="relative w-3/4">
                 <Progress value={book.progress} className="h-6 rounded-xs" />
                 <span className="absolute inset-0 flex items-center justify-center text-sm text-white">
-                  {book.progress}%
+                  {book.progress}% /{" "}
+                  {`${Math.round((book.progress / 100) * book.pageCount)}/${book.pageCount} pages`}
                 </span>
               </div>
             )}

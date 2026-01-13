@@ -30,7 +30,7 @@ const Page = () => {
     finishedThisYearBooksCount,
     readBooksCount,
   } = useBooks({
-    sortBy: "progress",
+    sortBy: "updatedAt",
     sortDirection: "desc",
   });
   const { pagesToday, avgPagesPerDay, avgPagesPerWeek, totalPagesRead } =
