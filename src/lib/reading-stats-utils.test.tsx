@@ -31,6 +31,138 @@ describe("reading-stats-utils", () => {
         streakStart: null,
       } satisfies StreakDetails);
     });
+
+    it("should detect isActiveToday correctly", () => {
+      const readingProgress = createFakeReadingProgressWithBook({
+        createdAt: new Date(),
+      });
+
+      const result = calculateStreakDetails([readingProgress]);
+
+      expect(result.isActiveToday).toEqual(true);
+    });
+
+    it("should calculate current streak when active today", () => {
+      const readingProgress = createFakeReadingProgressWithBook({
+        createdAt: new Date(),
+      });
+
+      const result = calculateStreakDetails([readingProgress]);
+
+      expect(result.currentStreak).toEqual(1);
+    });
+
+    it("should calculate current streak when active yesterday", () => {
+      const readingProgress = createFakeReadingProgressWithBook({
+        createdAt: subDays(new Date(), 1),
+      });
+
+      const result = calculateStreakDetails([readingProgress]);
+
+      expect(result.currentStreak).toEqual(1);
+      expect(result.isActiveToday).toEqual(false);
+    });
+
+    it("should return zero current streak when last activity was 2+ days ago", () => {
+      const readingProgress = createFakeReadingProgressWithBook({
+        createdAt: subDays(new Date(), 3),
+      });
+
+      const result = calculateStreakDetails([readingProgress]);
+
+      expect(result.currentStreak).toEqual(0);
+      expect(result.isActiveToday).toEqual(false);
+    });
+
+    it("should handle single day activity", () => {
+      const readingProgress = createFakeReadingProgressWithBook({
+        createdAt: new Date(),
+      });
+
+      const result = calculateStreakDetails([readingProgress]);
+
+      expect(result.currentStreak).toEqual(1);
+      expect(result.longestStreak).toEqual(1);
+    });
+
+    it("should handle consecutive days correctly", () => {
+      const firstReadingProgress = createFakeReadingProgressWithBook({
+        createdAt: subDays(new Date(), 2),
+      });
+      const secondReadingProgress = createFakeReadingProgressWithBook({
+        createdAt: subDays(new Date(), 1),
+      });
+      const thirdReadingProgress = createFakeReadingProgressWithBook({
+        createdAt: new Date(),
+      });
+
+      const result = calculateStreakDetails([
+        firstReadingProgress,
+        secondReadingProgress,
+        thirdReadingProgress,
+      ]);
+
+      expect(result.currentStreak).toEqual(3);
+      expect(result.longestStreak).toEqual(3);
+      expect(result.isActiveToday).toEqual(true);
+      expect(result.streakStart).toEqual(expect.any(Date));
+    });
+
+    it("should calculate longest streak correctly", () => {
+      const firstOldReadingProgress = createFakeReadingProgressWithBook({
+        createdAt: subDays(new Date(), 7),
+      });
+      const secondOldReadingProgress = createFakeReadingProgressWithBook({
+        createdAt: subDays(new Date(), 6),
+      });
+      const thirdOldReadingProgress = createFakeReadingProgressWithBook({
+        createdAt: subDays(new Date(), 5),
+      });
+
+      const firstNewReadingProgress = createFakeReadingProgressWithBook({
+        createdAt: subDays(new Date(), 1),
+      });
+      const secondNewReadingProgress = createFakeReadingProgressWithBook({
+        createdAt: new Date(),
+      });
+
+      const result = calculateStreakDetails([
+        firstOldReadingProgress,
+        secondOldReadingProgress,
+        thirdOldReadingProgress,
+        firstNewReadingProgress,
+        secondNewReadingProgress,
+      ]);
+
+      expect(result.currentStreak).toEqual(2);
+      expect(result.longestStreak).toEqual(3);
+    });
+
+    it("should handle gaps in reading activity", () => {
+      const firstOldReadingProgress = createFakeReadingProgressWithBook({
+        createdAt: subDays(new Date(), 7),
+      });
+      const secondOldReadingProgress = createFakeReadingProgressWithBook({
+        createdAt: subDays(new Date(), 6),
+      });
+
+      const firstNewReadingProgress = createFakeReadingProgressWithBook({
+        createdAt: subDays(new Date(), 1),
+      });
+      const secondNewReadingProgress = createFakeReadingProgressWithBook({
+        createdAt: new Date(),
+      });
+
+      const result = calculateStreakDetails([
+        firstOldReadingProgress,
+        secondOldReadingProgress,
+        firstNewReadingProgress,
+        secondNewReadingProgress,
+      ]);
+
+      expect(result.currentStreak).toEqual(2);
+      expect(result.longestStreak).toEqual(2);
+    });
   });
   describe("calculateDailyStats", () => {
     beforeEach(() => {
