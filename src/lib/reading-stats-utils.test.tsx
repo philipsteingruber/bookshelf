@@ -435,8 +435,6 @@ describe("reading-stats-utils", () => {
         progress: 50,
       });
 
-      console.log(firstBook, secondBook);
-
       const result = calculateOverallStats([
         firstReadingProgress,
         secondReadingProgress,

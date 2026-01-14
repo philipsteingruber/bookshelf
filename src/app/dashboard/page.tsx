@@ -3,7 +3,8 @@
 import { RedirectToSignIn, useAuth } from "@clerk/nextjs";
 import {
   BookCheckIcon,
-  BookIcon,
+  BookOpenIcon,
+  CalendarIcon,
   FlameIcon,
   TrendingUpIcon,
 } from "lucide-react";
@@ -33,8 +34,14 @@ const Page = () => {
     sortBy: "updatedAt",
     sortDirection: "desc",
   });
-  const { pagesToday, avgPagesPerDay, avgPagesPerWeek, totalPagesRead } =
-    useReadingStats();
+  const {
+    pagesToday,
+    avgPagesPerDay,
+    avgPagesPerWeek,
+    totalPagesRead,
+    pagesThisWeek,
+    pagesLastWeek,
+  } = useReadingStats();
 
   const { isSignedIn } = useAuth();
 
@@ -58,7 +65,7 @@ const Page = () => {
       header: "CURRENTLY READING",
       value: readingBooksCount,
       footer: "Active books",
-      icon: BookIcon,
+      icon: BookOpenIcon,
     },
     {
       header: "PAGES TODAY",
@@ -71,6 +78,12 @@ const Page = () => {
       value: avgPagesPerDay,
       footer: `${avgPagesPerWeek} per week`,
       icon: FlameIcon,
+    },
+    {
+      header: "PAGES THIS WEEK",
+      value: pagesThisWeek,
+      footer: `${pagesLastWeek} pages last week`,
+      icon: CalendarIcon,
     },
   ];
 

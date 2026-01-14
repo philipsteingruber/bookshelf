@@ -24,6 +24,7 @@ export const useReadingStats = () => {
     currentStreak: readingStats?.streak.currentStreak ?? 0,
     isStreakActive: readingStats?.streak.isActiveToday ?? false,
     pagesThisWeek: readingStats?.weekly.pagesThisWeek ?? 0,
+    pagesLastWeek: readingStats?.weekly.pagesLastWeek ?? 0,
     totalPagesRead: readingStats?.overall.totalPagesRead ?? 0,
     activeDays: readingStats?.overall.activeDays ?? 0,
   };

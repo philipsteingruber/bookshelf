@@ -168,25 +168,45 @@ export const calculateWeeklyStats = (
   const thisWeekKey = format(thisWeekStart, "yyyy-MM-dd");
   const lastWeekKey = format(lastWeekStart, "yyyy-MM-dd");
 
+  // Group all entries by book to find baselines
+  const allEntriesByBook = new Map<number, ReadingProgressWithBook[]>();
+  validProgress.forEach((entry) => {
+    const bookEntries = allEntriesByBook.get(entry.bookId) || [];
+    allEntriesByBook.set(entry.bookId, [...bookEntries, entry]);
+  });
+
   const calculateWeekPages = (
     weekEntries: ReadingProgressWithBook[],
+    weekStart: Date,
   ): number => {
-    const byBook = new Map<number, { max: number; pageCount: number }>();
+    // Group week entries by book
+    const weekByBook = new Map<number, ReadingProgressWithBook[]>();
     weekEntries.forEach((entry) => {
-      const current = byBook.get(entry.bookId);
-      if (!current) {
-        byBook.set(entry.bookId, {
-          max: entry.progress,
-          pageCount: entry.book.pageCount,
-        });
-      } else {
-        current.max = Math.max(current.max, entry.progress);
-      }
+      const bookEntries = weekByBook.get(entry.bookId) || [];
+      weekByBook.set(entry.bookId, [...bookEntries, entry]);
     });
 
     let weekPages = 0;
-    byBook.forEach(({ max, pageCount }) => {
-      weekPages += calculatePagesFromProgress(max, pageCount);
+    weekByBook.forEach((entries, bookId) => {
+      const allBookEntries = allEntriesByBook.get(bookId) || [];
+
+      // Find the last entry before this week started
+      const entriesBeforeWeek = allBookEntries
+        .filter((e) => e.createdAt < weekStart)
+        .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+      const baseline = entriesBeforeWeek.length > 0
+        ? entriesBeforeWeek[0].progress
+        : 0;
+
+      // Find this week's max progress
+      const weekMaxProgress = Math.max(...entries.map((e) => e.progress));
+      const progressGain = weekMaxProgress - baseline;
+
+      weekPages += calculatePagesFromProgress(
+        progressGain,
+        entries[0].book.pageCount,
+      );
     });
 
     return weekPages;
@@ -194,9 +214,11 @@ export const calculateWeeklyStats = (
 
   const pagesThisWeek = calculateWeekPages(
     progressByWeek.get(thisWeekKey) || [],
+    thisWeekStart,
   );
   const pagesLastWeek = calculateWeekPages(
     progressByWeek.get(lastWeekKey) || [],
+    lastWeekStart,
   );
 
   return {
