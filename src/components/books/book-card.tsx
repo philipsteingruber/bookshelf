@@ -30,7 +30,7 @@ const BookCard = ({
   const coverUrl = book.coverUrl || BOOK_COVER_PLACEHOLDER_URL;
 
   return (
-    <Link href={`/books/${book.id}`} className={cn(className)}>
+    <Link href={`/books/${book.id}`}>
       <Card
         className={cn(
           "hover:bg-card/80 overflow-hidden border-2 p-0",

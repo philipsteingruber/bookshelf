@@ -31,12 +31,13 @@ const UpdateReadingProgressCard = ({ book }: { book: Book }) => {
   const { mutate: updateReadingProgress, isPending } =
     trpc.readingProgress.createReadingProgressInstance.useMutation({
       onSuccess: () => {
-        utils.book.getBook.invalidate();
+        utils.book.getBook.invalidate(book.id);
         utils.readingProgress.getProgressHistory.invalidate();
         utils.book.getBooks.invalidate({
           sortBy: "updatedAt",
           sortDirection: "desc",
         });
+        utils.readingProgress.getAllReadingProgress.invalidate();
         resetProgressInput();
         setEnteredComments("");
         toast.success("Successfully updated reading progress.");

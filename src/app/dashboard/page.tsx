@@ -113,7 +113,7 @@ const Page = () => {
                 <BookCard
                   book={book}
                   key={book.id}
-                  className="w-1/3 rounded-md"
+                  className="flex-1 rounded-md"
                   showStatusButton={false}
                   orientation="vertical"
                   priority

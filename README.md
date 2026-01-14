@@ -270,6 +270,8 @@ A full-stack web application for tracking your personal reading journey, built w
 
 ### External API Integration
 
+- [x] GoodReads scraper for book import
+  - [ ] Integrate into CreateBookForm
 - [ ] Google Books API integration for book lookup
 - [ ] Auto-populate book metadata from ISBN
 - [ ] Book cover fetching from external sources
@@ -310,17 +312,6 @@ A full-stack web application for tracking your personal reading journey, built w
 - [ ] Edit review history
 - [ ] Star rating with half-star support
 - [ ] Review templates for different genres
-
-### Social Interactions
-
-- [ ] Follow other readers
-- [ ] Activity feed showing friends' reading activity
-- [ ] Book recommendations from friends
-- [ ] Comment on reviews
-- [ ] Like/react to reviews
-- [ ] Reading clubs/groups
-- [ ] Group reading challenges
-- [ ] Book discussion threads
 
 ### Sharing
 

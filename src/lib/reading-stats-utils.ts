@@ -162,14 +162,14 @@ export const calculateWeeklyStats = (
   ): number => {
     const byBook = new Map<number, ReadingProgressWithBook[]>();
     weekEntries.forEach((entry) => {
-      const bookEntries = byBook.get(entry.bookId) || []; // TODO: This pattern is repeated many times, can we make a helper?
+      const bookEntries = byBook.get(entry.bookId) || [];
       byBook.set(entry.bookId, [...bookEntries, entry]);
     });
 
     let weekPages = 0;
     byBook.forEach((entries) => {
       const sorted = [...entries].sort(
-        (a, b) => a.createdAt.getTime() - b.createdAt.getTime(), // TODO: Is getTime enough here, where entries can be from different days?
+        (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
       );
       const firstProgress = sorted[0].progress;
       const lastProgress = sorted[sorted.length - 1].progress;
@@ -199,7 +199,7 @@ export const calculateWeeklyStats = (
 export const calculateOverallStats = (
   progress: ReadingProgressWithBook[],
 ): OverallStats => {
-  const validProgress = progress.filter((p) => p.book.pageCount > 0); // TODO: It shouldn't be possible to add ReadingProgress to a book without first setting it's pagecount. Is this check still necessary?
+  const validProgress = progress.filter((p) => p.book.pageCount > 0);
 
   if (validProgress.length === 0) {
     return {
@@ -307,7 +307,6 @@ export const calculateStreakDetails = (
     streakStart = lastActiveDate;
 
     for (let i = activeDates.length - 2; i >= 0; i--) {
-      // TODO: Magic number
       const prevDate = startOfDay(activeDates[i]);
       const nextDate = startOfDay(activeDates[i + 1]);
       const daysDiff = differenceInDays(nextDate, prevDate);
