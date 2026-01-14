@@ -34,7 +34,9 @@ export const createFormSchema = z.object({
       }
     }, "Invalid ISBN. Please enter a valid ISBN-10 or ISBN-13.")
     .optional()
-    .or(z.literal("")),
+    .or(z.literal(""))
+    .nullable()
+    .transform((val) => val || null),
   series: z.string().max(VALIDATION_LIMITS.SERIES_MAX_LENGTH).optional(),
   seriesIndex: z.number().int().positive().optional(),
   publishedYear: z
