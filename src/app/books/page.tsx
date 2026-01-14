@@ -133,7 +133,6 @@ const parseSelectedSort = (value: string) => {
   );
 };
 const parseSelectedFilter = (value: ReadStatus | "ALL_BOOKS") => {
-  console.log(value);
   if (value === "ALL_BOOKS") {
     return undefined;
   }
