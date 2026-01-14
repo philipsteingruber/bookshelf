@@ -127,8 +127,11 @@ export const createFakeReadingProgressWithBook = (
   const fakeBook = createFakeBook();
   const fakeProgress = createFakeReadingProgress();
 
+  const bookId = overrides?.book?.id ?? fakeBook.id;
+
   return {
     ...fakeProgress,
+    bookId,
     book: {
       pageCount: fakeBook.pageCount,
       id: fakeBook.id,

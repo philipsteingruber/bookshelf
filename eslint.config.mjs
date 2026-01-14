@@ -54,6 +54,17 @@ const eslintConfig = defineConfig([
           argsIgnorePattern: "^_",
         },
       ],
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "node:test",
+              message: "Use vitest instead of node:test",
+            },
+          ],
+        },
+      ],
     },
   },
   // Override default ignores of eslint-config-next.
