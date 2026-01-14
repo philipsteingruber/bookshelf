@@ -1,1 +1,1 @@
-pnpm dlx tsc --noEmit
+npx tsc --noEmit
