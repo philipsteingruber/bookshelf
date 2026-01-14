@@ -1,0 +1,1 @@
+git diff --cached --name-only --diff-filter=ACM | grep -E '\.(js|jsx|ts|tsx)$' | xargs --no-run-if-empty pnpm exec eslint --fix && git add -u
