@@ -1,9 +1,14 @@
 import { subDays, subMinutes } from "date-fns";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { DailyStats, StreakDetails } from "./reading-stats-utils";
+import type {
+  DailyStats,
+  OverallStats,
+  StreakDetails,
+} from "./reading-stats-utils";
 import {
   calculateDailyStats,
+  calculateOverallStats,
   calculateStreakDetails,
 } from "./reading-stats-utils";
 import {
@@ -252,8 +257,7 @@ describe("reading-stats-utils", () => {
         book: fakeBook,
       });
 
-      const totalPagesRead =
-        ((endProgress - startProgress) / 100) * fakeBook.pageCount;
+      const totalPagesRead = (endProgress / 100) * fakeBook.pageCount;
       const activeDays = 2;
 
       const result = calculateDailyStats([firstProgress, secondProgress]);
@@ -331,6 +335,97 @@ describe("reading-stats-utils", () => {
       ]);
 
       expect(result.pagesToday).toEqual(totalPagesRead);
+    });
+  });
+  describe("calculateOverallStats", () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date("2025-01-15T12:00:00"));
+      vi.clearAllMocks();
+    });
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("should return zero stats when given empty array", () => {
+      const result = calculateOverallStats([]);
+
+      expect(result).toEqual({
+        activeDays: 0,
+        averagePagesPerWeek: 0,
+        totalPagesRead: 0,
+        weeksActive: 0,
+      } satisfies OverallStats);
+    });
+
+    it("should calculate total pages read across all books", () => {
+      const firstBook = createFakeBook({ id: 1, progress: 0, pageCount: 100 });
+      const secondBook = createFakeBook({ id: 2, progress: 0, pageCount: 200 });
+
+      const newProgress = 50;
+      const firstReadingProgress = createFakeReadingProgressWithBook({
+        book: firstBook,
+        progress: newProgress,
+      });
+      const secondReadingProgress = createFakeReadingProgressWithBook({
+        book: secondBook,
+        progress: newProgress,
+      });
+
+      const totalPagesRead =
+        (newProgress / 100) * firstBook.pageCount +
+        (newProgress / 100) * secondBook.pageCount;
+
+      const result = calculateOverallStats([
+        firstReadingProgress,
+        secondReadingProgress,
+      ]);
+      expect(result.totalPagesRead).toEqual(totalPagesRead);
+    });
+
+    it("should count active days correctly", () => {
+      const firstReadingProgress = createFakeReadingProgressWithBook({
+        createdAt: subDays(new Date(), 1),
+      });
+      const secondReadingProgress = createFakeReadingProgressWithBook({
+        createdAt: new Date(),
+      });
+      const thirdReadingProgress = createFakeReadingProgressWithBook({
+        createdAt: new Date(),
+      });
+
+      const result = calculateOverallStats([
+        firstReadingProgress,
+        secondReadingProgress,
+        thirdReadingProgress,
+      ]);
+
+      expect(result.activeDays).toEqual(2);
+    });
+
+    it("should calculate average pages per week correctly", () => {
+      const firstBook = createFakeBook({ id: 1, pageCount: 200, progress: 0 });
+      const secondBook = createFakeBook({ id: 2, pageCount: 100, progress: 0 });
+
+      const firstReadingProgress = createFakeReadingProgressWithBook({
+        createdAt: subDays(new Date(), 7),
+        book: firstBook,
+        progress: 50,
+      });
+      const secondReadingProgress = createFakeReadingProgressWithBook({
+        createdAt: new Date(),
+        book: secondBook,
+        progress: 50,
+      });
+
+      console.log(firstBook, secondBook);
+
+      const result = calculateOverallStats([
+        firstReadingProgress,
+        secondReadingProgress,
+      ]);
+
+      expect(result.averagePagesPerWeek).toEqual(75);
     });
   });
 });
