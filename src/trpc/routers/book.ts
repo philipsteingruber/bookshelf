@@ -213,7 +213,7 @@ export const bookRouter = createTRPCRouter({
           title: input.title,
           author: input.author,
           pageCount: input.pageCount,
-          isbn: input.isbn,
+          isbn: input.isbn || null,
           series: input.series,
           seriesIndex: input.seriesIndex,
           publishedYear: input.publishedYear,

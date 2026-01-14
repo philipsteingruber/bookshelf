@@ -69,6 +69,8 @@ const CreateBookForm = () => {
     }
   };
 
+  const router = useRouter();
+
   const handleGoodReadsImport = (data: ScrapeData) => {
     form.setValue("title", data.title);
     form.setValue("author", data.author);
@@ -117,10 +119,7 @@ const CreateBookForm = () => {
       },
     });
 
-  const router = useRouter();
-
   const onSubmit = (data: z.infer<typeof createFormSchema>) => {
-    // Server-side validation handles duplicate checks now
     createBook(data);
   };
 

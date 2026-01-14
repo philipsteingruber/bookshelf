@@ -103,6 +103,7 @@ export const OptionalInfoSection = ({ form }: OptionalInfoSectionProps) => {
             </FieldLabel>
             <Input
               {...field}
+              value={field.value ?? ""}
               id="create-book-form-isbn"
               aria-invalid={fieldState.invalid}
               placeholder="9780007203543"
