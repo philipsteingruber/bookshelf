@@ -271,7 +271,7 @@ A full-stack web application for tracking your personal reading journey, built w
 ### External API Integration
 
 - [x] GoodReads scraper for book import
-  - [ ] Integrate into CreateBookForm
+  - [x] Integrate into CreateBookForm
 - [ ] Google Books API integration for book lookup
 - [ ] Auto-populate book metadata from ISBN
 - [ ] Book cover fetching from external sources

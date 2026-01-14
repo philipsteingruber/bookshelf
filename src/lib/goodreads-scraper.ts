@@ -4,16 +4,16 @@ import { decode } from "he";
 import { ScrapeConfig, ScrapflyClient } from "scrapfly-sdk";
 import z from "zod";
 
-type SeriesInfo = { series: string; seriesIndex: number };
-
-export const scrape = async (
-  url: string,
-): Promise<{
+export type SeriesInfo = { series: string; seriesIndex: number };
+export type ScrapeData = {
   title: string;
   author: string;
   publishedYear: number;
   seriesInfo?: SeriesInfo;
-}> => {
+  summary?: string;
+};
+
+export const scrape = async (url: string): Promise<ScrapeData> => {
   const validatedUrl = z
     .string()
     .url()
@@ -49,6 +49,17 @@ export const scrape = async (
     .text()
     .trim();
 
+  // Summary
+  const summaryHtml = result
+    .selector(".DetailsLayoutRightParagraph__widthConstrained")
+    .find("span")
+    .html();
+  const summary = summaryHtml
+    ? decode(
+        summaryHtml.replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]*>/g, ""),
+      ).trim()
+    : undefined;
+
   // Author
   let author = result.selector(".ContributorLink__name").text();
   author = author.slice(0, author.length / 2);
@@ -81,5 +92,6 @@ export const scrape = async (
     author,
     publishedYear,
     seriesInfo,
+    summary,
   };
 };
