@@ -551,6 +551,7 @@ updatedAt DateTime
 ### Prerequisites
 
 - Node.js 20+
+- pnpm (package manager)
 - PostgreSQL database
 - Clerk account for authentication
 - UploadThing account for file uploads
@@ -569,25 +570,25 @@ UPLOADTHING_TOKEN="..."
 
 ```bash
 # Install dependencies
-npm install
+pnpm install
 
 # Generate Prisma client
-npx prisma generate
+pnpm exec prisma generate
 
 # Run database migrations
-npx prisma migrate dev
+pnpm exec prisma migrate dev
 
 # Start development server
-npm run dev
+pnpm dev
 ```
 
 ### Development Commands
 
 ```bash
-npm run dev      # Start development server
-npm run build    # Build for production
-npm run start    # Start production server
-npm run lint     # Run ESLint
+pnpm dev      # Start development server
+pnpm build    # Build for production
+pnpm start    # Start production server
+pnpm lint     # Run ESLint
 ```
 
 ---
