@@ -1,4 +1,4 @@
-import { subDays, subMinutes } from "date-fns";
+import { subDays } from "date-fns";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type {
@@ -305,24 +305,20 @@ describe("reading-stats-utils", () => {
     });
 
     it("should handle multiple progress entries for same book on same day", () => {
+      const startProgress = 0;
+      const endProgress = 20;
+
       const fakeBook = createFakeBook({ pageCount: 200, progress: 0 });
 
-      const startProgress = 10;
-      const endProgress = 20;
       const totalPagesRead =
         ((endProgress - startProgress) / 100) * fakeBook.pageCount;
 
       const firstReadingProgress = createFakeReadingProgressWithBook({
         book: fakeBook,
-        progress: startProgress,
-        createdAt: subMinutes(new Date(), 2),
+        progress: (endProgress + startProgress) / 2,
+        createdAt: new Date(),
       });
       const secondReadingProgress = createFakeReadingProgressWithBook({
-        book: fakeBook,
-        progress: (endProgress + startProgress) / 2,
-        createdAt: subMinutes(new Date(), 1),
-      });
-      const thirdReadingProgress = createFakeReadingProgressWithBook({
         book: fakeBook,
         progress: endProgress,
         createdAt: new Date(),
@@ -331,10 +327,31 @@ describe("reading-stats-utils", () => {
       const result = calculateDailyStats([
         firstReadingProgress,
         secondReadingProgress,
-        thirdReadingProgress,
       ]);
 
       expect(result.pagesToday).toEqual(totalPagesRead);
+    });
+
+    it("should count pages from previous day's baseline when starting mid-book", () => {
+      const fakeBook = createFakeBook({ progress: 50, pageCount: 200 });
+
+      const firstReadingProgress = createFakeReadingProgressWithBook({
+        progress: 50,
+        book: fakeBook,
+        createdAt: subDays(new Date(), 1),
+      });
+      const secondReadingProgress = createFakeReadingProgressWithBook({
+        progress: 100,
+        book: fakeBook,
+        createdAt: new Date(),
+      });
+
+      const result = calculateDailyStats([
+        firstReadingProgress,
+        secondReadingProgress,
+      ]);
+
+      expect(result.pagesToday).toEqual(100);
     });
   });
   describe("calculateOverallStats", () => {

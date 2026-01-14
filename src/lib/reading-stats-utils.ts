@@ -90,18 +90,34 @@ export const calculateDailyStats = (
     todayByBook.set(entry.bookId, [...bookEntries, entry]);
   });
 
+  // Group all entries by book to find previous day's baseline
+  const allEntriesByBook = new Map<number, ReadingProgressWithBook[]>();
+  validProgress.forEach((entry) => {
+    const bookEntries = allEntriesByBook.get(entry.bookId) || [];
+    allEntriesByBook.set(entry.bookId, [...bookEntries, entry]);
+  });
+
   let pagesToday = 0;
-  todayByBook.forEach((entries) => {
-    const sorted = [...entries].sort(
-      (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
-    );
-    const firstProgress = sorted[0].progress;
-    const lastProgress = sorted[sorted.length - 1].progress;
-    const progressGain = lastProgress - firstProgress;
+  todayByBook.forEach((todayEntries, bookId) => {
+    const allBookEntries = allEntriesByBook.get(bookId) || [];
+    const todayStart = startOfDay(new Date());
+
+    // Find the last entry before today for this book
+    const entriesBeforeToday = allBookEntries
+      .filter((e) => e.createdAt < todayStart)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+    const baseline = entriesBeforeToday.length > 0
+      ? entriesBeforeToday[0].progress
+      : 0;
+
+    // Find today's max progress
+    const todayMaxProgress = Math.max(...todayEntries.map((e) => e.progress));
+    const progressGain = todayMaxProgress - baseline;
 
     pagesToday += calculatePagesFromProgress(
       progressGain,
-      sorted[0].book.pageCount,
+      todayEntries[0].book.pageCount,
     );
   });
 
