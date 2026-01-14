@@ -7,6 +7,9 @@ const nextConfig: NextConfig = {
     remotePatterns: [new URL("https://3k01dt1q3i.ufs.sh/**/*")],
   },
   devIndicators: false,
+  redirects: async () => [
+    { source: "/", destination: "/dashboard", permanent: true },
+  ],
 };
 
 export default nextConfig;
