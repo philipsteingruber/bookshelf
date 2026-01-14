@@ -74,16 +74,14 @@ const BookCard = ({
               />
             )}
           </div>
-          <div className="mt-2 flex flex-col gap-y-2 px-2 pb-4">
-            <div className="flex w-full justify-between pr-2">
-              <p className="text-base font-semibold">{`${book.title}`}</p>
-              {book.series && book.seriesIndex && (
-                <p className="font-serif text-sm leading-5 font-light italic">
-                  {`${book.series} #${book.seriesIndex}`}
-                </p>
-              )}
-            </div>
-            <p className="font-serif text-sm italic">{book.author}</p>
+          <div className="mt-2 flex min-h-[88px] flex-col gap-y-1 px-2 pb-4">
+            <p className="truncate text-base font-semibold">{book.title}</p>
+            <p className="truncate font-serif text-sm italic">{book.author}</p>
+            {book.series && book.seriesIndex && (
+              <p className="truncate font-serif text-sm font-light italic text-muted-foreground">
+                {`${book.series} #${book.seriesIndex}`}
+              </p>
+            )}
             {showStatusButton && <ReadStatusButton book={book} />}
           </div>
         </CardContent>
