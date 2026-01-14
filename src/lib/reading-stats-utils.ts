@@ -24,6 +24,7 @@ export interface OverallStats {
   activeDays: number;
   totalPagesRead: number;
   averagePagesPerWeek: number;
+  weeksActive: number;
 }
 export interface StreakDetails {
   currentStreak: number;
@@ -105,26 +106,20 @@ export const calculateDailyStats = (
   });
 
   let totalPages = 0;
-  const bookProgress = new Map<
-    number,
-    { first: number; last: number; pageCount: number }
-  >();
+  const bookProgress = new Map<number, { max: number; pageCount: number }>();
   validProgress.forEach((entry) => {
     const current = bookProgress.get(entry.bookId);
     if (!current) {
       bookProgress.set(entry.bookId, {
-        first: entry.progress,
-        last: entry.progress,
+        max: entry.progress,
         pageCount: entry.book.pageCount,
       });
     } else {
-      current.first = Math.min(current.first, entry.progress);
-      current.last = Math.max(current.last, entry.progress);
+      current.max = Math.max(current.max, entry.progress);
     }
   });
-  bookProgress.forEach(({ first, last, pageCount }) => {
-    const progressGain = last - first;
-    totalPages += calculatePagesFromProgress(progressGain, pageCount);
+  bookProgress.forEach(({ max, pageCount }) => {
+    totalPages += calculatePagesFromProgress(max, pageCount);
   });
 
   const activeDays = progressByDay.size;
@@ -160,23 +155,22 @@ export const calculateWeeklyStats = (
   const calculateWeekPages = (
     weekEntries: ReadingProgressWithBook[],
   ): number => {
-    const byBook = new Map<number, ReadingProgressWithBook[]>();
+    const byBook = new Map<number, { max: number; pageCount: number }>();
     weekEntries.forEach((entry) => {
-      const bookEntries = byBook.get(entry.bookId) || [];
-      byBook.set(entry.bookId, [...bookEntries, entry]);
+      const current = byBook.get(entry.bookId);
+      if (!current) {
+        byBook.set(entry.bookId, {
+          max: entry.progress,
+          pageCount: entry.book.pageCount,
+        });
+      } else {
+        current.max = Math.max(current.max, entry.progress);
+      }
     });
 
     let weekPages = 0;
-    byBook.forEach((entries) => {
-      const sorted = [...entries].sort(
-        (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
-      );
-      const firstProgress = sorted[0].progress;
-      const lastProgress = sorted[sorted.length - 1].progress;
-      const progressGain = lastProgress - firstProgress;
-      const pageCount = sorted[0].book.pageCount;
-
-      weekPages += calculatePagesFromProgress(progressGain, pageCount);
+    byBook.forEach(({ max, pageCount }) => {
+      weekPages += calculatePagesFromProgress(max, pageCount);
     });
 
     return weekPages;
@@ -206,6 +200,7 @@ export const calculateOverallStats = (
       activeDays: 0,
       totalPagesRead: 0,
       averagePagesPerWeek: 0,
+      weeksActive: 0,
     };
   }
 
@@ -215,35 +210,29 @@ export const calculateOverallStats = (
   const activeDays = progressByDay.size;
   const weeksActive = progressByWeek.size;
 
-  const bookProgress = new Map<
-    number,
-    { first: number; last: number; pageCount: number }
-  >();
+  const bookProgress = new Map<number, { max: number; pageCount: number }>();
 
   validProgress.forEach((entry) => {
     const current = bookProgress.get(entry.bookId);
     if (!current) {
       bookProgress.set(entry.bookId, {
-        first: entry.progress,
-        last: entry.progress,
+        max: entry.progress,
         pageCount: entry.book.pageCount,
       });
     } else {
-      current.first = Math.min(current.first, entry.progress);
-      current.last = Math.max(current.last, entry.progress);
+      current.max = Math.max(current.max, entry.progress);
     }
   });
 
   let totalPagesRead = 0;
-  bookProgress.forEach(({ first, last, pageCount }) => {
-    const progressGain = last - first;
-    totalPagesRead += calculatePagesFromProgress(progressGain, pageCount);
+  bookProgress.forEach(({ max, pageCount }) => {
+    totalPagesRead += calculatePagesFromProgress(max, pageCount);
   });
 
   const averagePagesPerWeek =
     weeksActive > 0 ? Math.round(totalPagesRead / weeksActive) : 0;
 
-  return { activeDays, totalPagesRead, averagePagesPerWeek };
+  return { activeDays, totalPagesRead, averagePagesPerWeek, weeksActive };
 };
 
 export const calculateStreakDetails = (
