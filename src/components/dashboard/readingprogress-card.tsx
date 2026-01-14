@@ -28,8 +28,8 @@ const ReadingProgressCard = ({ book }: { book: Book }) => {
 
   return (
     <div className="w-1/4">
-      <Card className="hover:bg-card/80 w-full overflow-hidden py-0 rounded-md">
-        <CardContent className="p-0 flex">
+      <Card className="hover:bg-card/80 w-full overflow-hidden rounded-md py-0">
+        <CardContent className="flex p-0">
           <div className="relative aspect-2/3 w-32 shrink-0 bg-linear-to-br from-gray-100 to-gray-200">
             {imageError ? (
               <div className="flex h-full w-full items-center justify-center bg-linear-to-br from-slate-200 via-slate-300 to-slate-400 p-2">
@@ -48,17 +48,19 @@ const ReadingProgressCard = ({ book }: { book: Book }) => {
                 </svg>
               </div>
             ) : (
-              <Image
-                src={coverUrl}
-                alt={book.title}
-                fill
-                sizes="128px"
-                style={{ objectFit: "cover" }}
-                priority
-                placeholder="blur"
-                blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjYwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImciIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPjxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNmMWY1ZjkiLz48c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNlMmU4ZjAiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjYwMCIgZmlsbD0idXJsKCNnKSIvPjwvc3ZnPg=="
-                onError={() => setImageError(true)}
-              />
+              <Link href={`/books/${book.id}`}>
+                <Image
+                  src={coverUrl}
+                  alt={book.title}
+                  fill
+                  sizes="128px"
+                  style={{ objectFit: "cover" }}
+                  priority
+                  placeholder="blur"
+                  blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjYwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImciIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPjxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNmMWY1ZjkiLz48c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNlMmU4ZjAiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjYwMCIgZmlsbD0idXJsKCNnKSIvPjwvc3ZnPg=="
+                  onError={() => setImageError(true)}
+                />
+              </Link>
             )}
           </div>
           <div className="flex flex-1 gap-x-2 p-1">
