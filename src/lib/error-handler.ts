@@ -3,8 +3,6 @@ import { toast } from "sonner";
 
 import type { AppRouter } from "@/trpc/routers/_app";
 
-import { logger } from "./logger";
-
 const formatErrorLog = (error: unknown, context?: string) => {
   // Check if error has nested data.code property
   const getTRPCErrorCode = (err: unknown): string | undefined => {
@@ -51,7 +49,6 @@ export const handleTRPCError = (
     error.message.includes("fetch")
   ) {
     toast.error("Network error. Please check your connection and try again.");
-    logger.error({ error }, "Network/Fetch error");
   } else if (error.data?.code === "UNAUTHORIZED") {
     toast.error("Please sign in to continue.");
   } else if (error.data?.code === "FORBIDDEN") {
