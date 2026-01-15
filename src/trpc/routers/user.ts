@@ -1,6 +1,6 @@
-import { TRPCError } from "@trpc/server";
 import z from "zod";
 
+import type { ReadingGoal } from "@/generated/prisma/client";
 import { performanceLogger } from "@/lib/logger";
 
 import { authedProcedure, createTRPCRouter } from "../init";
@@ -46,7 +46,7 @@ export const userRouter = createTRPCRouter({
             userId: ctx.currentUser.id,
             year: currentYear,
             goal: newGoal,
-          },
+          } satisfies Partial<ReadingGoal>,
         });
 
         return { readingGoal };
@@ -64,14 +64,27 @@ export const userRouter = createTRPCRouter({
       ctx.logger,
     );
 
+    let readingGoal: ReadingGoal | null;
     getReadingGoalTimer.start();
-    const readingGoal = await ctx.db.readingGoal.findUnique({
+    readingGoal = await ctx.db.readingGoal.findUnique({
       where: { userId_year: { userId: ctx.currentUser.id, year: currentYear } },
     });
     getReadingGoalTimer.end();
 
     if (!readingGoal) {
-      throw new TRPCError({ code: "NOT_FOUND" });
+      const createReadingGoalTimer = performanceLogger(
+        "DB: Create Reading Goal",
+        500,
+        ctx.logger,
+      );
+      createReadingGoalTimer.start();
+      readingGoal = await ctx.db.readingGoal.create({
+        data: {
+          userId: ctx.currentUser.id,
+          year: currentYear,
+        } satisfies Partial<ReadingGoal>,
+      });
+      createReadingGoalTimer.end();
     }
 
     return { readingGoal };
