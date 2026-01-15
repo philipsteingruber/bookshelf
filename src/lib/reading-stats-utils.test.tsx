@@ -1,15 +1,17 @@
-import { subDays } from "date-fns";
+import { startOfDay, subDays } from "date-fns";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type {
   DailyStats,
   OverallStats,
+  ReadingStats,
   StreakDetails,
   WeeklyStats,
 } from "./reading-stats-utils";
 import {
   calculateDailyStats,
   calculateOverallStats,
+  calculateReadingStats,
   calculateStreakDetails,
   calculateWeeklyStats,
 } from "./reading-stats-utils";
@@ -114,7 +116,9 @@ describe("reading-stats-utils", () => {
       expect(result.currentStreak).toEqual(3);
       expect(result.longestStreak).toEqual(3);
       expect(result.isActiveToday).toEqual(true);
-      expect(result.streakStart).toEqual(expect.any(Date));
+      expect(startOfDay(result.streakStart!)).toEqual(
+        startOfDay(subDays(new Date(), 2)),
+      );
     });
 
     it("should calculate longest streak correctly", () => {
@@ -191,6 +195,21 @@ describe("reading-stats-utils", () => {
       } satisfies DailyStats);
     });
 
+    it("should return zero stats when all entries have zero page count", () => {
+      const fakeBook = createFakeBook({ pageCount: 0, progress: 0 });
+      const readingProgress = createFakeReadingProgressWithBook({
+        book: fakeBook,
+        progress: 100,
+      });
+
+      const result = calculateDailyStats([readingProgress]);
+
+      expect(result).toEqual({
+        averagePagesPerDay: 0,
+        pagesToday: 0,
+      } satisfies DailyStats);
+    });
+
     it("should calculate pages read today correctly for single book", () => {
       const fakeBook = createFakeBook();
 
@@ -247,12 +266,10 @@ describe("reading-stats-utils", () => {
     it("should calculate average pages per day across multiple days", () => {
       const fakeBook = createFakeBook({ pageCount: 200, progress: 0 });
 
-      const startProgress = 20;
       const endProgress = 50;
 
       const firstProgress = createFakeReadingProgressWithBook({
         createdAt: subDays(new Date(), 1),
-        progress: startProgress,
         book: fakeBook,
       });
       const secondProgress = createFakeReadingProgressWithBook({
@@ -450,6 +467,71 @@ describe("reading-stats-utils", () => {
       expect(result.pagesLastWeek).toEqual(firstBook.pageCount);
       expect(result.pagesThisWeek).toEqual(secondBook.pageCount);
     });
+
+    it("should use previous week's baseline for books continued into current week", () => {
+      const fakeBook = createFakeBook({ pageCount: 200 });
+
+      const lastWeekReadingProgress = createFakeReadingProgressWithBook({
+        book: fakeBook,
+        progress: 50,
+        createdAt: subDays(new Date(), 7),
+      });
+      const newReadingProgress = createFakeReadingProgressWithBook({
+        book: fakeBook,
+        progress: 100,
+        createdAt: new Date(),
+      });
+
+      const result = calculateWeeklyStats([
+        lastWeekReadingProgress,
+        newReadingProgress,
+      ]);
+
+      expect(result.pagesThisWeek).toEqual(
+        ((newReadingProgress.progress - lastWeekReadingProgress.progress) /
+          100) *
+          fakeBook.pageCount,
+      );
+    });
+
+    it("should handle books with zero page count (filter them out)", () => {
+      const noPagesBook = createFakeBook({ id: 1, pageCount: 0, progress: 0 });
+      const pagesBook = createFakeBook({ id: 2, pageCount: 200, progress: 0 });
+
+      const noPagesProgress = createFakeReadingProgressWithBook({
+        book: noPagesBook,
+        progress: 100,
+      });
+      const pageProgress = createFakeReadingProgressWithBook({
+        book: pagesBook,
+        progress: 100,
+      });
+
+      const result = calculateWeeklyStats([noPagesProgress, pageProgress]);
+
+      expect(result.pagesThisWeek).toEqual(pagesBook.pageCount);
+    });
+
+    it("should assign Sunday reading to previous week (weekStartsOn: Monday)", () => {
+      const sundayBook = createFakeBook({ id: 1, pageCount: 100, progress: 0 });
+      const mondayBook = createFakeBook({ id: 2, pageCount: 200, progress: 0 });
+
+      const sundayProgress = createFakeReadingProgressWithBook({
+        book: sundayBook,
+        progress: 100,
+        createdAt: new Date("2026-01-11T12:00:00"), // Sunday
+      });
+      const mondayProgress = createFakeReadingProgressWithBook({
+        book: mondayBook,
+        progress: 100,
+        createdAt: new Date("2026-01-12T12:00:00"), // Monday (start of current week)
+      });
+
+      const result = calculateWeeklyStats([sundayProgress, mondayProgress]);
+
+      expect(result.pagesLastWeek).toEqual(sundayBook.pageCount);
+      expect(result.pagesThisWeek).toEqual(mondayBook.pageCount);
+    });
   });
   describe("calculateOverallStats", () => {
     beforeEach(() => {
@@ -561,6 +643,45 @@ describe("reading-stats-utils", () => {
       ]);
 
       expect(result.averagePagesPerWeek).toEqual(75);
+    });
+
+    it("should handle books with zero page count", () => {
+      const noPagesBook = createFakeBook({ id: 1, pageCount: 0, progress: 0 });
+      const pagesBook = createFakeBook({ id: 2, pageCount: 200, progress: 0 });
+
+      const noPagesProgress = createFakeReadingProgressWithBook({
+        book: noPagesBook,
+        progress: 100,
+      });
+      const pageProgress = createFakeReadingProgressWithBook({
+        book: pagesBook,
+        progress: 100,
+      });
+
+      const result = calculateOverallStats([noPagesProgress, pageProgress]);
+
+      expect(result.totalPagesRead).toEqual(pagesBook.pageCount);
+    });
+  });
+  describe("calculateReadingStats", () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+      vi.setSystemTime(mockDate);
+      vi.clearAllMocks();
+    });
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("should return combined stats from all calculation functions", () => {
+      const result = calculateReadingStats([]);
+
+      expect(result).toMatchObject({
+        daily: expect.any(Object),
+        weekly: expect.any(Object),
+        overall: expect.any(Object),
+        streak: expect.any(Object),
+      } satisfies ReadingStats);
     });
   });
 });
