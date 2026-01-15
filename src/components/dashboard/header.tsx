@@ -14,7 +14,12 @@ import { SidebarTrigger } from "../ui/sidebar";
 const Header = () => {
   return (
     <>
-      <header className="flex w-full items-center justify-between gap-8 p-2 pt-4">
+      <header className="relative flex w-full items-center justify-between gap-8 p-2 pt-4">
+        {process.env.NODE_ENV === "development" && (
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded bg-amber-500 px-3 py-0.5 text-xl font-medium text-black">
+            Development
+          </div>
+        )}
         <div className="flex gap-8">
           <SidebarTrigger size={"icon-lg"} className="size-8" />
           <div className="flex flex-col gap-y-2">

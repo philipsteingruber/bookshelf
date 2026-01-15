@@ -9,6 +9,11 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 const Header = () => {
   return (
     <header className="flex h-14 items-center justify-between py-0 pr-6 pl-2">
+      {process.env.NODE_ENV === "development" && (
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded bg-amber-500 px-3 py-0.5 text-xl font-medium text-black">
+          Development
+        </div>
+      )}
       <SidebarTrigger />
       <Link href={"/books/create"}>
         <Tooltip>
