@@ -5,22 +5,26 @@ import type {
   DailyStats,
   OverallStats,
   StreakDetails,
+  WeeklyStats,
 } from "./reading-stats-utils";
 import {
   calculateDailyStats,
   calculateOverallStats,
   calculateStreakDetails,
+  calculateWeeklyStats,
 } from "./reading-stats-utils";
 import {
   createFakeBook,
   createFakeReadingProgressWithBook,
 } from "./test-utils";
 
+const mockDate = new Date("2026-01-15T12:00:00");
+
 describe("reading-stats-utils", () => {
   describe("calculateStreakDetails", () => {
     beforeEach(() => {
       vi.useFakeTimers();
-      vi.setSystemTime(new Date("2025-01-15T12:00:00"));
+      vi.setSystemTime(mockDate);
       vi.clearAllMocks();
     });
     afterEach(() => {
@@ -172,7 +176,7 @@ describe("reading-stats-utils", () => {
   describe("calculateDailyStats", () => {
     beforeEach(() => {
       vi.useFakeTimers();
-      vi.setSystemTime(new Date("2025-01-15T12:00:00"));
+      vi.setSystemTime(mockDate);
       vi.clearAllMocks();
     });
     afterEach(() => {
@@ -354,10 +358,103 @@ describe("reading-stats-utils", () => {
       expect(result.pagesToday).toEqual(100);
     });
   });
+  describe("calculateWeeklyStats", () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+      vi.setSystemTime(mockDate);
+      vi.clearAllMocks();
+    });
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("should return zero stats when given an empty array", () => {
+      const result = calculateWeeklyStats([]);
+
+      expect(result).toEqual({
+        pagesLastWeek: 0,
+        pagesThisWeek: 0,
+      } satisfies WeeklyStats);
+    });
+
+    it("should calculate pages this week correctly", () => {
+      const firstBook = createFakeBook({ id: 1, pageCount: 100, progress: 0 });
+      const secondBook = createFakeBook({ id: 2, pageCount: 200, progress: 0 });
+
+      const firstReadingProgress = createFakeReadingProgressWithBook({
+        progress: 100,
+        book: firstBook,
+        createdAt: subDays(new Date(), 1),
+      });
+      const secondReadingProgress = createFakeReadingProgressWithBook({
+        progress: 100,
+        book: secondBook,
+        createdAt: new Date(),
+      });
+
+      const result = calculateWeeklyStats([
+        firstReadingProgress,
+        secondReadingProgress,
+      ]);
+
+      expect(result.pagesThisWeek).toEqual(
+        firstBook.pageCount + secondBook.pageCount,
+      );
+    });
+
+    it("should calculate pages last week correctly", () => {
+      const firstBook = createFakeBook({ id: 1, pageCount: 100, progress: 0 });
+      const secondBook = createFakeBook({ id: 2, pageCount: 200, progress: 0 });
+
+      const firstReadingProgress = createFakeReadingProgressWithBook({
+        progress: 100,
+        book: firstBook,
+        createdAt: subDays(new Date(), 8),
+      });
+      const secondReadingProgress = createFakeReadingProgressWithBook({
+        progress: 100,
+        book: secondBook,
+        createdAt: subDays(new Date(), 7),
+      });
+
+      const result = calculateWeeklyStats([
+        firstReadingProgress,
+        secondReadingProgress,
+      ]);
+
+      expect(result.pagesLastWeek).toEqual(
+        firstBook.pageCount + secondBook.pageCount,
+      );
+    });
+
+    it("should handle week boundaries correctly", () => {
+      const firstBook = createFakeBook({ id: 1, pageCount: 100, progress: 0 });
+      const secondBook = createFakeBook({ id: 2, pageCount: 200, progress: 0 });
+
+      const firstReadingProgress = createFakeReadingProgressWithBook({
+        progress: 100,
+        book: firstBook,
+        createdAt: subDays(new Date(), 7),
+      });
+      const secondReadingProgress = createFakeReadingProgressWithBook({
+        progress: 100,
+        book: secondBook,
+        createdAt: new Date(),
+      });
+
+      const result = calculateWeeklyStats([
+        firstReadingProgress,
+        secondReadingProgress,
+      ]);
+
+      expect(result.pagesLastWeek).toEqual(firstBook.pageCount);
+      expect(result.pagesThisWeek).toEqual(secondBook.pageCount);
+    });
+  });
   describe("calculateOverallStats", () => {
     beforeEach(() => {
       vi.useFakeTimers();
-      vi.setSystemTime(new Date("2025-01-15T12:00:00"));
+      vi.setSystemTime(mockDate);
       vi.clearAllMocks();
     });
     afterEach(() => {
@@ -418,6 +515,29 @@ describe("reading-stats-utils", () => {
       ]);
 
       expect(result.activeDays).toEqual(2);
+    });
+
+    it("should count active weeks correctly", () => {
+      const firstBook = createFakeBook({ id: 1, pageCount: 100, progress: 0 });
+      const secondBook = createFakeBook({ id: 2, pageCount: 200, progress: 0 });
+
+      const firstReadingProgress = createFakeReadingProgressWithBook({
+        progress: 100,
+        book: firstBook,
+        createdAt: subDays(new Date(), 7),
+      });
+      const secondReadingProgress = createFakeReadingProgressWithBook({
+        progress: 100,
+        book: secondBook,
+        createdAt: new Date(),
+      });
+
+      const result = calculateOverallStats([
+        firstReadingProgress,
+        secondReadingProgress,
+      ]);
+
+      expect(result.weeksActive).toEqual(2);
     });
 
     it("should calculate average pages per week correctly", () => {

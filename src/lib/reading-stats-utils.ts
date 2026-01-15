@@ -18,7 +18,6 @@ export interface DailyStats {
 export interface WeeklyStats {
   pagesThisWeek: number;
   pagesLastWeek: number;
-  weeksActive: number;
 }
 export interface OverallStats {
   activeDays: number;
@@ -107,9 +106,8 @@ export const calculateDailyStats = (
       .filter((e) => e.createdAt < todayStart)
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
-    const baseline = entriesBeforeToday.length > 0
-      ? entriesBeforeToday[0].progress
-      : 0;
+    const baseline =
+      entriesBeforeToday.length > 0 ? entriesBeforeToday[0].progress : 0;
 
     // Find today's max progress
     const todayMaxProgress = Math.max(...todayEntries.map((e) => e.progress));
@@ -153,12 +151,10 @@ export const calculateWeeklyStats = (
     return {
       pagesThisWeek: 0,
       pagesLastWeek: 0,
-      weeksActive: 0,
     };
   }
 
   const progressByWeek = groupByWeek(validProgress);
-  const weeksActive = progressByWeek.size;
 
   const thisWeekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
   const lastWeekStart = startOfWeek(subDays(new Date(), 7), {
@@ -195,9 +191,8 @@ export const calculateWeeklyStats = (
         .filter((e) => e.createdAt < weekStart)
         .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
-      const baseline = entriesBeforeWeek.length > 0
-        ? entriesBeforeWeek[0].progress
-        : 0;
+      const baseline =
+        entriesBeforeWeek.length > 0 ? entriesBeforeWeek[0].progress : 0;
 
       // Find this week's max progress
       const weekMaxProgress = Math.max(...entries.map((e) => e.progress));
@@ -224,7 +219,6 @@ export const calculateWeeklyStats = (
   return {
     pagesThisWeek,
     pagesLastWeek,
-    weeksActive,
   };
 };
 
