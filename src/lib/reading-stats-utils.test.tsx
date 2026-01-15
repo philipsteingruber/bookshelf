@@ -674,13 +674,31 @@ describe("reading-stats-utils", () => {
     });
 
     it("should return combined stats from all calculation functions", () => {
-      const result = calculateReadingStats([]);
+      const readingProgress = createFakeReadingProgressWithBook();
+
+      const result = calculateReadingStats([readingProgress]);
 
       expect(result).toMatchObject({
-        daily: expect.any(Object),
-        weekly: expect.any(Object),
-        overall: expect.any(Object),
-        streak: expect.any(Object),
+        daily: {
+          pagesToday: expect.any(Number),
+          averagePagesPerDay: expect.any(Number),
+        } satisfies DailyStats,
+        weekly: {
+          pagesLastWeek: expect.any(Number),
+          pagesThisWeek: expect.any(Number),
+        } satisfies WeeklyStats,
+        overall: {
+          activeDays: expect.any(Number),
+          averagePagesPerWeek: expect.any(Number),
+          totalPagesRead: expect.any(Number),
+          weeksActive: expect.any(Number),
+        } satisfies OverallStats,
+        streak: {
+          currentStreak: expect.any(Number),
+          isActiveToday: expect.any(Boolean),
+          longestStreak: expect.any(Number),
+          streakStart: expect.any(Date),
+        } satisfies StreakDetails,
       } satisfies ReadingStats);
     });
   });
