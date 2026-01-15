@@ -14,16 +14,24 @@ export type ScrapeData = {
 };
 
 export const scrape = async (url: string): Promise<ScrapeData> => {
-  const validatedUrl = z
-    .string()
+  const validate = z
     .url()
     .refine(
       (url) =>
         url.startsWith("https://www.goodreads.com") ||
-        url.startsWith("http://www.goodreads.com"),
-      { message: "URL must be from goodreads.com" },
+        url.startsWith("http://www.goodreads.com") ||
+        url.startsWith("https://goodreads.com") ||
+        url.startsWith("http://goodreads.com"),
+      {
+        message: "URL must be from goodreads.com",
+      },
     )
-    .parse(url);
+    .safeParse(url);
+
+  if (!validate.success) {
+    throw new Error("Invalid URL");
+  }
+  const validatedUrl = validate.data!;
 
   const scrapflyClient = new ScrapflyClient({
     key: process.env.SCRAPFLY_API_KEY!,
@@ -49,6 +57,10 @@ export const scrape = async (url: string): Promise<ScrapeData> => {
     .text()
     .trim();
 
+  if (!title) {
+    throw new Error("Unable to find title on requested page");
+  }
+
   // Summary
   const summaryHtml = result
     .selector(".DetailsLayoutRightParagraph__widthConstrained")
@@ -63,6 +75,10 @@ export const scrape = async (url: string): Promise<ScrapeData> => {
   // Author
   let author = result.selector(".ContributorLink__name").text();
   author = author.slice(0, author.length / 2);
+
+  if (!author) {
+    throw new Error("Unable to find author on requested page");
+  }
 
   // Series / Published Year
   let seriesInfo: { series: string; seriesIndex: number } | undefined;
