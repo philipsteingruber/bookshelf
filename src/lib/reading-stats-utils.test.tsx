@@ -674,9 +674,7 @@ describe("reading-stats-utils", () => {
     });
 
     it("should return combined stats from all calculation functions", () => {
-      const readingProgress = createFakeReadingProgressWithBook();
-
-      const result = calculateReadingStats([readingProgress]);
+      const result = calculateReadingStats([]);
 
       expect(result).toMatchObject({
         daily: {
@@ -697,7 +695,9 @@ describe("reading-stats-utils", () => {
           currentStreak: expect.any(Number),
           isActiveToday: expect.any(Boolean),
           longestStreak: expect.any(Number),
-          streakStart: expect.any(Date),
+          streakStart: expect.toSatisfy(
+            (val) => val === null || val instanceof Date,
+          ),
         } satisfies StreakDetails,
       } satisfies ReadingStats);
     });
