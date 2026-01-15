@@ -126,7 +126,7 @@ const Page = () => {
                 <BookCard
                   book={book}
                   key={book.id}
-                  className="w-48 rounded-md"
+                  className="w-64 rounded-md"
                   showStatusButton={false}
                   orientation="vertical"
                   priority
