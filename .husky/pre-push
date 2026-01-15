@@ -1,1 +1,7 @@
-pnpm exec tsc --noEmit
+# Create logs directory if it doesn't exist
+mkdir -p .husky/logs
+
+# Run TypeScript type checking
+echo "=== TypeScript check: $(date) ===" >> .husky/logs/tsc.log
+pnpm exec tsc --noEmit 2>&1 | tee -a .husky/logs/tsc.log
+exit ${PIPESTATUS[0]}

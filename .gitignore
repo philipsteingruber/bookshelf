@@ -48,5 +48,6 @@ NUL
 .vscode/settings.json
 .vscode/tasks.json
 /.claude
+.husky/logs/
 /src/generated/
 /checklists/
