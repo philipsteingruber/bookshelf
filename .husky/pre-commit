@@ -23,9 +23,7 @@ if [ $ESLINT_EXIT -ne 0 ]; then
   exit $ESLINT_EXIT
 fi
 
-# Run related tests if there are staged TS/TSX files
-if [ -n "$STAGED_FILES" ]; then
-  echo "=== Vitest run: $(date) ===" >> .husky/logs/vitest.log
-  pnpm exec vitest run --related $STAGED_FILES --passWithNoTests 2>&1 | tee -a .husky/logs/vitest.log
-  exit ${PIPESTATUS[0]}
-fi
+# Run related tests for changed files
+echo "=== Vitest run: $(date) ===" >> .husky/logs/vitest.log
+pnpm exec vitest run --changed --passWithNoTests 2>&1 | tee -a .husky/logs/vitest.log
+exit ${PIPESTATUS[0]}
