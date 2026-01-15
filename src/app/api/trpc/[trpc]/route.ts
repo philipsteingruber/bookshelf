@@ -1,5 +1,6 @@
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 
+import { env } from "@/env";
 import { logger } from "@/lib/logger";
 import { createTRPCContext } from "@/trpc/init";
 import { appRouter } from "@/trpc/routers/_app";
@@ -50,7 +51,7 @@ export const OPTIONS = () => {
     status: 200,
     headers: {
       "Access-Control-Allow-Origin":
-        process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3001",
+        env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3001",
       "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type",
     },

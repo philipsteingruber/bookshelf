@@ -1,6 +1,15 @@
 # Create logs directory if it doesn't exist
 mkdir -p .husky/logs
 
+# Run TypeScript type checking first (fail fast)
+echo "=== TypeScript check: $(date) ===" >> .husky/logs/tsc.log
+pnpm exec tsc --noEmit 2>&1 | tee -a .husky/logs/tsc.log
+TSC_EXIT=${PIPESTATUS[0]}
+
+if [ $TSC_EXIT -ne 0 ]; then
+  exit $TSC_EXIT
+fi
+
 # Get staged files for later use
 STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(ts|tsx)$' | tr '\n' ' ')
 

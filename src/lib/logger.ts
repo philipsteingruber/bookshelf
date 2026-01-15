@@ -1,7 +1,9 @@
 import pino from "pino";
 
+import { env } from "@/env";
+
 export const logger =
-  process.env.NODE_ENV === "development"
+  env.NODE_ENV === "development"
     ? pino(
         {
           level: "debug",
@@ -30,9 +32,9 @@ export const logger =
             remove: true,
           },
           base: {
-            env: process.env.NODE_ENV,
-            deployment: process.env.VERCEL_URL,
-            region: process.env.VERCEL_REGION,
+            env: env.NODE_ENV,
+            deployment: env.VERCEL_URL,
+            region: env.VERCEL_REGION,
           },
           timestamp: pino.stdTimeFunctions.isoTime,
         },
@@ -52,10 +54,9 @@ export const logger =
               };
 
               // Send to Logtail via HTTP
-              if (process.env.BETTERSTACK_TOKEN) {
+              if (env.BETTERSTACK_TOKEN) {
                 const endpoint =
-                  process.env.BETTERSTACK_INGESTING_HOST ||
-                  "https://in.logtail.com/";
+                  env.BETTERSTACK_INGESTING_HOST || "https://in.logtail.com/";
 
                 // Prepare payload with only relevant fields
                 const { time, level, msg, ...customFields } = logEntry;
@@ -72,7 +73,7 @@ export const logger =
                 fetch(endpoint, {
                   method: "POST",
                   headers: {
-                    Authorization: `Bearer ${process.env.BETTERSTACK_TOKEN}`,
+                    Authorization: `Bearer ${env.BETTERSTACK_TOKEN}`,
                     "Content-Type": "application/json",
                   },
                   body: JSON.stringify(payload),

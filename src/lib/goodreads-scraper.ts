@@ -1,8 +1,8 @@
-import "dotenv/config";
-
 import { decode } from "he";
 import { ScrapeConfig, ScrapflyClient } from "scrapfly-sdk";
 import z from "zod";
+
+import { env } from "@/env";
 
 export type SeriesInfo = { series: string; seriesIndex: number };
 export type ScrapeData = {
@@ -34,7 +34,7 @@ export const scrape = async (url: string): Promise<ScrapeData> => {
   const validatedUrl = validate.data!;
 
   const scrapflyClient = new ScrapflyClient({
-    key: process.env.SCRAPFLY_API_KEY!,
+    key: env.SCRAPFLY_API_KEY,
   });
 
   const result = await scrapflyClient.scrape(

@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 
 import { verifyWebhook } from "@clerk/nextjs/webhooks";
 
+import { env } from "@/env";
 import { logger, performanceLogger } from "@/lib/logger";
 import prisma from "@/lib/prisma";
 
@@ -9,11 +10,8 @@ export async function POST(req: NextRequest) {
   try {
     logger.debug(
       {
-        hasSecret: !!process.env.CLERK_WEBHOOK_SIGNING_SECRET,
-        secretPrefix: process.env.CLERK_WEBHOOK_SIGNING_SECRET?.substring(
-          0,
-          10,
-        ),
+        hasSecret: !!env.CLERK_WEBHOOK_SIGNING_SECRET,
+        secretPrefix: env.CLERK_WEBHOOK_SIGNING_SECRET.substring(0, 10),
         headers: Object.fromEntries(req.headers.entries()),
       },
       "Webhook verification attempt",
