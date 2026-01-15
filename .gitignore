@@ -49,5 +49,4 @@ NUL
 .vscode/tasks.json
 /.claude
 /src/generated/
-TESTING_CHECKLIST.md
-READING_GOAL_PLAN.md
+/checklists/
