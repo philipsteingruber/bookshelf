@@ -12,6 +12,7 @@
     "test:watch": "vitest",
     "test:watch:verbose": "vitest --reporter verbose",
     "test:ui": "vitest --ui",
+    "prisma:studio": "prisma studio --browser none",
     "postinstall": "prisma generate",
     "prepare": "husky"
   },
