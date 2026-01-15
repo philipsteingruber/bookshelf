@@ -5,7 +5,9 @@ import { trpc } from "@/trpc/client";
 
 export const useReadingStats = () => {
   const { data, isPending, isError, error } =
-    trpc.readingProgress.getAllReadingProgress.useQuery();
+    trpc.readingProgress.getAllReadingProgress.useQuery(undefined, {
+      refetchOnMount: true,
+    });
 
   const readingStats = useMemo(() => {
     return !!data?.allProgress
