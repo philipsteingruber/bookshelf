@@ -25,9 +25,23 @@ model User {
     createdAt         DateTime          @default(now())
     updatedAt         DateTime          @updatedAt
     readingProgresses ReadingProgress[]
+    readingGoals      ReadingGoal[]
 
     @@index([clerkId])
     @@index([email])
+}
+
+model ReadingGoal {
+    id String @id @default(cuid())
+
+    year Int
+    goal Int @default(20)
+
+    user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+    userId String
+
+    @@unique([userId, year])
+    @@index([year, userId])
 }
 
 enum ReadStatus {
