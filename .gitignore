@@ -42,10 +42,12 @@ yarn-error.log*
 next-env.d.ts
 
 mprocs.log
+mprocs.yaml
 .claude/settings.local.json
 NUL
 .vscode/settings.json
-.vscode/settings.json
+.vscode/tasks.json
 /.claude
 /src/generated/
 TESTING_CHECKLIST.md
+READING_GOAL_PLAN.md
