@@ -9,7 +9,9 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import z from "zod";
 
-import { handleTRPCError } from "@/lib/error-handler";
+import CoverDropzone from "@/components/books/create-form/cover-dropzone";
+import { useUploadThing } from "@/components/uploadthing";
+import { handleTRPCError, handleUploadError } from "@/lib/error-handler";
 import type { ScrapeData } from "@/lib/goodreads-scraper";
 import { createFormSchema } from "@/lib/schemas/book";
 import { trpc } from "@/trpc/client";
@@ -35,14 +37,19 @@ import { Separator } from "../ui/separator";
 import { Spinner } from "../ui/spinner";
 
 import { BasicInfoSection } from "./create-form/basic-info-section";
-import { CoverUploadSection } from "./create-form/cover-upload-section";
 import { OptionalInfoSection } from "./create-form/optional-info-section";
 
 const CreateBookForm = () => {
-  const [showUploadButton, setShowUploadButton] = useState<boolean>(true);
   const [isImportPanelOpen, setIsImportPanelOpen] = useState<boolean>(false);
   const [inputUrl, setInputUrl] = useState<string>("");
   const [urlError, setUrlError] = useState<string | null>(null);
+  const [pendingCoverFile, setPendingCoverFile] = useState<File | null>(null);
+
+  const { startUpload, isUploading } = useUploadThing("imageUploader", {
+    onUploadError: (error) => {
+      handleUploadError(error, "Cover upload");
+    },
+  });
 
   const form = useForm<z.infer<typeof createFormSchema>>({
     resolver: zodResolver(createFormSchema),
@@ -119,8 +126,21 @@ const CreateBookForm = () => {
       },
     });
 
-  const onSubmit = (data: z.infer<typeof createFormSchema>) => {
-    createBook(data);
+  const onSubmit = async (data: z.infer<typeof createFormSchema>) => {
+    let coverUrl = data.coverUrl;
+
+    if (pendingCoverFile) {
+      try {
+        const uploadResult = await startUpload([pendingCoverFile]);
+        if (uploadResult && uploadResult.length > 0) {
+          coverUrl = uploadResult[0].ufsUrl;
+        }
+      } catch {
+        return;
+      }
+    }
+
+    createBook({ ...data, coverUrl });
   };
 
   return (
@@ -187,49 +207,53 @@ const CreateBookForm = () => {
           <BasicInfoSection form={form} />
           <Separator className="my-4" />
           <OptionalInfoSection form={form} />
+          <CoverDropzone
+            file={pendingCoverFile}
+            onFileSelect={setPendingCoverFile}
+            disabled={creatingBook || isUploading}
+            isUploading={isUploading}
+          />
         </form>
-        <CoverUploadSection
-          form={form}
-          showUploadButton={showUploadButton}
-          setShowUploadButton={setShowUploadButton}
-        />
-        <CardFooter>
-          <Field
-            orientation="horizontal"
-            className="mt-4 flex w-full justify-center"
-          >
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={() => {
-                form.reset();
-                form.setValue("coverUrl", "");
-                setShowUploadButton(true);
-              }}
-              className="text-lg"
-              size="lg"
-              disabled={creatingBook || importingFromGoodReads}
-            >
-              Reset
-            </Button>
-            <Button
-              type="submit"
-              form="create-book-form"
-              className="text-lg"
-              size="lg"
-              disabled={creatingBook || importingFromGoodReads}
-            >
-              {creatingBook ? (
-                <>
-                  <Spinner /> Creating...
-                </>
-              ) : (
-                "Submit"
-              )}
-            </Button>
-          </Field>
-        </CardFooter>
       </CardContent>
+      <CardFooter>
+        <Field
+          orientation="horizontal"
+          className="mt-4 flex w-full justify-center"
+        >
+          <Button
+            type="button"
+            variant="destructive"
+            onClick={() => {
+              form.reset();
+              setPendingCoverFile(null);
+            }}
+            className="w-50 text-lg"
+            size="lg"
+            disabled={creatingBook || importingFromGoodReads}
+          >
+            Reset
+          </Button>
+          <Button
+            type="submit"
+            form="create-book-form"
+            className="w-50 text-lg"
+            size="lg"
+            disabled={creatingBook || importingFromGoodReads || isUploading}
+          >
+            {isUploading ? (
+              <>
+                <Spinner /> Uploading cover...
+              </>
+            ) : creatingBook ? (
+              <>
+                <Spinner /> Creating...
+              </>
+            ) : (
+              "Submit"
+            )}
+          </Button>
+        </Field>
+      </CardFooter>
     </Card>
   );
 };
