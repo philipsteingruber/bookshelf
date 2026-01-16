@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 
 import { getDayOfYear, getDaysInYear } from "date-fns";
+import { toast } from "sonner";
 
 import type { Book } from "@/generated/prisma/client";
 import { calculateYearlyStats } from "@/lib/reading-stats-utils";
@@ -107,6 +108,37 @@ export const useReadingGoals = (books: Book[]): UseReadingGoalsReturn => {
       booksRemaining,
     };
   }, [booksFinishedByYear, readingGoal?.goal]);
+
+  useEffect(() => {
+    if (fetchingReadingGoal || fetchingReadingGoalHistory) {
+      return;
+    }
+    if (booksReadThisYear < currentGoal) {
+      return;
+    }
+
+    const currentYear = new Date().getFullYear();
+    const storageKey = `goal-celebration-${currentYear}`;
+    const highestCelebrated = parseInt(
+      localStorage.getItem(storageKey) || "0",
+      10,
+    );
+
+    if (booksReadThisYear >= currentGoal && currentGoal > highestCelebrated) {
+      toast.success("Congratulation!", {
+        description: `You've reached your reading goal of ${currentGoal} books!`,
+        duration: 10000,
+        position: "bottom-right",
+      });
+
+      localStorage.setItem(storageKey, currentGoal.toString());
+    }
+  }, [
+    booksReadThisYear,
+    currentGoal,
+    fetchingReadingGoal,
+    fetchingReadingGoalHistory,
+  ]);
 
   return {
     currentGoal,
