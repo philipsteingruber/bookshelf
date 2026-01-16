@@ -1,7 +1,3 @@
-### Random Ideas
-
-- Import from GoodReads/Google Books
-
 # Bookshelf - Personal Reading Tracker
 
 A full-stack web application for tracking your personal reading journey, built with Next.js, tRPC, Prisma, and PostgreSQL.
@@ -283,6 +279,12 @@ A full-stack web application for tracking your personal reading journey, built w
 ---
 
 ## 🚀 Phase 8: Enhanced Book Discovery & Management (Proposed)
+
+### File Upload Improvements
+
+- [ ] Deferred cover image upload (prevent orphaned files)
+  - [ ] Replace immediate upload with file selection + preview
+  - [ ] Upload on form submit only
 
 ### External API Integration
 
@@ -611,7 +613,7 @@ pnpm lint     # Run ESLint
 
 ## Project Structure
 
-```
+```Typescript
 src/
 ├── app/                    # Next.js App Router pages
 │   ├── layout.tsx         # Root layout with providers
