@@ -182,6 +182,10 @@ A full-stack web application for tracking your personal reading journey, built w
 - [x] Breadcrumb navigation
 - [x] Layout system with proper nesting
 
+#### Future Enhancements
+
+- [ ] Improve visual consistency of dashboard cards (spacing, sizing, typography)
+
 ---
 
 ### ✅ Phase 6.5: Monitoring & Observability (Completed)
@@ -227,14 +231,23 @@ A full-stack web application for tracking your personal reading journey, built w
 
 ---
 
-## 🚀 Phase 7: Enhanced Reading Experience (Proposed)
+## 🚀 Phase 7: Enhanced Reading Experience (In Progress)
 
 ### Reading Goals & Challenges
 
-- [ ] Set yearly reading goal (number of books/pages)
-- [ ] Progress visualization towards yearly goal
+- [x] Set yearly reading goal (number of books)
+  - [x] Backend: `setReadingGoal` mutation with upsert
+  - [x] Backend: `getReadingGoal` query (auto-creates with default if none exists)
+  - [x] Backend: `getReadingGoalHistory` query for past years
+  - [x] React hook: `useReadingGoals` with memoized calculations
+    - [x] Current goal and books read this year
+    - [x] Progress percentage and books remaining
+    - [x] On-track status with pace messaging
+    - [x] Goal history with actual vs target
+- [x] Progress visualization towards yearly goal
+  - [x] `calculateYearlyStats` utility for books finished by year
 - [ ] Monthly reading challenges
-- [ ] Reading streaks tracking
+- [ ] Reading streaks tracking (calculation done, persistence pending)
 - [ ] Goal completion badges/achievements
 
 ### Advanced Progress Tracking ✅
