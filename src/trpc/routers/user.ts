@@ -1,6 +1,5 @@
 import z from "zod";
 
-import type { ReadingGoal } from "@/generated/prisma/client";
 import { performanceLogger } from "@/lib/logger";
 
 import { authedProcedure, createTRPCRouter } from "../init";
@@ -13,44 +12,23 @@ export const userRouter = createTRPCRouter({
 
       const currentYear = new Date().getFullYear();
 
-      const getReadingGoalTimer = performanceLogger(
-        "DB: Get reading goal for current year",
+      const upsertReadingGoalTimer = performanceLogger(
+        "DB: Upsert new Reading Goal",
       );
 
-      getReadingGoalTimer.start();
-      const readingGoal = await ctx.db.readingGoal.findUnique({
+      upsertReadingGoalTimer.start();
+      const readingGoal = await ctx.db.readingGoal.upsert({
         where: {
           userId_year: { userId: ctx.currentUser.id, year: currentYear },
         },
+        create: {
+          userId: ctx.currentUser.id,
+          year: currentYear,
+          goal: newGoal,
+        },
+        update: { goal: newGoal },
       });
-      getReadingGoalTimer.end({ currentYear });
-
-      if (readingGoal) {
-        const setUpdatingGoalTimer = performanceLogger(
-          "DB: Update reading goal",
-          500,
-          ctx.logger,
-        );
-
-        setUpdatingGoalTimer.start();
-        const updatedGoal = await ctx.db.readingGoal.update({
-          where: { id: readingGoal.id },
-          data: { goal: newGoal },
-        });
-        setUpdatingGoalTimer.end({ newGoal });
-
-        return { updatedGoal };
-      } else {
-        const readingGoal = await ctx.db.readingGoal.create({
-          data: {
-            userId: ctx.currentUser.id,
-            year: currentYear,
-            goal: newGoal,
-          } satisfies Partial<ReadingGoal>,
-        });
-
-        return { readingGoal };
-      }
+      return { readingGoal };
     }),
 
   getReadingGoal: authedProcedure.query(async ({ ctx }) => {
@@ -59,33 +37,22 @@ export const userRouter = createTRPCRouter({
     const currentYear = new Date().getFullYear();
 
     const getReadingGoalTimer = performanceLogger(
-      "DB: Get user object to return yearly goal",
+      "DB: Get reading goal object (or create if it doesn't exist) for current year",
       500,
       ctx.logger,
     );
 
-    let readingGoal: ReadingGoal | null;
     getReadingGoalTimer.start();
-    readingGoal = await ctx.db.readingGoal.findUnique({
+    const readingGoal = await ctx.db.readingGoal.upsert({
       where: { userId_year: { userId: ctx.currentUser.id, year: currentYear } },
+      create: {
+        userId: ctx.currentUser.id,
+        year: currentYear,
+        // goal defaults to 20 (specified in schema)
+      },
+      update: {},
     });
     getReadingGoalTimer.end();
-
-    if (!readingGoal) {
-      const createReadingGoalTimer = performanceLogger(
-        "DB: Create Reading Goal",
-        500,
-        ctx.logger,
-      );
-      createReadingGoalTimer.start();
-      readingGoal = await ctx.db.readingGoal.create({
-        data: {
-          userId: ctx.currentUser.id,
-          year: currentYear,
-        } satisfies Partial<ReadingGoal>,
-      });
-      createReadingGoalTimer.end();
-    }
 
     return { readingGoal };
   }),
@@ -93,18 +60,18 @@ export const userRouter = createTRPCRouter({
   getReadingGoalHistory: authedProcedure.query(async ({ ctx }) => {
     ctx.logger.debug("Getting reading goal history");
 
-    const getReadingGoalHistory = performanceLogger(
+    const getReadingGoalHistoryTimer = performanceLogger(
       "DB: Get reading goal history",
       500,
       ctx.logger,
     );
 
-    getReadingGoalHistory.start();
+    getReadingGoalHistoryTimer.start();
     const readingGoalHistory = await ctx.db.readingGoal.findMany({
       where: { userId: ctx.currentUser.id },
       orderBy: { year: "desc" },
     });
-    getReadingGoalHistory.end();
+    getReadingGoalHistoryTimer.end();
 
     return { readingGoalHistory };
   }),

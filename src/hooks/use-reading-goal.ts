@@ -60,7 +60,9 @@ export const useReadingGoals = (books: Book[]): UseReadingGoalsReturn => {
 
   const readingGoal = readingGoalData?.readingGoal ?? null;
   const readingGoalHistory = readingGoalHistoryData?.readingGoalHistory ?? null;
-  const booksFinishedByYear = calculateYearlyStats(books).booksFinishedByYear;
+  const booksFinishedByYear = useMemo(() => {
+    return calculateYearlyStats(books).booksFinishedByYear;
+  }, [books]);
 
   const goalHistory = useMemo(() => {
     if (!readingGoalHistory) return [];
@@ -72,28 +74,50 @@ export const useReadingGoals = (books: Book[]): UseReadingGoalsReturn => {
     }));
   }, [readingGoalHistory, booksFinishedByYear]);
 
-  const currentYear = new Date().getFullYear();
-  const currentGoal = readingGoal?.goal ?? 0;
-  const booksReadThisYear =
-    booksFinishedByYear.find((b) => b.year === currentYear)?.count ?? 0;
-  const expectedAtThisPoint = Math.round(
-    (currentGoal / getDaysInYear(new Date())) * getDayOfYear(new Date()),
-  );
-  const isOnTrack = booksReadThisYear >= expectedAtThisPoint;
+  const {
+    currentGoal,
+    isOnTrack,
+    booksReadThisYear,
+    paceMessage,
+    progressPercentage,
+    booksRemaining,
+  } = useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    const currentGoal = readingGoal?.goal ?? 0;
+    const booksReadThisYear =
+      booksFinishedByYear.find((b) => b.year === currentYear)?.count ?? 0;
+    const expectedAtThisPoint = Math.round(
+      (currentGoal / getDaysInYear(new Date())) * getDayOfYear(new Date()),
+    );
+    const isOnTrack = booksReadThisYear >= expectedAtThisPoint;
+    const behind = expectedAtThisPoint - booksReadThisYear;
+    const paceMessage = isOnTrack
+      ? "On pace, keep going!"
+      : `${behind} ${behind === 1 ? "book" : "books"} behind, time to pick it up!`;
+    const progressPercentage =
+      currentGoal > 0 ? Math.round((booksReadThisYear / currentGoal) * 100) : 0;
+    const booksRemaining = Math.max(0, currentGoal - booksReadThisYear);
+
+    return {
+      currentGoal,
+      isOnTrack,
+      booksReadThisYear,
+      paceMessage,
+      progressPercentage,
+      booksRemaining,
+    };
+  }, [booksFinishedByYear, readingGoal?.goal]);
 
   return {
     currentGoal,
     booksReadThisYear,
 
-    progressPercentage:
-      currentGoal > 0 ? Math.round((booksReadThisYear / currentGoal) * 100) : 0,
-    booksRemaining: Math.max(0, currentGoal - booksReadThisYear),
+    progressPercentage,
+    booksRemaining,
     isOnTrack,
-    paceMessage: isOnTrack
-      ? "On pace, keep going!"
-      : `${expectedAtThisPoint - booksReadThisYear} behind, time to pick it up!`,
+    paceMessage,
 
-    goalHistory: goalHistory,
+    goalHistory,
 
     setGoal: setReadingGoal,
     isSettingGoal,

@@ -227,7 +227,7 @@ export const calculateWeeklyStats = (
 
 export const calculateYearlyStats = (books: Book[]): YearlyStats => {
   const validBooks = books.filter(
-    (book) => book.finishedAt !== null && book.finishedAt !== undefined,
+    (book): book is Book & { finishedAt: Date } => book.finishedAt != null,
   );
 
   if (validBooks.length === 0) return { booksFinishedByYear: [] };
@@ -235,19 +235,21 @@ export const calculateYearlyStats = (books: Book[]): YearlyStats => {
   const booksByYear = new Map<number, number>();
 
   validBooks.forEach((book) => {
-    const current = booksByYear.get(book.finishedAt!.getFullYear());
+    const year = book.finishedAt.getFullYear();
+    const current = booksByYear.get(year);
 
     if (!current) {
-      booksByYear.set(book.finishedAt!.getFullYear(), 1);
+      booksByYear.set(year, 1);
     } else {
-      booksByYear.set(book.finishedAt!.getFullYear(), current + 1);
+      booksByYear.set(year, current + 1);
     }
   });
 
   return {
-    booksFinishedByYear: Array.from(
-      booksByYear.entries().map(([year, count]) => ({ year, count })),
-    ).sort((a, b) => b.year - a.year),
+    booksFinishedByYear: Array.from(booksByYear.entries(), ([year, count]) => ({
+      year,
+      count,
+    })).sort((a, b) => b.year - a.year),
   } satisfies YearlyStats;
 };
 
