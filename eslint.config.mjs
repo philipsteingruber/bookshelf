@@ -63,6 +63,13 @@ const eslintConfig = defineConfig([
               message: "Use vitest instead of node:test",
             },
           ],
+          patterns: [
+            {
+              group: ["@radix-ui", "@radix-ui/*"],
+              message:
+                "Import from ui/components or add new ShadCN component instead",
+            },
+          ],
         },
       ],
     },
