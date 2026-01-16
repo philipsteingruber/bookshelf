@@ -244,6 +244,9 @@ A full-stack web application for tracking your personal reading journey, built w
     - [x] Progress percentage and books remaining
     - [x] On-track status with pace messaging
     - [x] Goal history with actual vs target
+  - [x] Goal completion toast notification
+    - [x] Tracks highest celebrated goal per year in localStorage
+    - [x] Only celebrates when reaching a new higher goal
 - [x] Progress visualization towards yearly goal
   - [x] `calculateYearlyStats` utility for books finished by year
 - [ ] Monthly reading challenges

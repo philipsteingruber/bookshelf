@@ -125,7 +125,7 @@ export const useReadingGoals = (books: Book[]): UseReadingGoalsReturn => {
     );
 
     if (booksReadThisYear >= currentGoal && currentGoal > highestCelebrated) {
-      toast.success("Congratulation!", {
+      toast.success("Congratulations!", {
         description: `You've reached your reading goal of ${currentGoal} books!`,
         duration: 10000,
         position: "bottom-right",
