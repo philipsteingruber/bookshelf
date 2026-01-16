@@ -1,8 +1,9 @@
 "use client";
 
+import { useState } from "react";
+
 import { RedirectToSignIn, useAuth } from "@clerk/nextjs";
 import {
-  BookCheckIcon,
   BookOpenIcon,
   CalendarIcon,
   FlameIcon,
@@ -12,11 +13,14 @@ import {
 import BookCard from "@/components/books/book-card";
 import type { DashboardCardProps } from "@/components/dashboard/dashboard-card";
 import DashboardCard from "@/components/dashboard/dashboard-card";
+import ReadingGoalCard from "@/components/dashboard/reading-goal-card";
 import ReadingProgressCard from "@/components/dashboard/readingprogress-card";
+import SetGoalDialog from "@/components/dashboard/set-goal-dialog";
 import ErrorState from "@/components/error-state";
 import LoadingState from "@/components/loading-state";
 import { Separator } from "@/components/ui/separator";
 import { useBooks } from "@/hooks/use-books";
+import { useReadingGoals } from "@/hooks/use-reading-goal";
 import { useReadingStats } from "@/hooks/use-reading-stats";
 
 const Page = () => {
@@ -30,10 +34,12 @@ const Page = () => {
     readNextBooksCount,
     finishedThisYearBooksCount,
     readBooksCount,
+    books,
   } = useBooks({
     sortBy: "updatedAt",
     sortDirection: "desc",
   });
+
   const {
     pagesToday,
     avgPagesPerDay,
@@ -42,6 +48,19 @@ const Page = () => {
     pagesThisWeek,
     pagesLastWeek,
   } = useReadingStats();
+
+  const {
+    currentGoal,
+    booksReadThisYear,
+    progressPercentage,
+    isOnTrack,
+    paceMessage,
+    goalHistory,
+    setGoal,
+    isSettingGoal,
+  } = useReadingGoals(books);
+
+  const [goalDialogOpen, setGoalDialogOpen] = useState<boolean>(false);
 
   const { isSignedIn } = useAuth();
 
@@ -55,12 +74,6 @@ const Page = () => {
   const readNextBooksToShow = readNextBooks.slice(0, sliceLength);
 
   const dashBoardCardData: DashboardCardProps[] = [
-    {
-      header: "BOOKS READ THIS YEAR",
-      value: finishedThisYearBooksCount,
-      footer: `${readBooksCount} all time`,
-      icon: BookCheckIcon,
-    },
     {
       header: "CURRENTLY READING",
       value: readingBooksCount,
@@ -138,6 +151,21 @@ const Page = () => {
         </>
       )}
       <div className="flex gap-x-4">
+        <ReadingGoalCard
+          currentCount={booksReadThisYear}
+          goal={currentGoal}
+          isOnTrack={isOnTrack}
+          onEditClick={() => setGoalDialogOpen(true)}
+          paceMessage={paceMessage}
+          progressPercentage={progressPercentage}
+        />
+        <SetGoalDialog
+          open={goalDialogOpen}
+          onOpenChange={setGoalDialogOpen}
+          currentGoal={currentGoal}
+          onSave={setGoal}
+          isSaving={isSettingGoal}
+        />
         {dashBoardCardData.map((item) => (
           <DashboardCard {...item} key={item.header} />
         ))}
