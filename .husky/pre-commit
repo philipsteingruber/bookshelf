@@ -10,20 +10,5 @@ if [ $TSC_EXIT -ne 0 ]; then
   exit $TSC_EXIT
 fi
 
-# Get staged files for later use
-STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(ts|tsx)$' | tr '\n' ' ')
-
-# Run ESLint on staged files and auto-fix
-echo "=== ESLint run: $(date) ===" >> .husky/logs/eslint.log
-git diff --cached --name-only --diff-filter=ACM | grep -E '\.(js|jsx|ts|tsx)$' | xargs --no-run-if-empty pnpm exec eslint --fix 2>&1 | tee -a .husky/logs/eslint.log
-ESLINT_EXIT=${PIPESTATUS[0]}
-git add -u
-
-if [ $ESLINT_EXIT -ne 0 ]; then
-  exit $ESLINT_EXIT
-fi
-
-# Run related tests for changed files
-echo "=== Vitest run: $(date) ===" >> .husky/logs/vitest.log
-pnpm exec vitest run --changed --passWithNoTests 2>&1 | tee -a .husky/logs/vitest.log
-exit ${PIPESTATUS[0]}
+# Run lint-staged for ESLint fixes and related tests
+pnpm lint-staged 2>&1 | tee -a .husky/logs/lint-staged.log
