@@ -89,4 +89,23 @@ export const userRouter = createTRPCRouter({
 
     return { readingGoal };
   }),
+
+  getReadingGoalHistory: authedProcedure.query(async ({ ctx }) => {
+    ctx.logger.debug("Getting reading goal history");
+
+    const getReadingGoalHistory = performanceLogger(
+      "DB: Get reading goal history",
+      500,
+      ctx.logger,
+    );
+
+    getReadingGoalHistory.start();
+    const readingGoalHistory = await ctx.db.readingGoal.findMany({
+      where: { userId: ctx.currentUser.id },
+      orderBy: { year: "desc" },
+    });
+    getReadingGoalHistory.end();
+
+    return { readingGoalHistory };
+  }),
 });

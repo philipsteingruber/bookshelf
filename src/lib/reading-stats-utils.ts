@@ -19,6 +19,9 @@ export interface WeeklyStats {
   pagesThisWeek: number;
   pagesLastWeek: number;
 }
+export interface YearlyStats {
+  booksFinishedByYear: { year: number; count: number }[];
+}
 export interface OverallStats {
   activeDays: number;
   totalPagesRead: number;
@@ -220,6 +223,32 @@ export const calculateWeeklyStats = (
     pagesThisWeek,
     pagesLastWeek,
   };
+};
+
+export const calculateYearlyStats = (books: Book[]): YearlyStats => {
+  const validBooks = books.filter(
+    (book) => book.finishedAt !== null && book.finishedAt !== undefined,
+  );
+
+  if (validBooks.length === 0) return { booksFinishedByYear: [] };
+
+  const booksByYear = new Map<number, number>();
+
+  validBooks.forEach((book) => {
+    const current = booksByYear.get(book.finishedAt!.getFullYear());
+
+    if (!current) {
+      booksByYear.set(book.finishedAt!.getFullYear(), 1);
+    } else {
+      booksByYear.set(book.finishedAt!.getFullYear(), current + 1);
+    }
+  });
+
+  return {
+    booksFinishedByYear: Array.from(
+      booksByYear.entries().map(([year, count]) => ({ year, count })),
+    ).sort((a, b) => b.year - a.year),
+  } satisfies YearlyStats;
 };
 
 export const calculateOverallStats = (
