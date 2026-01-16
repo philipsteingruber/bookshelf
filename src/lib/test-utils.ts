@@ -5,6 +5,7 @@ import { vi } from "vitest";
 import type {
   Book,
   PrismaClient,
+  ReadingGoal,
   ReadingProgress,
   User,
 } from "@/generated/prisma/client";
@@ -38,6 +39,13 @@ export function createMockDb() {
       findMany: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
+    },
+    readingGoal: {
+      findUnique: vi.fn(),
+      findMany: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      upsert: vi.fn(),
     },
     $transaction: vi.fn(),
   } as unknown as PrismaClient;
@@ -137,6 +145,17 @@ export const createFakeReadingProgressWithBook = (
       id: fakeBook.id,
       title: fakeBook.title,
     },
+    ...overrides,
+  };
+};
+
+export const createFakeReadingGoal = (overrides?: Partial<ReadingGoal>) => {
+  const currentYear = new Date().getFullYear();
+  return {
+    id: "1",
+    userId: "test-user-123",
+    year: currentYear,
+    goal: 20,
     ...overrides,
   };
 };
