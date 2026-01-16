@@ -32,8 +32,6 @@ const Page = () => {
     error,
     readNextBooks,
     readNextBooksCount,
-    finishedThisYearBooksCount,
-    readBooksCount,
     books,
   } = useBooks({
     sortBy: "updatedAt",
@@ -55,7 +53,6 @@ const Page = () => {
     progressPercentage,
     isOnTrack,
     paceMessage,
-    goalHistory,
     setGoal,
     isSettingGoal,
   } = useReadingGoals(books);
