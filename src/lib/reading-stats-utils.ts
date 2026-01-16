@@ -312,8 +312,11 @@ export const calculateStreakDetails = (
 
   const progressByDay = groupByDay(progress);
   const activeDates = Array.from(progressByDay.keys())
-    .map((dateStr) => new Date(dateStr))
-    .sort((a, b) => a.getTime() - b.getTime()); // Same question here, is getTime enough?
+    .map((dateStr) => {
+      const [year, month, day] = dateStr.split("-").map(Number);
+      return new Date(year, month - 1, day);
+    })
+    .sort((a, b) => a.getTime() - b.getTime());
   if (activeDates.length === 0) {
     return {
       currentStreak: 0,

@@ -46,23 +46,31 @@ const Header = () => {
 const StreakIndicator = () => {
   const { isStreakActive, currentStreak, isPending } = useReadingStats();
 
+  const hasStreak = currentStreak > 0;
+
+  const getMessage = () => {
+    if (isStreakActive) {
+      return `You're on a ${currentStreak} day streak, keep it going!`;
+    }
+    if (hasStreak) {
+      return `You have a ${currentStreak} day streak, read today to keep it!`;
+    }
+    return "You lost your streak, get back on the horse!";
+  };
+
   return (
     <div
       className={cn(
-        isStreakActive ? "rounded-md border-2 font-semibold shadow-md" : null,
+        hasStreak ? "rounded-md border-2 font-semibold shadow-md" : null,
         "flex cursor-default items-center gap-x-2 px-4 py-2",
       )}
     >
       {isPending ? null : (
         <>
           <FlameIcon
-            className={cn(isStreakActive ? "text-red-400" : "text-white")}
+            className={cn(hasStreak ? "text-red-400" : "text-white")}
           />
-          <span className="text-primary">
-            {isStreakActive
-              ? `You're on a ${currentStreak} day streak, keep it going!`
-              : "You lost your streak, get back on the horse!"}
-          </span>
+          <span className="text-primary">{getMessage()}</span>
         </>
       )}
     </div>
