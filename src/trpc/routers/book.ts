@@ -7,6 +7,7 @@ import type {
   BookWhereInput,
 } from "@/generated/prisma/internal/prismaNamespace";
 import { BookScalarFieldEnum } from "@/generated/prisma/internal/prismaNamespace";
+import { createAuthorSort, createTitleSort } from "@/lib/book-utils";
 import { VALIDATION_LIMITS } from "@/lib/constants";
 import { performanceLogger } from "@/lib/logger";
 import { createFormSchema } from "@/lib/schemas/book";
@@ -211,7 +212,9 @@ export const bookRouter = createTRPCRouter({
       const book = await ctx.db.book.create({
         data: {
           title: input.title,
+          titleSort: createTitleSort(input.title),
           author: input.author,
+          authorSort: createAuthorSort(input.author),
           pageCount: input.pageCount,
           isbn: input.isbn || null,
           series: input.series,

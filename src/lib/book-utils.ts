@@ -29,3 +29,18 @@ export const getStatusButtonStyle = (readStatus: ReadStatus) => {
       return "bg-gradient-to-r from-purple-400 to-purple-700 hover:from-purple-500 hover:to-purple-800 text-white";
   }
 };
+
+export function createTitleSort(title: string): string {
+  if (!(title.startsWith("The") || title.startsWith("the"))) {
+    return title;
+  }
+  const titleSplit = title.split(" ");
+  return titleSplit.slice(1).join(" ") + ", " + "The";
+}
+
+export function createAuthorSort(author: string): string {
+  const authorSplit = author.split(" ");
+  const firstName = authorSplit[0];
+  const lastNames = authorSplit.slice(1).join(" ");
+  return lastNames + ", " + firstName;
+}

@@ -55,21 +55,30 @@ enum ReadStatus {
 model Book {
     id Int @id @default(autoincrement())
 
-    title           String
-    author          String
-    pageCount       Int      @default(0)
-    progress        Int      @default(0)
+    title      String
+    titleSort  String?
+    author     String
+    authorSort String?
+
+    pageCount Int @default(0)
+    progress  Int @default(0)
+
     rating          Int?
-    review          String?  @db.Text
-    coverUrl        String?
-    isbn            String?
-    series          String?
-    seriesIndex     Int?
-    publishedYear   Int
-    summary         String?  @db.Text
     goodreadsRating Decimal?
     goodreadsUrl    String?
     googleBooksUrl  String?
+    review          String?  @db.Text
+
+    coverUrl String?
+
+    isbn String?
+
+    series      String?
+    seriesIndex Int?
+
+    publishedYear Int
+
+    summary String? @db.Text
 
     status ReadStatus @default(TO_READ)
 
