@@ -6,12 +6,7 @@ import prisma from "@/lib/prisma";
 async function backfillSortFields() {
   const books = await prisma.book.findMany({
     where: {
-      OR: [
-        { titleSort: null },
-        { authorSort: null },
-        { titleSort: "" },
-        { authorSort: "" },
-      ],
+      OR: [{ titleSort: "" }, { authorSort: "" }],
     },
   });
 

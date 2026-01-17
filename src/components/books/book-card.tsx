@@ -75,7 +75,7 @@ const BookCard = ({
             )}
           </div>
           <div className="mt-2 flex min-h-[88px] flex-col gap-y-1 px-2 pb-4">
-            <p className="truncate text-base font-semibold">{book.title}</p>
+            <p className="truncate text-base font-semibold">{`${book.title} ${book.title !== book.titleSort ? `(${book.titleSort})` : ""}`}</p>
             <p className="truncate font-serif text-sm">{book.author}</p>
             <p
               className={cn(

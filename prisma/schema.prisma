@@ -56,9 +56,9 @@ model Book {
     id Int @id @default(autoincrement())
 
     title      String
-    titleSort  String?
+    titleSort  String
     author     String
-    authorSort String?
+    authorSort String
 
     pageCount Int @default(0)
     progress  Int @default(0)

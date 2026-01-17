@@ -2,6 +2,7 @@ import { subDays } from "date-fns";
 import { config } from "dotenv";
 
 import type { ReadStatus } from "@/generated/prisma/enums";
+import { createAuthorSort, createTitleSort } from "@/lib/book-utils";
 import prisma from "@/lib/prisma";
 
 config();
@@ -20,6 +21,8 @@ async function main() {
     publishedYear: number;
     progress?: number;
     pageCount?: number;
+    titleSort: string;
+    authorSort: string;
   };
 
   const user = await prisma.user.findFirst();
@@ -37,7 +40,9 @@ async function main() {
   const books: Book[] = [
     {
       title: "The Emperor's Legion",
+      titleSort: createTitleSort("The Emperor's Legion"),
       author: "Chris Wraight",
+      authorSort: createAuthorSort("Chris Wraight"),
       coverUrl:
         "https://3k01dt1q3i.ufs.sh/f/yX6XxGcalfFsGxT1OC7MdJ8au0yQEAo49FghKzSClwL37nVI",
       status: "READ",
@@ -49,6 +54,8 @@ async function main() {
     {
       title: "Fall of Cadia",
       author: "Robert Rath",
+      titleSort: createTitleSort("Fall of Cadia"),
+      authorSort: createAuthorSort("Robert Rath"),
       coverUrl:
         "https://3k01dt1q3i.ufs.sh/f/yX6XxGcalfFs1cPP3X7EWGPOTyF9lVqnN3ADvkZab40p8gHw",
       status: "READING",
@@ -68,6 +75,8 @@ This is the story of Abaddon’s greatest conquest. This is Cadia’s last stand
     {
       title: "Xenos",
       author: "Dan Abnett",
+      titleSort: createTitleSort("Xenos"),
+      authorSort: createAuthorSort("Dan Abnett"),
       series: "Eisenhorn",
       seriesIndex: 1,
       coverUrl:
@@ -79,6 +88,8 @@ This is the story of Abaddon’s greatest conquest. This is Cadia’s last stand
     {
       title: "Fifteen Hours",
       author: "Mitchel Scanlon",
+      titleSort: createTitleSort("Fifteen Hours"),
+      authorSort: createAuthorSort("Mitchel Scanlon"),
       coverUrl:
         "https://3k01dt1q3i.ufs.sh/f/yX6XxGcalfFsCQnYcm5VaXmAYWNIgH6yhQDnE8jJ9l0M35xF",
       status: "DNF",
@@ -88,6 +99,8 @@ This is the story of Abaddon’s greatest conquest. This is Cadia’s last stand
     {
       title: "Saturnine",
       author: "Dan Abnett",
+      titleSort: createTitleSort("Saturnine"),
+      authorSort: createAuthorSort("Dan Abnett"),
       coverUrl:
         "https://3k01dt1q3i.ufs.sh/f/yX6XxGcalfFslNH6m4uKLk6dZ5wYsF780N2Mujbpgoae9Vcl",
       userId,
@@ -106,6 +119,8 @@ The Traitor Host of Horus Lupercal tightens its iron grip on the Palace of Terra
     {
       title: "The Regent's Shadow",
       author: "Chris Wraight",
+      titleSort: createTitleSort("The Regent's Shadow"),
+      authorSort: createAuthorSort("Chris Wraight"),
       coverUrl:
         "https://3k01dt1q3i.ufs.sh/f/yX6XxGcalfFsuOiWtLSxdZhnOMqtCP37QJcDvmFGTbzje0KH",
       status: "READ_NEXT",
@@ -116,6 +131,8 @@ The Traitor Host of Horus Lupercal tightens its iron grip on the Palace of Terra
     {
       title: "Darkness in the Blood",
       author: "Guy Haley",
+      titleSort: createTitleSort("Darkness in the Blood"),
+      authorSort: createAuthorSort("Guy Haley"),
       coverUrl:
         "https://3k01dt1q3i.ufs.sh/f/yX6XxGcalfFsmdrtkrg2UTRVFNzLP9ESulI5jboesfMhHypd",
       userId,
