@@ -104,10 +104,7 @@ export default function Page({
       });
       setIsReadingStatusDialogOpen(false);
       trpcUtils.book.getBook.invalidate(parseInt(bookId));
-      trpcUtils.book.getBooks.invalidate({
-        sortBy: "updatedAt",
-        sortDirection: "desc",
-      });
+      trpcUtils.book.getBooks.invalidate();
     },
   });
   const { mutate: updatePageCount } = trpc.book.updatePageCount.useMutation({
