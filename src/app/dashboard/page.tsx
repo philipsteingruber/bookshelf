@@ -67,7 +67,7 @@ const Page = () => {
 
   let sliceLength = Math.min(3, readingBooksCount);
   const readingBooksToShow = readingBooks.slice(0, sliceLength);
-  sliceLength = Math.min(5, readNextBooksCount);
+  sliceLength = Math.min(8, readNextBooksCount);
   const readNextBooksToShow = readNextBooks.slice(0, sliceLength);
 
   const dashBoardCardData: DashboardCardProps[] = [
