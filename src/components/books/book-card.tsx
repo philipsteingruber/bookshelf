@@ -77,13 +77,16 @@ const BookCard = ({
           <div className="mt-2 flex min-h-[88px] flex-col gap-y-1 px-2 pb-4">
             <p className="truncate text-base font-semibold">{book.title}</p>
             <p className="truncate font-serif text-sm">{book.author}</p>
-            {book.series && book.seriesIndex ? (
-              <p className="text-muted-foreground truncate font-serif text-sm font-light italic">
-                {`${book.series} #${book.seriesIndex}`}
-              </p>
-            ) : (
-              "\u00A0"
-            )}
+            <p
+              className={cn(
+                "text-muted-foreground truncate font-serif text-sm font-light italic",
+                showStatusButton && "h-[25px]",
+              )}
+            >
+              {book.series && book.seriesIndex
+                ? `${book.series} #${book.seriesIndex}`
+                : "\u00A0"}
+            </p>
             {showStatusButton && <ReadStatusButton book={book} />}
           </div>
         </CardContent>
