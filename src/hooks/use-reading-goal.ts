@@ -6,6 +6,7 @@ import { getDayOfYear, getDaysInYear } from "date-fns";
 import { toast } from "sonner";
 
 import type { Book } from "@/generated/prisma/client";
+import { READING_GOAL_DEFAULT_THRESHOLD } from "@/lib/constants";
 import { calculateYearlyStats } from "@/lib/reading-stats-utils";
 import { trpc } from "@/trpc/client";
 
@@ -17,6 +18,7 @@ interface UseReadingGoalsReturn {
   booksRemaining: number;
   isOnTrack: boolean;
   paceMessage: string;
+  pageCountThreshold: number;
 
   goalHistory: Array<{
     year: number;
@@ -26,6 +28,8 @@ interface UseReadingGoalsReturn {
 
   setGoal: (newGoal: number) => Promise<void>;
   isSettingGoal: boolean;
+  setThreshold: (newThreshold: number) => Promise<void>;
+  isSettingThreshold: boolean;
 
   isPending: boolean;
   isError: boolean;
@@ -45,7 +49,7 @@ export const useReadingGoals = (books: Book[]): UseReadingGoalsReturn => {
     isError: isReadingGoalHistoryError,
   } = trpc.user.getReadingGoalHistory.useQuery();
 
-  const { mutateAsync, isPending: isSettingGoal } =
+  const { mutateAsync: setReadingGoalAsync, isPending: isSettingGoal } =
     trpc.user.setReadingGoal.useMutation({
       onSuccess: () => {
         trpcUtils.user.getReadingGoal.invalidate();
@@ -54,16 +58,33 @@ export const useReadingGoals = (books: Book[]): UseReadingGoalsReturn => {
     });
   const setReadingGoal = useCallback(
     async (newGoal: number): Promise<void> => {
-      await mutateAsync(newGoal);
+      await setReadingGoalAsync(newGoal);
     },
-    [mutateAsync],
+    [setReadingGoalAsync],
+  );
+
+  const { mutateAsync: setThresholdAsync, isPending: isSettingThreshold } =
+    trpc.user.setReadingGoalThreshold.useMutation({
+      onSuccess: () => {
+        trpcUtils.user.getReadingGoal.invalidate();
+        trpcUtils.user.getReadingGoalHistory.invalidate();
+      },
+    });
+  const setThreshold = useCallback(
+    async (newThreshold: number): Promise<void> => {
+      await setThresholdAsync(newThreshold);
+    },
+    [setThresholdAsync],
   );
 
   const readingGoal = readingGoalData?.readingGoal ?? null;
+  const defaultReadingThreshold =
+    readingGoalData?.defaultReadingThreshold ?? READING_GOAL_DEFAULT_THRESHOLD;
   const readingGoalHistory = readingGoalHistoryData?.readingGoalHistory ?? null;
   const booksFinishedByYear = useMemo(() => {
-    return calculateYearlyStats(books).booksFinishedByYear;
-  }, [books]);
+    return calculateYearlyStats(books, defaultReadingThreshold)
+      .booksFinishedByYear;
+  }, [books, defaultReadingThreshold]);
 
   const goalHistory = useMemo(() => {
     if (!readingGoalHistory) return [];
@@ -148,11 +169,14 @@ export const useReadingGoals = (books: Book[]): UseReadingGoalsReturn => {
     booksRemaining,
     isOnTrack,
     paceMessage,
+    pageCountThreshold: defaultReadingThreshold,
 
     goalHistory,
 
     setGoal: setReadingGoal,
     isSettingGoal,
+    setThreshold,
+    isSettingThreshold,
 
     isPending: fetchingReadingGoal || fetchingReadingGoalHistory,
     isError: isReadingGoalError || isReadingGoalHistoryError,

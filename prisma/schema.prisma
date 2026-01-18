@@ -20,6 +20,8 @@ model User {
     name  String
     email String @unique
 
+    defaultReadingThreshold Int @default(200)
+
     books Book[]
 
     createdAt         DateTime          @default(now())

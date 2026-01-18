@@ -42,3 +42,5 @@ export const READ_STATUS_OPTIONS: ReadStatus[] = [
   "READ",
   "DNF",
 ] as const;
+
+export const READING_GOAL_DEFAULT_THRESHOLD = 200 as const;

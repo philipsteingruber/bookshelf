@@ -225,9 +225,13 @@ export const calculateWeeklyStats = (
   };
 };
 
-export const calculateYearlyStats = (books: Book[]): YearlyStats => {
+export const calculateYearlyStats = (
+  books: Book[],
+  readingGoalThreshold: number,
+): YearlyStats => {
   const validBooks = books.filter(
-    (book): book is Book & { finishedAt: Date } => book.finishedAt != null,
+    (book): book is Book & { finishedAt: Date } =>
+      book.finishedAt != null && book.pageCount >= readingGoalThreshold,
   );
 
   if (validBooks.length === 0) return { booksFinishedByYear: [] };

@@ -54,7 +54,10 @@ export const userRouter = createTRPCRouter({
     });
     getReadingGoalTimer.end();
 
-    return { readingGoal };
+    return {
+      readingGoal,
+      defaultReadingThreshold: ctx.currentUser.defaultReadingThreshold,
+    };
   }),
 
   getReadingGoalHistory: authedProcedure.query(async ({ ctx }) => {
@@ -75,4 +78,28 @@ export const userRouter = createTRPCRouter({
 
     return { readingGoalHistory };
   }),
+
+  setReadingGoalThreshold: authedProcedure
+    .input(z.number().int().nonnegative())
+    .mutation(async ({ ctx, input: newThreshold }) => {
+      ctx.logger.debug(
+        { newThreshold },
+        "Setting new default reading goal threshold",
+      );
+
+      const setReadingGoalThresholdTimer = performanceLogger(
+        "DB: Update default reading threshold on user",
+        500,
+        ctx.logger,
+      );
+
+      setReadingGoalThresholdTimer.start();
+      await ctx.db.user.update({
+        where: { id: ctx.currentUser.id },
+        data: { defaultReadingThreshold: newThreshold },
+      });
+      setReadingGoalThresholdTimer.end({ newThreshold });
+
+      return;
+    }),
 });

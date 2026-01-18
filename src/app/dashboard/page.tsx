@@ -57,6 +57,7 @@ const Page = () => {
     progressPercentage,
     isOnTrack,
     paceMessage,
+    pageCountThreshold,
     setGoal,
     isSettingGoal,
   } = useReadingGoals(books);
@@ -155,6 +156,7 @@ const Page = () => {
           currentCount={booksReadThisYear}
           goal={currentGoal}
           isOnTrack={isOnTrack}
+          threshold={pageCountThreshold}
           onEditClick={() => setGoalDialogOpen(true)}
           paceMessage={paceMessage}
           progressPercentage={progressPercentage}

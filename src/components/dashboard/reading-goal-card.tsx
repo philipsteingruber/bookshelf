@@ -11,6 +11,7 @@ interface ReadingGoalCardProps {
   progressPercentage: number;
   isOnTrack: boolean;
   paceMessage: string;
+  threshold: number;
   onEditClick: () => void;
   className?: string;
 }
@@ -22,13 +23,14 @@ const ReadingGoalCard = ({
   isOnTrack,
   paceMessage,
   progressPercentage,
+  threshold,
   className,
 }: ReadingGoalCardProps) => {
   return (
     <Card className={cn("h-40 w-2/5", className)}>
       <CardContent className="flex w-full justify-between">
         <div className="mt-2 flex w-full flex-col items-center gap-y-1">
-          <span className="w-full text-center text-lg font-bold">{`${currentCount} of ${goal} books read this year`}</span>
+          <span className="w-full text-center text-lg font-bold">{`${currentCount} of ${goal} (over ${threshold} pages) books read this year`}</span>
           <Progress value={progressPercentage} className="h-4 w-3/4" />
           <div className="flex items-center gap-x-4">
             <span className="text-sm">{`${progressPercentage}% complete`}</span>
