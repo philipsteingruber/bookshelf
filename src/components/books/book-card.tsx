@@ -7,6 +7,7 @@ import Link from "next/link";
 import type { Book } from "@/generated/prisma/client";
 import { BOOK_COVER_PLACEHOLDER_URL } from "@/lib/constants";
 import { cn } from "@/lib/utils";
+import { trpc } from "@/trpc/client";
 
 import { Card, CardContent } from "../ui/card";
 
@@ -29,8 +30,13 @@ const BookCard = ({
   const [imageError, setImageError] = useState(false);
   const coverUrl = book.coverUrl || BOOK_COVER_PLACEHOLDER_URL;
 
+  const utils = trpc.useUtils();
+  const handleMouseEnter = () => {
+    utils.book.getBook.prefetch(book.id);
+  };
+
   return (
-    <Link href={`/books/${book.id}`}>
+    <Link href={`/books/${book.id}`} onMouseEnter={handleMouseEnter}>
       <Card
         className={cn(
           "hover:bg-card/80 overflow-hidden border-2 p-0",

@@ -132,7 +132,7 @@ export default function Page({
       <div className="flex h-full w-full justify-center px-8">
         <div className="flex w-3/4 justify-center gap-x-4">
           <div className="flex flex-col gap-y-4">
-            <Link href={coverUrl} target="_blank">
+            <Link href={coverUrl} target="_blank" prefetch={false}>
               <div className="relative h-[600px] w-[400px] overflow-hidden rounded-md bg-linear-to-br from-gray-100 to-gray-200">
                 {imageError ? (
                   <div className="flex h-full w-full items-center justify-center bg-linear-to-br from-slate-200 via-slate-300 to-slate-400 p-12">

@@ -8,6 +8,7 @@ import { PenIcon } from "lucide-react";
 
 import type { Book } from "@/generated/prisma/client";
 import { BOOK_COVER_PLACEHOLDER_URL } from "@/lib/constants";
+import { trpc } from "@/trpc/client";
 
 import { Button } from "../ui/button";
 import { Card, CardContent } from "../ui/card";
@@ -26,8 +27,13 @@ const ReadingProgressCard = ({ book }: { book: Book }) => {
   const [readingProgressDialogOpen, setReadingProgressDialogOpen] =
     useState<boolean>(false);
 
+  const utils = trpc.useUtils();
+  const handleMouseEnter = () => {
+    utils.book.getBook.prefetch(book.id);
+  };
+
   return (
-    <div className="w-1/4">
+    <div className="w-1/4" onMouseEnter={handleMouseEnter}>
       <Card className="hover:bg-card/80 h-48 w-full overflow-hidden rounded-md py-0">
         <CardContent className="flex p-0">
           <div className="relative aspect-2/3 w-32 shrink-0 bg-linear-to-br from-gray-100 to-gray-200">
