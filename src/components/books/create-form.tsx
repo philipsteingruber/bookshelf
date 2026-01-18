@@ -91,7 +91,7 @@ const CreateBookForm = () => {
     }
   };
 
-  const { mutate: createBook, isPending: creatingBook } =
+  const { mutate: createBook, isPending: isCreatingBook } =
     trpc.book.createBook.useMutation({
       onSuccess: (data) => {
         const createdBook = data.book;
@@ -114,7 +114,7 @@ const CreateBookForm = () => {
       },
     });
 
-  const { mutate: importFromGoodReads, isPending: importingFromGoodReads } =
+  const { mutate: importFromGoodReads, isPending: isImportingFromGoodReads } =
     trpc.goodReads.scrape.useMutation({
       onSuccess: (data) => {
         handleGoodReadsImport(data);
@@ -177,7 +177,7 @@ const CreateBookForm = () => {
                 <Input
                   id="importUrl"
                   className="w-64"
-                  disabled={importingFromGoodReads}
+                  disabled={isImportingFromGoodReads}
                   value={inputUrl}
                   onChange={(evt) => {
                     validateUrl(evt.target.value);
@@ -193,10 +193,10 @@ const CreateBookForm = () => {
               </div>
               <Button
                 className="mt-[22px]"
-                disabled={importingFromGoodReads || !!urlError || !inputUrl}
+                disabled={isImportingFromGoodReads || !!urlError || !inputUrl}
                 onClick={() => importFromGoodReads(inputUrl)}
               >
-                {importingFromGoodReads ? <Spinner /> : "Import"}
+                {isImportingFromGoodReads ? <Spinner /> : "Import"}
               </Button>
             </div>
           </CollapsibleContent>
@@ -210,7 +210,7 @@ const CreateBookForm = () => {
           <CoverDropzone
             file={pendingCoverFile}
             onFileSelect={setPendingCoverFile}
-            disabled={creatingBook || isUploading}
+            disabled={isCreatingBook || isUploading}
             isUploading={isUploading}
           />
         </form>
@@ -229,7 +229,7 @@ const CreateBookForm = () => {
             }}
             className="w-50 text-lg"
             size="lg"
-            disabled={creatingBook || importingFromGoodReads}
+            disabled={isCreatingBook || isImportingFromGoodReads || isUploading}
           >
             Reset
           </Button>
@@ -238,13 +238,13 @@ const CreateBookForm = () => {
             form="create-book-form"
             className="w-50 text-lg"
             size="lg"
-            disabled={creatingBook || importingFromGoodReads || isUploading}
+            disabled={isCreatingBook || isImportingFromGoodReads || isUploading}
           >
             {isUploading ? (
               <>
                 <Spinner /> Uploading cover...
               </>
-            ) : creatingBook ? (
+            ) : isCreatingBook ? (
               <>
                 <Spinner /> Creating...
               </>
