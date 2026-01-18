@@ -30,6 +30,11 @@ const ReadingProgressCard = ({ book }: { book: Book }) => {
   const utils = trpc.useUtils();
   const handleMouseEnter = () => {
     utils.book.getBook.prefetch(book.id);
+
+    if (book.coverUrl) {
+      const img = new window.Image();
+      img.src = book.coverUrl;
+    }
   };
 
   return (

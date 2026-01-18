@@ -1,15 +1,28 @@
 import { trpc } from "@/trpc/client";
 
 export const useBook = (bookId: string) => {
+  const utils = trpc.useUtils();
+
+  const getCachedBook = () => {
+    const allBooksQueries = utils.book.getBooks.getData();
+
+    if (allBooksQueries?.books) {
+      return (
+        allBooksQueries.books.find((book) => book.id === parseInt(bookId)) ??
+        undefined
+      );
+    }
+  };
+
   const { data, isPending, isError, error } = trpc.book.getBook.useQuery(
     parseInt(bookId),
+    { initialData: getCachedBook() ? { book: getCachedBook()! } : undefined },
   );
 
   const book = data?.book;
   const isForbidden = error?.data?.code === "FORBIDDEN";
   const isNotFound = error?.data?.code === "NOT_FOUND";
 
-  // Don't return null - always return an object with state
   if (isPending) {
     return {
       book: null,
