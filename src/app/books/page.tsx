@@ -43,14 +43,14 @@ const sortGroups: { text: string; items: SortItem[] }[] = [
     text: "BY DATE",
     items: [
       {
+        text: "Recently Updated",
+        Icon: CalendarPlusIcon,
+        value: "RECENTLY_UPDATED",
+      },
+      {
         text: "Recently Added",
         Icon: CalendarPlusIcon,
         value: "RECENTLY_ADDED",
-      },
-      {
-        text: "Oldest First",
-        Icon: CalendarPlusIcon,
-        value: "OLDEST_FIRST",
       },
     ],
   },
@@ -112,8 +112,8 @@ const SORT_CONFIG: Record<
   SortOptions,
   { sortBy: BookScalarFieldEnum; sortDirection: "asc" | "desc" }
 > = {
+  RECENTLY_UPDATED: { sortBy: "updatedAt", sortDirection: "desc" },
   RECENTLY_ADDED: { sortBy: "createdAt", sortDirection: "desc" },
-  OLDEST_FIRST: { sortBy: "createdAt", sortDirection: "asc" },
   TITLE_AZ: { sortBy: "title", sortDirection: "asc" },
   TITLE_ZA: { sortBy: "title", sortDirection: "desc" },
   AUTHOR_AZ: { sortBy: "author", sortDirection: "asc" },
@@ -141,7 +141,7 @@ const parseSelectedFilter = (value: ReadStatus | "ALL_BOOKS") => {
 
 const Page = () => {
   const [selectedSorting, setSelectedSorting] =
-    useState<SortOptions>("RECENTLY_ADDED");
+    useState<SortOptions>("RECENTLY_UPDATED");
   const [selectedFilter, setSelectedFilter] = useState<
     ReadStatus | "ALL_BOOKS"
   >("ALL_BOOKS");
