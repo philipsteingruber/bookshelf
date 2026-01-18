@@ -11,8 +11,6 @@ export async function POST(req: NextRequest) {
     logger.debug(
       {
         hasSecret: !!env.CLERK_WEBHOOK_SIGNING_SECRET,
-        secretPrefix: env.CLERK_WEBHOOK_SIGNING_SECRET.substring(0, 10),
-        headers: Object.fromEntries(req.headers.entries()),
       },
       "Webhook verification attempt",
     );

@@ -28,6 +28,9 @@ export const VALIDATION_LIMITS = {
   PROGRESS_NOT_STARTED: 0,
 } as const;
 
+export const DASHBOARD_MAX_READING_BOOKS = 3 as const;
+export const DASHBOARD_MAX_READ_NEXT_BOOKS = 8 as const;
+
 /**
  * Available reading status options in order of typical reading flow
  * Used for dropdowns, filters, and status updates

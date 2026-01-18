@@ -98,6 +98,7 @@ model Book {
     @@index([author])
     @@index([series])
     @@index([rating])
+    @@index([status, userId])
 }
 
 model ReadingProgress {

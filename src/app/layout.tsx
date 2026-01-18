@@ -20,8 +20,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <TRPCProvider>
-      <ClerkProvider>
+    <ClerkProvider>
+      <TRPCProvider>
         <html
           lang="en"
           suppressHydrationWarning
@@ -42,7 +42,7 @@ export default function RootLayout({
             <Toaster />
           </body>
         </html>
-      </ClerkProvider>
-    </TRPCProvider>
+      </TRPCProvider>
+    </ClerkProvider>
   );
 }

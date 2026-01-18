@@ -22,6 +22,10 @@ import { Separator } from "@/components/ui/separator";
 import { useBooks } from "@/hooks/use-books";
 import { useReadingGoals } from "@/hooks/use-reading-goal";
 import { useReadingStats } from "@/hooks/use-reading-stats";
+import {
+  DASHBOARD_MAX_READ_NEXT_BOOKS,
+  DASHBOARD_MAX_READING_BOOKS,
+} from "@/lib/constants";
 
 const Page = () => {
   const {
@@ -65,9 +69,9 @@ const Page = () => {
     return <RedirectToSignIn />;
   }
 
-  let sliceLength = Math.min(3, readingBooksCount);
+  let sliceLength = Math.min(DASHBOARD_MAX_READING_BOOKS, readingBooksCount);
   const readingBooksToShow = readingBooks.slice(0, sliceLength);
-  sliceLength = Math.min(8, readNextBooksCount);
+  sliceLength = Math.min(DASHBOARD_MAX_READ_NEXT_BOOKS, readNextBooksCount);
   const readNextBooksToShow = readNextBooks.slice(0, sliceLength);
 
   const dashBoardCardData: DashboardCardProps[] = [
@@ -138,7 +142,6 @@ const Page = () => {
                   key={book.id}
                   className="w-64 rounded-md"
                   showStatusButton={false}
-                  orientation="vertical"
                   priority
                 />
               ))}

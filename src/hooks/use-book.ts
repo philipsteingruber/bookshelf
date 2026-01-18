@@ -1,3 +1,4 @@
+import { ReadStatus } from "@/generated/prisma/enums";
 import { trpc } from "@/trpc/client";
 
 export const useBook = (bookId: string) => {
@@ -55,11 +56,11 @@ export const useBook = (bookId: string) => {
     };
   }
 
-  const isReading = book.status === "READING";
-  const isToRead = book.status === "TO_READ";
-  const isRead = book.status === "READ";
-  const isReadNext = book.status === "READ_NEXT";
-  const isDNF = book.status === "DNF";
+  const isReading = book.status === ReadStatus.READING;
+  const isToRead = book.status === ReadStatus.TO_READ;
+  const isRead = book.status === ReadStatus.READ;
+  const isReadNext = book.status === ReadStatus.READ_NEXT;
+  const isDNF = book.status === ReadStatus.DNF;
 
   return {
     book,

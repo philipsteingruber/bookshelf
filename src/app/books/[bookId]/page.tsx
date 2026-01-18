@@ -240,12 +240,12 @@ export default function Page({
                     onClick={() => {
                       if (pageCountLabelContent) {
                         updatePageCount({
-                          bookId: parseInt(bookId),
+                          bookId: parseInt(bookId, 10),
                           newPageCount: parseInt(pageCountLabelContent),
                         });
                       }
                       updateStatus({
-                        bookId: parseInt(bookId),
+                        bookId: parseInt(bookId, 10),
                         newStatus: selectedStatus as ReadStatus,
                       });
                     }}

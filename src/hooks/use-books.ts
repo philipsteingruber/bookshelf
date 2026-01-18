@@ -3,6 +3,7 @@ import { useCallback, useMemo } from "react";
 import { useDebounce } from "use-debounce";
 
 import type { Book } from "@/generated/prisma/client";
+import { ReadStatus } from "@/generated/prisma/enums";
 import { trpc } from "@/trpc/client";
 
 import type { BookFilters } from "./../trpc/routers/book";
@@ -46,31 +47,31 @@ export const useBooks = (options?: BookFilters & { enabled?: boolean }) => {
   const hasBooks = count > 0;
 
   const readBooks = useMemo(
-    () => books.filter((book) => book.status === "READ"),
+    () => books.filter((book) => book.status === ReadStatus.READ),
     [books],
   );
   const readBooksCount = readBooks.length;
 
   const toReadBooks = useMemo(
-    () => books.filter((book) => book.status === "TO_READ"),
+    () => books.filter((book) => book.status === ReadStatus.TO_READ),
     [books],
   );
   const toReadBooksCount = toReadBooks.length;
 
   const readingBooks = useMemo(
-    () => books.filter((book) => book.status === "READING"),
+    () => books.filter((book) => book.status === ReadStatus.READING),
     [books],
   );
   const readingBooksCount = readingBooks.length;
 
   const dnfBooks = useMemo(
-    () => books.filter((book) => book.status === "DNF"),
+    () => books.filter((book) => book.status === ReadStatus.DNF),
     [books],
   );
   const dnfBooksCount = dnfBooks.length;
 
   const readNextBooks = useMemo(
-    () => books.filter((book) => book.status === "READ_NEXT"),
+    () => books.filter((book) => book.status === ReadStatus.READ_NEXT),
     [books],
   );
   const readNextBooksCount = readNextBooks.length;
