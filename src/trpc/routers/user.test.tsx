@@ -63,6 +63,19 @@ describe("userRouter", () => {
         }),
       );
     });
+
+    it("should return defaultReadingThreshold from user", async () => {
+      const { mockDb, caller, mockUser } = createMockCaller(userRouter);
+
+      const fakeGoal = createFakeReadingGoal();
+      vi.mocked(mockDb.readingGoal.upsert).mockResolvedValue(fakeGoal);
+
+      const result = await caller.getReadingGoal();
+
+      expect(result.defaultReadingThreshold).toEqual(
+        mockUser.defaultReadingThreshold,
+      );
+    });
   });
 
   describe("getReadingGoalHistory", () => {

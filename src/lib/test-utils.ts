@@ -9,6 +9,9 @@ import type {
   ReadingProgress,
   User,
 } from "@/generated/prisma/client";
+import type { ReadingProgressWithProgressSinceLast } from "@/hooks/use-reading-history";
+import { type ChartDataPoint, formatRelativeDate } from "@/lib/chart-utils";
+import { READING_GOAL_DEFAULT_THRESHOLD } from "@/lib/constants";
 
 // Extract the auth type from Clerk's auth() function
 export type AuthType = Awaited<ReturnType<typeof auth>>;
@@ -75,6 +78,7 @@ export function createFakeUser(overrides: Partial<User> = {}): User {
     imageUrl: null,
     createdAt: new Date(),
     updatedAt: new Date(),
+    defaultReadingThreshold: READING_GOAL_DEFAULT_THRESHOLD,
     ...overrides,
   } as User;
 }
@@ -120,6 +124,18 @@ export function createFakeReadingProgress(
     createdAt: new Date(),
     ...overrides,
   } as ReadingProgress;
+}
+
+export function createFakeReadingProgressWithProgressSinceLast(
+  overrides: Partial<ReadingProgressWithProgressSinceLast> = {},
+) {
+  const readingProgress = createFakeReadingProgress(overrides);
+
+  return {
+    ...readingProgress,
+    progressSinceLast: 10,
+    ...overrides,
+  } as ReadingProgressWithProgressSinceLast;
 }
 
 export const createFakeReadingProgressWithBook = (
@@ -173,6 +189,25 @@ export function createMockContext(
     auth: { userId: clerkId } as unknown as AuthType,
     logger: mockLogger,
   };
+}
+
+export function createFakeChartDataPoint(
+  overrides: Partial<ChartDataPoint> = {},
+) {
+  const date = overrides.date ?? new Date();
+  return {
+    date,
+    displayDate: formatRelativeDate(date),
+    progress: 10,
+    progressSinceLast: 10,
+    comments: null,
+    fullDate: date.toLocaleString(),
+    originalEntry: createFakeReadingProgressWithProgressSinceLast({
+      progress: 10,
+      progressSinceLast: 10,
+    }),
+    ...overrides,
+  } as ChartDataPoint;
 }
 
 /**

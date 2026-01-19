@@ -5,6 +5,7 @@ import type { ReadStatus } from "@/generated/prisma/enums";
 import { VALIDATION_LIMITS } from "@/lib/constants";
 import {
   createFakeBook,
+  createFakeReadingProgress,
   createFakeUser,
   createMockCaller,
 } from "@/lib/test-utils";
@@ -153,6 +154,56 @@ describe("bookRouter", () => {
         }),
         where: { id: originalBook.id },
       });
+    });
+
+    it("should create initial 0% ReadingProgress entry when status changes to READING", async () => {
+      const { mockDb, caller } = createMockCaller(bookRouter);
+
+      const fakeBook = createFakeBook({ status: "TO_READ" });
+      const updatedBook = createFakeBook({
+        status: "READING",
+        id: fakeBook.id,
+      });
+
+      vi.mocked(mockDb.book.findUnique).mockResolvedValue(fakeBook);
+      vi.mocked(mockDb.book.update).mockResolvedValue(updatedBook);
+      vi.mocked(mockDb.readingProgress.findFirst).mockResolvedValue(null);
+
+      await caller.updateReadingStatus({
+        bookId: fakeBook.id,
+        newStatus: "READING",
+      });
+
+      expect(mockDb.readingProgress.create).toHaveBeenCalledWith({
+        data: { bookId: fakeBook.id, userId: expect.any(String), progress: 0 },
+      });
+    });
+
+    it("should not create duplicate 0% ReadingProgress entry if one already exists", async () => {
+      const { mockDb, caller } = createMockCaller(bookRouter);
+
+      const fakeBook = createFakeBook({ status: "TO_READ" });
+      const updatedBook = createFakeBook({
+        status: "READING",
+        id: fakeBook.id,
+      });
+      const zeroReadingProgress = createFakeReadingProgress({
+        bookId: fakeBook.id,
+        progress: 0,
+      });
+
+      vi.mocked(mockDb.book.findUnique).mockResolvedValue(fakeBook);
+      vi.mocked(mockDb.book.update).mockResolvedValue(updatedBook);
+      vi.mocked(mockDb.readingProgress.findFirst).mockResolvedValue(
+        zeroReadingProgress,
+      );
+
+      await caller.updateReadingStatus({
+        bookId: fakeBook.id,
+        newStatus: "READING",
+      });
+
+      expect(mockDb.readingProgress.create).not.toHaveBeenCalled();
     });
 
     it("should update status to TO_READ (and reset startedAt and progress to 0)", async () => {
