@@ -1,5 +1,7 @@
-import { startOfDay, subDays } from "date-fns";
+import { startOfDay, subDays, subYears } from "date-fns";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { READING_GOAL_DEFAULT_THRESHOLD } from "@/lib/constants";
 
 import type {
   DailyStats,
@@ -14,6 +16,7 @@ import {
   calculateReadingStats,
   calculateStreakDetails,
   calculateWeeklyStats,
+  calculateYearlyStats,
 } from "./reading-stats-utils";
 import {
   createFakeBook,
@@ -531,6 +534,122 @@ describe("reading-stats-utils", () => {
 
       expect(result.pagesLastWeek).toEqual(sundayBook.pageCount);
       expect(result.pagesThisWeek).toEqual(mondayBook.pageCount);
+    });
+  });
+  describe("calculateYearlyStats", () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+      vi.setSystemTime(mockDate);
+      vi.clearAllMocks();
+    });
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("should return empty booksFinishedByYear array when given empty books array", () => {
+      const result = calculateYearlyStats([], READING_GOAL_DEFAULT_THRESHOLD);
+
+      expect(result.booksFinishedByYear.length).toEqual(0);
+    });
+
+    it("should return empty booksFinishedByYear array when no books have finishedAt", () => {
+      const fakeBook = createFakeBook({ finishedAt: null });
+
+      const result = calculateYearlyStats(
+        [fakeBook],
+        READING_GOAL_DEFAULT_THRESHOLD,
+      );
+
+      expect(result.booksFinishedByYear.length).toEqual(0);
+    });
+
+    it("should correctly count books finished per year", () => {
+      const lastYearBook = createFakeBook({
+        finishedAt: subYears(new Date(), 1),
+      });
+      const thisYearBook = createFakeBook({ finishedAt: new Date() });
+
+      const result = calculateYearlyStats(
+        [lastYearBook, thisYearBook],
+        READING_GOAL_DEFAULT_THRESHOLD,
+      );
+
+      expect(
+        result.booksFinishedByYear.find(
+          (entry) => entry.year === new Date().getFullYear(),
+        )?.count,
+      ).toEqual(1);
+      expect(
+        result.booksFinishedByYear.find(
+          (entry) => entry.year === subYears(new Date(), 1).getFullYear(),
+        )?.count,
+      ).toEqual(1);
+    });
+
+    it("should handle multiple books finished in the same year", () => {
+      const firstBook = createFakeBook({ id: 1, finishedAt: new Date() });
+      const secondBook = createFakeBook({ id: 2, finishedAt: new Date() });
+
+      const result = calculateYearlyStats(
+        [firstBook, secondBook],
+        READING_GOAL_DEFAULT_THRESHOLD,
+      );
+
+      expect(result.booksFinishedByYear.length).toEqual(1);
+      expect(result.booksFinishedByYear[0].count).toEqual(2);
+    });
+
+    it("should sort by year descending", () => {
+      const lastYearBook = createFakeBook({
+        finishedAt: subYears(new Date(), 1),
+      });
+      const thisYearBook = createFakeBook({ finishedAt: new Date() });
+
+      const result = calculateYearlyStats(
+        [lastYearBook, thisYearBook],
+        READING_GOAL_DEFAULT_THRESHOLD,
+      );
+
+      expect(result.booksFinishedByYear[0].year).toBeGreaterThan(
+        result.booksFinishedByYear[1].year,
+      );
+    });
+
+    it("should filter out books below the threshold", () => {
+      const fakeBook = createFakeBook({
+        pageCount: READING_GOAL_DEFAULT_THRESHOLD - 1,
+        finishedAt: new Date(),
+      });
+
+      const result = calculateYearlyStats(
+        [fakeBook],
+        READING_GOAL_DEFAULT_THRESHOLD,
+      );
+
+      expect(result.booksFinishedByYear.length).toEqual(0);
+    });
+
+    it("should include books at exactly the threshold", () => {
+      const fakeBook = createFakeBook({
+        pageCount: READING_GOAL_DEFAULT_THRESHOLD,
+        finishedAt: new Date(),
+      });
+
+      const result = calculateYearlyStats(
+        [fakeBook],
+        READING_GOAL_DEFAULT_THRESHOLD,
+      );
+
+      expect(result.booksFinishedByYear.length).toEqual(1);
+    });
+
+    it("should count all books when threshold is 0", () => {
+      const fakeBook = createFakeBook({ finishedAt: new Date() });
+
+      const result = calculateYearlyStats([fakeBook], 0);
+
+      expect(result.booksFinishedByYear.length).toEqual(1);
+      expect(result.booksFinishedByYear[0].count).toEqual(1);
     });
   });
   describe("calculateOverallStats", () => {

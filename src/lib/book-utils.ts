@@ -35,11 +35,21 @@ export function createTitleSort(title: string): string {
     return title;
   }
   const titleSplit = title.split(" ");
+
+  if (titleSplit.length === 1) {
+    return title;
+  }
+
   return titleSplit.slice(1).join(" ") + ", " + "The";
 }
 
 export function createAuthorSort(author: string): string {
   const authorSplit = author.split(" ");
+
+  if (authorSplit.length === 1) {
+    return author;
+  }
+
   const firstName = authorSplit[0];
   const lastNames = authorSplit.slice(1).join(" ");
   return lastNames + ", " + firstName;
