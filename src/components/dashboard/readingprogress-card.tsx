@@ -40,8 +40,8 @@ const ReadingProgressCard = ({ book }: { book: Book }) => {
   return (
     <div className="w-1/4" onMouseEnter={handleMouseEnter}>
       <Card className="hover:bg-card/80 h-48 w-full overflow-hidden rounded-md py-0">
-        <CardContent className="flex p-0">
-          <div className="relative aspect-2/3 w-32 shrink-0 bg-linear-to-br from-gray-100 to-gray-200">
+        <CardContent className="flex h-full p-0">
+          <div className="relative aspect-2/3 h-full shrink-0 bg-linear-to-br from-gray-100 to-gray-200">
             {imageError ? (
               <div className="flex h-full w-full items-center justify-center bg-linear-to-br from-slate-200 via-slate-300 to-slate-400 p-2">
                 <svg

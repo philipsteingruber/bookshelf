@@ -18,6 +18,7 @@ interface BookCardProps {
   showStatusButton: boolean;
   className?: string;
   priority?: boolean;
+  orientation?: "horizontal" | "vertical";
 }
 
 const BookCard = ({
@@ -25,6 +26,7 @@ const BookCard = ({
   showStatusButton,
   className,
   priority,
+  orientation = "vertical",
 }: BookCardProps) => {
   const [imageError, setImageError] = useState(false);
   const coverUrl = book.coverUrl || BOOK_COVER_PLACEHOLDER_URL;
@@ -47,7 +49,12 @@ const BookCard = ({
           className,
         )}
       >
-        <CardContent className="m-0 flex h-full w-full flex-col gap-y-2 p-0">
+        <CardContent
+          className={cn(
+            "m-0 flex h-full w-full gap-y-2 p-0",
+            orientation === "vertical" ? "flex-col" : null,
+          )}
+        >
           <div className="relative aspect-10/16 w-full bg-linear-to-br from-gray-100 to-gray-200">
             {imageError ? (
               <div className="flex h-full w-full items-center justify-center bg-linear-to-br from-slate-200 via-slate-300 to-slate-400 p-6">

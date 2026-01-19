@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { RedirectToSignIn, useAuth } from "@clerk/nextjs";
+import { startOfDay, subWeeks } from "date-fns";
 import {
   BookOpenIcon,
   CalendarIcon,
@@ -15,10 +16,12 @@ import type { DashboardCardProps } from "@/components/dashboard/dashboard-card";
 import DashboardCard from "@/components/dashboard/dashboard-card";
 import ReadingGoalCard from "@/components/dashboard/reading-goal-card";
 import ReadingProgressCard from "@/components/dashboard/readingprogress-card";
+import RecentlyReadCard from "@/components/dashboard/recently-read-card";
 import SetGoalDialog from "@/components/dashboard/set-goal-dialog";
+import StatusCategoryHeader from "@/components/dashboard/status-category-header";
 import ErrorState from "@/components/error-state";
 import LoadingState from "@/components/loading-state";
-import { Separator } from "@/components/ui/separator";
+import { ReadStatus } from "@/generated/prisma/enums";
 import { useBooks } from "@/hooks/use-books";
 import { useReadingGoals } from "@/hooks/use-reading-goal";
 import { useReadingStats } from "@/hooks/use-reading-stats";
@@ -41,6 +44,16 @@ const Page = () => {
     sortBy: "updatedAt",
     sortDirection: "desc",
   });
+
+  const recentlyReadBooks = books
+    .filter(
+      (book) =>
+        book.status === ReadStatus.READ &&
+        book.finishedAt &&
+        startOfDay(book.finishedAt) > startOfDay(subWeeks(new Date(), 2)),
+    )
+    .sort((a, b) => b.finishedAt!.getTime() - a.finishedAt!.getTime())
+    .slice(0, 3);
 
   const {
     pagesToday,
@@ -122,7 +135,7 @@ const Page = () => {
   return (
     <div className="flex h-full w-full flex-col p-4 pl-8">
       {readingBooksCount > 0 && (
-        <div className="mb-8 flex flex-col gap-y-2">
+        <div className="mb-4 flex w-4/5 flex-1 flex-col gap-y-2">
           <StatusCategoryHeader
             text="Currently Reading"
             count={readingBooksCount}
@@ -134,9 +147,9 @@ const Page = () => {
           </div>
         </div>
       )}
-      {readNextBooksCount > 0 && (
-        <>
-          <div className="flex flex-col gap-y-2">
+      <div className="mb-4 flex w-full gap-x-8 pr-4">
+        {readNextBooksCount > 0 && (
+          <div className="flex w-3/5 flex-1 flex-col gap-y-2">
             <StatusCategoryHeader text="Up Next" count={readNextBooksCount} />
             <div className="flex gap-x-4">
               {readNextBooksToShow.map((book) => (
@@ -150,9 +163,11 @@ const Page = () => {
               ))}
             </div>
           </div>
-          <Separator className="my-8" />
-        </>
-      )}
+        )}
+        {recentlyReadBooks.length > 0 && (
+          <RecentlyReadCard books={recentlyReadBooks} className="w-2/5" />
+        )}
+      </div>
       <div className="flex gap-x-4">
         <ReadingGoalCard
           currentCount={booksReadThisYear}
@@ -177,20 +192,6 @@ const Page = () => {
         ))}
       </div>
     </div>
-  );
-};
-
-const StatusCategoryHeader = ({
-  text,
-  count,
-}: {
-  text: string;
-  count: number;
-}) => {
-  return (
-    <p className="mb-2 text-xl font-semibold">
-      {text} <span className="text-primary text-md font-normal">({count})</span>
-    </p>
   );
 };
 
