@@ -63,8 +63,8 @@ const ReadingGoalCard = ({
   return (
     <Card className={cn("h-40 w-2/5", className)}>
       <CardContent className="flex w-full justify-between">
-        <div className="mt-2 flex w-full flex-col items-center gap-y-1">
-          <p className="flex items-center gap-x-1 text-center text-lg font-bold whitespace-nowrap">
+        <div className="mt-2 flex w-full -translate-y-3 flex-col items-center gap-y-1">
+          <p className="flex items-center gap-x-1 text-center text-sm font-bold font-semibold whitespace-nowrap">
             <span>{`${currentCount} of ${goal} books`}</span>
             <Dialog
               open={isThresholdDialogOpen}
@@ -121,7 +121,7 @@ const ReadingGoalCard = ({
 
             <span> read this year</span>
           </p>
-          <Progress value={progressPercentage} className="h-4 w-3/4" />
+          <Progress value={progressPercentage} className="my-1 h-4 w-2/3" />
           <div className="flex items-center gap-x-4">
             <span className="text-sm">{`${progressPercentage}% complete`}</span>
             {isOnTrack ? (
