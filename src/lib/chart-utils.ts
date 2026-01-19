@@ -96,10 +96,10 @@ export const calculateTrendline = (data: ChartDataPoint[]) => {
     return { trendlineData: [], slope: 0, intercept: 0 };
   }
 
-  // Convert dates to numeric: days since first entry
-  const startDate = data[0].date.getTime();
+  // Convert dates to numeric: days since first entry (normalized to start of day)
+  const startDate = startOfDay(data[0].date).getTime();
   const points = data.map((d) => ({
-    x: (d.date.getTime() - startDate) / (1000 * 60 * 60 * 24), // days
+    x: (startOfDay(d.date).getTime() - startDate) / (1000 * 60 * 60 * 24), // days
     y: d.progress,
   }));
 

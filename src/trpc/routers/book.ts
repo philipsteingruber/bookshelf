@@ -305,6 +305,30 @@ export const bookRouter = createTRPCRouter({
         updateData.startedAt = null;
       } else if (input.newStatus === "READING") {
         updateData.startedAt = new Date();
+
+        const createInitialReadingProgressTimer = performanceLogger(
+          "DB: Check/Create initial ReadingProgress instance for book set as READING",
+          500,
+          ctx.logger,
+        );
+        createInitialReadingProgressTimer.start();
+        const existingInitialEntry = await ctx.db.readingProgress.findFirst({
+          where: {
+            bookId: input.bookId,
+            userId: ctx.currentUser.id,
+            progress: 0,
+          },
+        });
+        if (!existingInitialEntry) {
+          await ctx.db.readingProgress.create({
+            data: {
+              bookId: input.bookId,
+              userId: ctx.currentUser.id,
+              progress: 0,
+            },
+          });
+        }
+        createInitialReadingProgressTimer.end({ bookId: input.bookId });
       }
 
       const updateBookStatusTimer = performanceLogger(
