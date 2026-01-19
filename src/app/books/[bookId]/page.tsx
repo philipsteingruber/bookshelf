@@ -319,7 +319,12 @@ export default function Page({
             )}
             {isReading && <UpdateReadingProgressCard book={book} />}
             {book.summary && (
-              <div className="h-[57%] w-2/3 rounded-md border p-1 text-sm leading-5 font-normal text-pretty whitespace-pre-line shadow-md">
+              <div
+                className={cn(
+                  "rounded-md border p-1 text-sm leading-5 font-normal text-pretty whitespace-pre-line shadow-md",
+                  isReading ? "h-[40%] w-3/4" : "h-[57%] w-2/3",
+                )}
+              >
                 {book.summary}
               </div>
             )}
