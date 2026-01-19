@@ -25,20 +25,14 @@ export function createMockDb() {
       findFirst: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
-      delete: vi.fn(),
     },
     readingProgress: {
-      findUnique: vi.fn(),
       findFirst: vi.fn(),
       findMany: vi.fn(),
       create: vi.fn(),
-      update: vi.fn(),
-      delete: vi.fn(),
     },
     user: {
       findUnique: vi.fn(),
-      findMany: vi.fn(),
-      create: vi.fn(),
       update: vi.fn(),
     },
     readingGoal: {
