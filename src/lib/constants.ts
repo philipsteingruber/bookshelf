@@ -44,3 +44,6 @@ export const READ_STATUS_OPTIONS: ReadStatus[] = [
 ] as const;
 
 export const READING_GOAL_DEFAULT_THRESHOLD = 200 as const;
+
+export const DEFAULT_SORTING = "RECENTLY_ADDED";
+export const DEFAULT_FILTER = "ALL_BOOKS";

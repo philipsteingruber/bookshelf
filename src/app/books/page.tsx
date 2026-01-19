@@ -24,6 +24,7 @@ import type { ChangeEvent } from "react";
 
 import BookCard from "@/components/books/book-card";
 import LoadingState from "@/components/loading-state";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
@@ -36,6 +37,7 @@ import {
 import type { ReadStatus } from "@/generated/prisma/enums";
 import type { BookScalarFieldEnum } from "@/generated/prisma/internal/prismaNamespace";
 import { useBooks } from "@/hooks/use-books";
+import { DEFAULT_FILTER, DEFAULT_SORTING } from "@/lib/constants";
 
 type SortItem = { Icon: LucideIcon; text: string; value: string };
 const sortGroups: { text: string; items: SortItem[] }[] = [
@@ -150,6 +152,12 @@ const Page = () => {
     setInputSearch(e.target.value);
   };
 
+  const handleClearFilters = () => {
+    setInputSearch("");
+    setSelectedFilter(DEFAULT_FILTER);
+    setSelectedSorting(DEFAULT_SORTING);
+  };
+
   const { isSignedIn } = useAuth();
 
   const { sortBy, sortDirection } = parseSelectedSort(selectedSorting);
@@ -181,6 +189,7 @@ const Page = () => {
         onSearchChange={handleSearchChange}
         selectedFilter={selectedFilter}
         onFilterChange={setSelectedFilter}
+        onClearFilters={handleClearFilters}
       />
       <div className="grid w-5/6 grid-cols-5 items-center gap-x-8 gap-y-4 pt-4">
         {books.map((book) => (
@@ -198,13 +207,15 @@ const LibraryFilterPicker = ({
   onSearchChange,
   selectedFilter,
   onFilterChange,
+  onClearFilters,
 }: {
   selectedSorting: SortOptions;
   onSortingChange: (value: SortOptions) => void;
   inputSearch: string;
   onSearchChange: (event: ChangeEvent<HTMLInputElement>) => void;
   selectedFilter: ReadStatus | "ALL_BOOKS";
-  onFilterChange: (value: ReadStatus) => void;
+  onFilterChange: (value: ReadStatus | "ALL_BOOKS") => void;
+  onClearFilters: () => void;
 }) => {
   const getSelectedSort = () => {
     return sortGroups
@@ -214,6 +225,10 @@ const LibraryFilterPicker = ({
   const getSelectedFilter = () => {
     return statusFilterOptions.find((item) => item.value === selectedFilter);
   };
+  const hasActiveFilters =
+    inputSearch !== "" ||
+    selectedFilter !== DEFAULT_FILTER ||
+    selectedSorting !== DEFAULT_SORTING;
 
   return (
     <Card className="flex w-5/6 flex-col items-center justify-center rounded-md px-6 py-4">
@@ -222,6 +237,7 @@ const LibraryFilterPicker = ({
           <FilterIcon className="size-6" />
           Filters & Sorting
         </span>
+
         <Select value={selectedSorting} onValueChange={onSortingChange}>
           <SelectTrigger className="w-[175px]">
             <span className="flex items-center gap-x-2">
@@ -260,7 +276,7 @@ const LibraryFilterPicker = ({
           />
         </div>
       </div>
-      <div className="flex items-center gap-x-2">
+      <div className="flex flex-col items-center gap-y-4">
         <Select
           value={selectedFilter ?? undefined}
           onValueChange={onFilterChange}
@@ -281,6 +297,9 @@ const LibraryFilterPicker = ({
             ))}
           </SelectContent>
         </Select>
+        <Button onClick={onClearFilters} disabled={!hasActiveFilters}>
+          Reset Filters
+        </Button>
       </div>
     </Card>
   );
