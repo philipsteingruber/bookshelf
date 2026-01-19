@@ -28,6 +28,7 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
+import { Spinner } from "@/components/ui/spinner";
 import {
   Tooltip,
   TooltipContent,
@@ -97,19 +98,21 @@ export default function Page({
   const [isReadingStatusDialogOpen, setIsReadingStatusDialogOpen] =
     useState<boolean>(false);
 
-  const { mutate: updateStatus } = trpc.book.updateReadingStatus.useMutation({
-    onSuccess: (data) => {
-      toast.success("Status updated successfully", {
-        description: `${data.title} - ${data.author}`,
-      });
-      setIsReadingStatusDialogOpen(false);
-      trpcUtils.book.getBook.invalidate(parseInt(bookId));
-      trpcUtils.book.getBooks.invalidate();
-    },
-  });
-  const { mutate: updatePageCount } = trpc.book.updatePageCount.useMutation({
-    onSuccess: () => trpcUtils.book.getBook.invalidate(parseInt(bookId)),
-  });
+  const { mutate: updateStatus, isPending: isUpdatingStatus } =
+    trpc.book.updateReadingStatus.useMutation({
+      onSuccess: (data) => {
+        toast.success("Status updated successfully", {
+          description: `${data.title} - ${data.author}`,
+        });
+        setIsReadingStatusDialogOpen(false);
+        trpcUtils.book.getBook.invalidate(parseInt(bookId));
+        trpcUtils.book.getBooks.invalidate();
+      },
+    });
+  const { mutate: updatePageCount, isPending: isUpdatingPageCount } =
+    trpc.book.updatePageCount.useMutation({
+      onSuccess: () => trpcUtils.book.getBook.invalidate(parseInt(bookId)),
+    });
 
   const { isSignedIn } = useAuth();
   if (!isSignedIn) {
@@ -250,6 +253,8 @@ export default function Page({
                       });
                     }}
                     disabled={
+                      isUpdatingPageCount ||
+                      isUpdatingStatus ||
                       !selectedStatus ||
                       ((selectedStatus === "READ" ||
                         selectedStatus === "READING") &&
@@ -258,7 +263,11 @@ export default function Page({
                           parseInt(pageCountLabelContent) <= 0))
                     }
                   >
-                    Confirm
+                    {isUpdatingStatus || isUpdatingPageCount ? (
+                      <Spinner />
+                    ) : (
+                      "Submit"
+                    )}
                   </Button>
                 </DialogFooter>
               </DialogContent>

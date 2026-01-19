@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
+import { Spinner } from "@/components/ui/spinner";
 import { handleTRPCError } from "@/lib/error-handler";
 import { cn } from "@/lib/utils";
 
@@ -112,7 +113,7 @@ const ReadingGoalCard = ({
                       newThresholdValue < 0
                     }
                   >
-                    Submit
+                    {isSettingThreshold ? <Spinner /> : "Submit"}
                   </Button>
                 </div>
               </DialogContent>
