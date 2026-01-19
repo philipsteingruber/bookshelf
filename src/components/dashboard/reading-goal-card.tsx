@@ -64,7 +64,7 @@ const ReadingGoalCard = ({
     <Card className={cn("h-40 w-2/5", className)}>
       <CardContent className="flex w-full justify-between">
         <div className="mt-2 flex w-full -translate-y-3 flex-col items-center gap-y-1">
-          <p className="flex items-center gap-x-1 text-center text-sm font-bold font-semibold whitespace-nowrap">
+          <p className="flex items-center gap-x-1 text-center text-sm font-semibold whitespace-nowrap">
             <span>{`${currentCount} of ${goal} books`}</span>
             <Dialog
               open={isThresholdDialogOpen}
