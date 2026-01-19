@@ -67,7 +67,6 @@ export const useReadingGoals = (books: Book[]): UseReadingGoalsReturn => {
     trpc.user.setReadingGoalThreshold.useMutation({
       onSuccess: () => {
         trpcUtils.user.getReadingGoal.invalidate();
-        trpcUtils.user.getReadingGoalHistory.invalidate();
       },
     });
   const setThreshold = useCallback(

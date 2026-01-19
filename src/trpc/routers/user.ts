@@ -100,6 +100,6 @@ export const userRouter = createTRPCRouter({
       });
       setReadingGoalThresholdTimer.end({ newThreshold });
 
-      return;
+      return { newThreshold };
     }),
 });
