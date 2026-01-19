@@ -6,7 +6,7 @@ export const logger =
   env.NODE_ENV === "development"
     ? pino(
         {
-          level: "debug",
+          level: "info",
           redact: {
             paths: ["password", "token", "apiKey", "authorization"],
             remove: true,
