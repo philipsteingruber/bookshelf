@@ -7,6 +7,7 @@ import {
 } from "date-fns";
 
 import type { Book, ReadingProgress } from "@/generated/prisma/client";
+import { calculatePagesFromProgress } from "@/lib/book-utils";
 
 export type ReadingProgressWithBook = ReadingProgress & {
   book: Pick<Book, "pageCount" | "id" | "title">;
@@ -41,9 +42,6 @@ export interface ReadingStats {
   streak: StreakDetails;
 }
 
-const calculatePagesFromProgress = (progress: number, pageCount: number) => {
-  return Math.round((progress / 100) * pageCount);
-};
 const groupByDay = (
   progress: ReadingProgressWithBook[],
 ): Map<string, ReadingProgressWithBook[]> => {

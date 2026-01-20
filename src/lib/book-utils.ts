@@ -54,3 +54,10 @@ export function createAuthorSort(author: string): string {
   const lastNames = authorSplit.slice(1).join(" ");
   return lastNames + ", " + firstName;
 }
+
+export const calculatePagesFromProgress = (
+  progress: number,
+  pageCount: number,
+) => {
+  return Math.round((progress / 100) * pageCount);
+};
