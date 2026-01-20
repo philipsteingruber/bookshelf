@@ -23,7 +23,7 @@ import ErrorState from "@/components/error-state";
 import LoadingState from "@/components/loading-state";
 import { ReadStatus } from "@/generated/prisma/enums";
 import { useBooks } from "@/hooks/use-books";
-import { useReadingGoals } from "@/hooks/use-reading-goal";
+import { useReadingGoals } from "@/hooks/use-reading-goals";
 import { useReadingStats } from "@/hooks/use-reading-stats";
 import {
   DASHBOARD_MAX_READ_NEXT_BOOKS,
