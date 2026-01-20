@@ -92,4 +92,46 @@ describe("userRouter", () => {
       });
     });
   });
+
+  describe("setReadingGoalThreshold", () => {
+    it("should update user's defaultReadingThreshold", async () => {
+      const { mockDb, caller } = createMockCaller(userRouter);
+
+      const newThreshold = 10;
+      await caller.setReadingGoalThreshold(newThreshold);
+
+      expect(mockDb.user.update).toHaveBeenCalledWith({
+        where: { id: expect.any(String) },
+        data: { defaultReadingThreshold: newThreshold },
+      });
+    });
+
+    it("should reject negative numbers", async () => {
+      const { caller } = createMockCaller(userRouter);
+
+      await expect(caller.setReadingGoalThreshold(-1)).rejects.toMatchObject({
+        code: "BAD_REQUEST",
+      });
+    });
+
+    it("should reject non-integer numbers", async () => {
+      const { caller } = createMockCaller(userRouter);
+
+      await expect(caller.setReadingGoalThreshold(0.5)).rejects.toMatchObject({
+        code: "BAD_REQUEST",
+      });
+    });
+
+    it("should accept zero", async () => {
+      const { mockDb, caller } = createMockCaller(userRouter);
+
+      const result = await caller.setReadingGoalThreshold(0);
+
+      expect(mockDb.user.update).toHaveBeenCalledWith({
+        where: { id: expect.any(String) },
+        data: { defaultReadingThreshold: 0 },
+      });
+      expect(result.newThreshold).toEqual(0);
+    });
+  });
 });

@@ -222,7 +222,7 @@ describe("chartUtils", () => {
   describe("formatFullTimestamp", () => {
     it("should format date with full timestamp (date + time)", () => {
       expect(formatFullTimestamp(new Date("2026-01-15T12:00:00"))).toEqual(
-        "Jan 15, 2026, 1:00:00 AM",
+        "Jan 15, 2026, 12:00:00 PM",
       );
     });
   });
