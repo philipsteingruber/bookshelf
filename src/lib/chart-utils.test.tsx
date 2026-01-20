@@ -1,10 +1,13 @@
-import { subDays, subHours } from "date-fns";
+import { subDays, subHours, subMonths, subYears } from "date-fns";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   aggregateByDay,
   calculateTrendline,
   estimateCompletion,
+  formatEstimatedDate,
+  formatFullTimestamp,
+  formatRelativeDate,
 } from "@/lib/chart-utils";
 import {
   createFakeChartDataPoint,
@@ -193,6 +196,52 @@ describe("chartUtils", () => {
 
       const result = estimateCompletion(50, 10, lastUpdate);
       expect(result.estimatedDate).toEqual(new Date("2026-01-20"));
+    });
+  });
+
+  describe("formatRelativeDate", () => {
+    it("should return 'Today' for current date", () => {
+      expect(formatRelativeDate(new Date())).toEqual("Today");
+    });
+
+    it("should return 'Yesterday' for previous day", () => {
+      expect(formatRelativeDate(subDays(new Date(), 1))).toEqual("Yesterday");
+    });
+
+    it("should return '#d ago' for previous week", () => {
+      expect(formatRelativeDate(subDays(new Date(), 5))).toEqual("5d ago");
+    });
+
+    it("should return formatted date for older dates", () => {
+      expect(formatRelativeDate(subMonths(new Date("2025-08-05"), 2))).toEqual(
+        "Jun 5",
+      );
+    });
+  });
+
+  describe("formatFullTimestamp", () => {
+    it("should format date with full timestamp (date + time)", () => {
+      expect(formatFullTimestamp(new Date("2026-01-15T12:00:00"))).toEqual(
+        "Jan 15, 2026, 1:00:00 AM",
+      );
+    });
+  });
+
+  describe("formatEstimatedDate", () => {
+    it("should include year when estimated date is in different year", () => {
+      expect(formatEstimatedDate(subYears(new Date(), 1))).toContain(
+        new Date().getFullYear() - 1,
+      );
+    });
+
+    it("should omit year when estimated date is in current year", () => {
+      expect(formatEstimatedDate(new Date())).not.toContain(
+        new Date().getFullYear(),
+      );
+    });
+
+    it("should format month and day correctly", () => {
+      expect(formatEstimatedDate(new Date("2026-01-15"))).toEqual("January 15");
     });
   });
 });
