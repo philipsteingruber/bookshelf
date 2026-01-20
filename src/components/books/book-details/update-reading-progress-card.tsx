@@ -2,23 +2,22 @@ import { useState } from "react";
 
 import { toast } from "sonner";
 
-import type { Book } from "@/generated/prisma/client";
-import { useProgressValidation } from "@/hooks/use-progress-validation";
-import { trpc } from "@/trpc/client";
-
-import { Button } from "../ui/button";
-import { Card, CardContent } from "../ui/card";
-import { Input } from "../ui/input";
-import { Label } from "../ui/label";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "../ui/select";
-import { Spinner } from "../ui/spinner";
-import { Textarea } from "../ui/textarea";
+} from "@/components/ui/select";
+import { Spinner } from "@/components/ui/spinner";
+import { Textarea } from "@/components/ui/textarea";
+import type { Book } from "@/generated/prisma/client";
+import { useProgressValidation } from "@/hooks/use-progress-validation";
+import { trpc } from "@/trpc/client";
 
 const UpdateReadingProgressCard = ({ book }: { book: Book }) => {
   const { pageCount, progress } = book;

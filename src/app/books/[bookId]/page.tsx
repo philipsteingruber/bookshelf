@@ -9,9 +9,9 @@ import type { TRPCError } from "@trpc/server";
 import { PenIcon } from "lucide-react";
 import { toast } from "sonner";
 
-import { ReadingProgressEstimateCard } from "@/components/books/reading-progress-estimate-card";
-import ReadingProgressHistoryGraph from "@/components/books/reading-progress-history-graph";
-import UpdateReadingProgressCard from "@/components/books/update-reading-progress-card";
+import { ReadingProgressEstimateCard } from "@/components/books/book-details/reading-progress-estimate-card";
+import ReadingProgressHistoryGraph from "@/components/books/book-details/reading-progress-history-graph";
+import UpdateReadingProgressCard from "@/components/books/book-details/update-reading-progress-card";
 import ErrorState from "@/components/error-state";
 import LoadingState from "@/components/loading-state";
 import { Button } from "@/components/ui/button";

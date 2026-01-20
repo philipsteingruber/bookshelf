@@ -1,6 +1,5 @@
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { ReadingProgress } from "@/generated/prisma/client";
-
-import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 
 const ReadingProgressHistory = ({
   readingProgressHistory,
