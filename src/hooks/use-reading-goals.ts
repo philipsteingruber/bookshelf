@@ -90,7 +90,7 @@ export const useReadingGoals = (books: Book[]): UseReadingGoalsReturn => {
   }, [books, defaultReadingThreshold]);
 
   const goalHistory = useMemo(
-    () => buildGoalHistory(readingGoalHistory, booksFinishedByYear),
+    () => buildGoalHistory({ readingGoalHistory, booksFinishedByYear }),
     [readingGoalHistory, booksFinishedByYear],
   );
 

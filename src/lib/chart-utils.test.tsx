@@ -1,4 +1,12 @@
-import { subDays, subHours, subMonths, subYears } from "date-fns";
+import {
+  addDays,
+  addMonths,
+  addWeeks,
+  subDays,
+  subHours,
+  subMonths,
+  subYears,
+} from "date-fns";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -164,6 +172,71 @@ describe("chartUtils", () => {
 
       expect(result.trendlineData.length).toEqual(2);
     });
+
+    it("should add daily intermediate projection points for unfinished books", () => {
+      // Slope of 10% per day means it takes 8 days to go from 20% to 100%
+      const firstPoint = createFakeChartDataPoint({
+        date: subDays(new Date(), 1),
+        progress: 10,
+      });
+      const secondPoint = createFakeChartDataPoint({
+        date: new Date(),
+        progress: 20,
+      });
+
+      const result = calculateTrendline([firstPoint, secondPoint]);
+
+      // 2 actual data points + 8 projected days (20% -> 100% at 10%/day)
+      expect(result.trendlineData.length).toEqual(10);
+
+      // Verify intermediate points have daily increments
+      expect(result.trendlineData[2].displayDate).toEqual("Tomorrow");
+      expect(result.trendlineData[3].displayDate).toEqual("+2d");
+      expect(result.trendlineData[4].displayDate).toEqual("+3d");
+    });
+
+    it("should cap projection at 14 days maximum", () => {
+      // Slope of 1% per day means 80 days to reach 100%, but should cap at 14
+      const firstPoint = createFakeChartDataPoint({
+        date: subDays(new Date(), 1),
+        progress: 19,
+      });
+      const secondPoint = createFakeChartDataPoint({
+        date: new Date(),
+        progress: 20,
+      });
+
+      const result = calculateTrendline([firstPoint, secondPoint]);
+
+      // 2 actual data points + 14 projected days (capped)
+      expect(result.trendlineData.length).toEqual(16);
+
+      // Last projected point should be at 14 days out, not reaching 100%
+      const lastPoint = result.trendlineData[result.trendlineData.length - 1];
+      expect(lastPoint.trend).toBeLessThan(100);
+    });
+
+    it("should stop projection early when 100% is reached", () => {
+      // Slope of 25% per day means 100% reached in 4 days (from 0%)
+      // Starting at 50%, should reach 100% in 2 days
+      const firstPoint = createFakeChartDataPoint({
+        date: subDays(new Date(), 1),
+        progress: 25,
+      });
+      const secondPoint = createFakeChartDataPoint({
+        date: new Date(),
+        progress: 50,
+      });
+
+      const result = calculateTrendline([firstPoint, secondPoint]);
+
+      // 2 actual data points + 2 projected days to reach 100%
+      expect(result.trendlineData.length).toEqual(4);
+
+      // Last projected point should be exactly 100%
+      const lastPoint = result.trendlineData[result.trendlineData.length - 1];
+      expect(lastPoint.trend).toEqual(100);
+    });
   });
 
   describe("estimateCompletion", () => {
@@ -216,6 +289,22 @@ describe("chartUtils", () => {
       expect(formatRelativeDate(subMonths(new Date("2025-08-05"), 2))).toEqual(
         "Jun 5",
       );
+    });
+
+    it("should return 'Tomorrow' for next day", () => {
+      expect(formatRelativeDate(addDays(new Date(), 1))).toEqual("Tomorrow");
+    });
+
+    it("should return '+#d' for dates within next week", () => {
+      expect(formatRelativeDate(addDays(new Date(), 5))).toEqual("+5d");
+    });
+
+    it("should return '+#w' for dates within next month", () => {
+      expect(formatRelativeDate(addWeeks(new Date(), 2))).toEqual("+2w");
+    });
+
+    it("should return formatted date for future dates beyond a month", () => {
+      expect(formatRelativeDate(addMonths(new Date(), 2))).toEqual("Mar 15");
     });
   });
 

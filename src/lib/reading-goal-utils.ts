@@ -26,6 +26,11 @@ export interface ReadingGoalHistoryEntry {
   goal: number;
 }
 
+export interface BuildGoalHistoryOptions {
+  readingGoalHistory: ReadingGoalHistoryEntry[] | null;
+  booksFinishedByYear: BooksFinishedByYear[];
+}
+
 /**
  * Calculates reading goal statistics based on books finished and current goal.
  *
@@ -76,14 +81,14 @@ export function calculateReadingGoalStats(
 /**
  * Builds goal history by combining reading goal history with actual book counts.
  *
- * @param readingGoalHistory - Array of historical reading goals from the database
- * @param booksFinishedByYear - Array of yearly book counts from calculateYearlyStats
+ * @param options.readingGoalHistory - Array of historical reading goals from the database
+ * @param options.booksFinishedByYear - Array of yearly book counts from calculateYearlyStats
  * @returns Combined history with goal targets and actual counts per year
  */
-export function buildGoalHistory(
-  readingGoalHistory: ReadingGoalHistoryEntry[] | null,
-  booksFinishedByYear: BooksFinishedByYear[],
-): GoalHistoryEntry[] {
+export function buildGoalHistory({
+  readingGoalHistory,
+  booksFinishedByYear,
+}: BuildGoalHistoryOptions): GoalHistoryEntry[] {
   if (!readingGoalHistory) return [];
 
   return readingGoalHistory.map((entry) => ({
