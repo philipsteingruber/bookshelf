@@ -323,7 +323,7 @@ export default function Page({
               <div
                 className={cn(
                   "rounded-md border p-1 text-sm leading-5 font-normal text-pretty whitespace-pre-line shadow-md",
-                  isReading ? "h-[40%] w-3/4" : "h-[57%] w-2/3",
+                  isReading ? "h-[35%] w-3/4 overflow-y-auto" : "h-[57%] w-2/3",
                 )}
               >
                 {book.summary}
