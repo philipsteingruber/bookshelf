@@ -36,7 +36,7 @@ export interface ReadingGoalHistoryEntry {
  */
 export function calculateReadingGoalStats(
   booksFinishedByYear: BooksFinishedByYear[],
-  readingGoal: number | null,
+  readingGoal?: number | null,
   referenceDate: Date = new Date(),
 ): ReadingGoalStats {
   const currentYear = referenceDate.getFullYear();
