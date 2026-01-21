@@ -73,13 +73,13 @@ const ReadingProgressHistoryGraph = ({
   const { trendlineData } = calculateTrendline(chartDataPoints);
 
   // Merge actual progress data with trendline data
-  const chartData: Array<{
+  const chartData: {
     date: string;
     progress?: number;
     trend?: number;
     progressSinceLast: number;
     entry: ReadingProgressWithProgressSinceLast | null;
-  }> = chartDataPoints.map((point, index) => ({
+  }[] = chartDataPoints.map((point, index) => ({
     date: point.displayDate,
     progress: point.progress,
     trend: trendlineData[index]?.trend,

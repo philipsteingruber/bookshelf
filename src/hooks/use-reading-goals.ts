@@ -23,11 +23,11 @@ interface UseReadingGoalsReturn {
   paceMessage: string;
   pageCountThreshold: number;
 
-  goalHistory: Array<{
+  goalHistory: {
     year: number;
     goal: number;
     actual: number;
-  }>;
+  }[];
 
   setGoal: (newGoal: number) => Promise<void>;
   isSettingGoal: boolean;
