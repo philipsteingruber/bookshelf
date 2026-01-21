@@ -1,24 +1,58 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { ReadingProgress } from "@/generated/prisma/client";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import type { Book } from "@/generated/prisma/client";
+import type { ReadingProgressWithProgressSinceLast } from "@/hooks/use-reading-history";
+import { calculatePagesFromProgress } from "@/lib/book-utils";
+import { formatRelativeDate } from "@/lib/chart-utils";
 
 const ReadingProgressHistory = ({
   readingProgressHistory,
+  book,
 }: {
-  readingProgressHistory: ReadingProgress[];
+  readingProgressHistory: ReadingProgressWithProgressSinceLast[];
+  book: Book;
 }) => {
+  const historyForBook = readingProgressHistory.filter(
+    (entry) => entry.bookId === book.id,
+  );
+
   return (
-    <Card className="w-1/4">
-      <CardContent className="flex flex-col gap-y-2">
-        {readingProgressHistory.map((readingProgress) => (
-          <Card key={readingProgress.id}>
-            <CardHeader>
-              <CardTitle>
-                {readingProgress.updatedAt.toLocaleDateString("sv-SE")}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>{readingProgress.progress}</CardContent>
-          </Card>
-        ))}
+    <Card className="w-1/4 p-2">
+      <CardContent>
+        <Table>
+          <TableCaption>{`Reading Progress for ${book.title}`}</TableCaption>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Date</TableHead>
+              <TableHead>Progress</TableHead>
+              <TableHead>Progress since last (%)</TableHead>
+              <TableHead>Progress since last (pages)</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {historyForBook.map((entry) => (
+              <TableRow key={entry.id}>
+                <TableCell>{formatRelativeDate(entry.createdAt)}</TableCell>
+                <TableCell>{entry.progress}</TableCell>
+                <TableCell>{entry.progressSinceLast}</TableCell>
+                <TableCell>
+                  {calculatePagesFromProgress(
+                    entry.progressSinceLast,
+                    book.pageCount,
+                  )}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </CardContent>
     </Card>
   );

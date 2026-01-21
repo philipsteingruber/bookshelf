@@ -10,6 +10,7 @@ import { PenIcon } from "lucide-react";
 import { toast } from "sonner";
 
 import { ReadingProgressEstimateCard } from "@/components/books/book-details/reading-progress-estimate-card";
+import ReadingProgressHistory from "@/components/books/book-details/reading-progress-history";
 import ReadingProgressHistoryGraph from "@/components/books/book-details/reading-progress-history-graph";
 import UpdateReadingProgressCard from "@/components/books/book-details/update-reading-progress-card";
 import ErrorState from "@/components/error-state";
@@ -332,7 +333,7 @@ export default function Page({
         </div>
       </div>
       {book.status !== "READ_NEXT" && book.status !== "TO_READ" && (
-        <div className="flex w-full flex-col items-start justify-center gap-4 lg:flex-row">
+        <div className="mt-4 flex w-full flex-col items-start justify-center gap-4 lg:flex-row">
           <ReadingProgressHistoryGraph readingHistory={readingHistory} />
           <ReadingProgressEstimateCard
             currentProgress={book.progress}
@@ -343,6 +344,10 @@ export default function Page({
           />
         </div>
       )}
+      <ReadingProgressHistory
+        readingProgressHistory={readingHistory}
+        book={book}
+      />
     </div>
   );
 }
