@@ -2,11 +2,14 @@
 
 import { useCallback, useEffect, useMemo } from "react";
 
-import { getDayOfYear, getDaysInYear } from "date-fns";
 import { toast } from "sonner";
 
 import type { Book } from "@/generated/prisma/client";
 import { READING_GOAL_DEFAULT_THRESHOLD } from "@/lib/constants";
+import {
+  buildGoalHistory,
+  calculateReadingGoalStats,
+} from "@/lib/reading-goal-utils";
 import { calculateYearlyStats } from "@/lib/reading-stats-utils";
 import { trpc } from "@/trpc/client";
 
@@ -76,24 +79,20 @@ export const useReadingGoals = (books: Book[]): UseReadingGoalsReturn => {
     [setThresholdAsync],
   );
 
-  const readingGoal = readingGoalData?.readingGoal ?? null;
+  const readingGoal = readingGoalData?.readingGoal?.goal ?? null;
   const defaultReadingThreshold =
     readingGoalData?.defaultReadingThreshold ?? READING_GOAL_DEFAULT_THRESHOLD;
   const readingGoalHistory = readingGoalHistoryData?.readingGoalHistory ?? null;
+
   const booksFinishedByYear = useMemo(() => {
     return calculateYearlyStats(books, defaultReadingThreshold)
       .booksFinishedByYear;
   }, [books, defaultReadingThreshold]);
 
-  const goalHistory = useMemo(() => {
-    if (!readingGoalHistory) return [];
-    return readingGoalHistory.map((entry) => ({
-      year: entry.year,
-      goal: entry.goal,
-      actual:
-        booksFinishedByYear.find((b) => b.year === entry.year)?.count ?? 0,
-    }));
-  }, [readingGoalHistory, booksFinishedByYear]);
+  const goalHistory = useMemo(
+    () => buildGoalHistory(readingGoalHistory, booksFinishedByYear),
+    [readingGoalHistory, booksFinishedByYear],
+  );
 
   const {
     currentGoal,
@@ -102,32 +101,10 @@ export const useReadingGoals = (books: Book[]): UseReadingGoalsReturn => {
     paceMessage,
     progressPercentage,
     booksRemaining,
-  } = useMemo(() => {
-    const currentYear = new Date().getFullYear();
-    const currentGoal = readingGoal?.goal ?? 0;
-    const booksReadThisYear =
-      booksFinishedByYear.find((b) => b.year === currentYear)?.count ?? 0;
-    const expectedAtThisPoint = Math.round(
-      (currentGoal / getDaysInYear(new Date())) * getDayOfYear(new Date()),
-    );
-    const isOnTrack = booksReadThisYear >= expectedAtThisPoint;
-    const behind = expectedAtThisPoint - booksReadThisYear;
-    const paceMessage = isOnTrack
-      ? "On pace, keep going!"
-      : `${behind} ${behind === 1 ? "book" : "books"} behind, time to pick it up!`;
-    const progressPercentage =
-      currentGoal > 0 ? Math.round((booksReadThisYear / currentGoal) * 100) : 0;
-    const booksRemaining = Math.max(0, currentGoal - booksReadThisYear);
-
-    return {
-      currentGoal,
-      isOnTrack,
-      booksReadThisYear,
-      paceMessage,
-      progressPercentage,
-      booksRemaining,
-    };
-  }, [booksFinishedByYear, readingGoal?.goal]);
+  } = useMemo(
+    () => calculateReadingGoalStats(booksFinishedByYear, readingGoal),
+    [booksFinishedByYear, readingGoal],
+  );
 
   useEffect(() => {
     if (fetchingReadingGoal || fetchingReadingGoalHistory) {

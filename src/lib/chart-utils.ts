@@ -15,16 +15,24 @@ import type { ReadingProgressWithProgressSinceLast } from "@/hooks/use-reading-h
  * - "3d ago" for last week
  * - "2w ago" for last month
  * - "Jan 5" for older dates
- * - "Projected" for future dates
+ * - "Tomorrow" / "+2d" / "Jan 5" for future dates
  */
 export const formatRelativeDate = (date: Date): string => {
   if (isToday(date)) return "Today";
   if (isYesterday(date)) return "Yesterday";
 
-  const daysDiff = differenceInDays(new Date(), date);
+  const today = startOfDay(new Date());
+  const targetDay = startOfDay(date);
+  const daysDiff = differenceInDays(today, targetDay);
 
   // Handle future dates (for projected trendline)
-  if (daysDiff <= 0) return "Projected";
+  if (daysDiff < 0) {
+    const futureDays = Math.abs(daysDiff);
+    if (futureDays === 1) return "Tomorrow";
+    if (futureDays < 7) return `+${futureDays}d`;
+    if (futureDays < 30) return `+${Math.floor(futureDays / 7)}w`;
+    return format(date, "MMM d");
+  }
 
   if (daysDiff < 7) return `${daysDiff}d ago`;
   if (daysDiff < 30) return `${Math.floor(daysDiff / 7)}w ago`;
@@ -90,6 +98,9 @@ export interface ChartDataPoint {
  * Calculates linear regression trendline for reading progress
  * Returns trendline data points and slope (progress per day)
  * Extends trendline to 100% if book not yet finished
+ *
+ * Note: Expects data to already be aggregated by day (one entry per day).
+ * Use aggregateByDay() before calling this function.
  */
 export const calculateTrendline = (data: ChartDataPoint[]) => {
   if (data.length < 2) {
@@ -121,30 +132,43 @@ export const calculateTrendline = (data: ChartDataPoint[]) => {
   const slope = numerator / denominator;
   const intercept = meanY - slope * meanX;
 
-  // Generate trendline points for visualization
+  // Generate trendline points for visualization (one per day)
   const trendlineData: { displayDate: string; trend: number }[] = [];
 
   data.forEach((d) => {
-    const x = (d.date.getTime() - startDate) / (1000 * 60 * 60 * 24);
+    const x = (startOfDay(d.date).getTime() - startDate) / (1000 * 60 * 60 * 24);
     trendlineData.push({
       displayDate: d.displayDate,
       trend: Math.max(0, Math.min(100, slope * x + intercept)),
     });
   });
 
-  // Extend trendline to 100% if not already there
+  // Extend trendline with daily projected points if not at 100%
   const lastProgress = data[data.length - 1].progress;
-  if (lastProgress < 100 && slope > 0) {
-    const lastTrendValue = slope * points[points.length - 1].x + intercept;
-    const remainingProgress = 100 - lastTrendValue;
-    const daysToComplete = remainingProgress / slope;
-    const projectedDate = new Date(data[data.length - 1].date);
-    projectedDate.setDate(projectedDate.getDate() + Math.ceil(daysToComplete));
+  const MAX_PROJECTED_DAYS = 14;
 
-    trendlineData.push({
-      displayDate: formatRelativeDate(projectedDate),
-      trend: 100,
-    });
+  if (lastProgress < 100 && slope > 0) {
+    const lastX = points[points.length - 1].x;
+    const lastDate = startOfDay(data[data.length - 1].date);
+
+    // Add daily projection points until 100% or max days reached
+    for (let dayOffset = 1; dayOffset <= MAX_PROJECTED_DAYS; dayOffset++) {
+      const projectedX = lastX + dayOffset;
+      const projectedTrend = slope * projectedX + intercept;
+
+      const projectedDate = new Date(lastDate);
+      projectedDate.setDate(projectedDate.getDate() + dayOffset);
+
+      trendlineData.push({
+        displayDate: formatRelativeDate(projectedDate),
+        trend: Math.min(100, projectedTrend),
+      });
+
+      // Stop if we've reached 100%
+      if (projectedTrend >= 100) {
+        break;
+      }
+    }
   }
 
   return { trendlineData, slope, intercept };
