@@ -14,5 +14,17 @@ export default defineConfig({
     include: ["**/*.{test,spec}.{ts,tsx}"],
 
     exclude: ["node_modules", ".next", ".dist"],
+
+    coverage: {
+      exclude: [
+        "src/generated/**",
+        "node_modules/**",
+        ".next/**",
+        "**/*.test.{ts,tsx}",
+        "**/*.config.{ts,js}",
+        "vitest.setup.ts",
+      ],
+      reporter: ["text", "html"],
+    },
   },
 });
