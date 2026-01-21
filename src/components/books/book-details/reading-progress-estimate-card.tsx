@@ -20,7 +20,7 @@ export const ReadingProgressEstimateCard = ({
   const canEstimate = slope > 0 && !isFinished;
 
   return (
-    <Card className="h-fit min-w-[250px]">
+    <Card className="border-primary h-full min-w-[250px] border-2">
       <CardHeader>
         <CardTitle className="text-lg">Reading Pace</CardTitle>
       </CardHeader>

@@ -333,21 +333,23 @@ export default function Page({
         </div>
       </div>
       {book.status !== "READ_NEXT" && book.status !== "TO_READ" && (
-        <div className="mt-4 flex w-full flex-col items-start justify-center gap-4 lg:flex-row">
+        <div className="mt-4 flex w-full flex-col items-center justify-center gap-4 lg:flex-row">
           <ReadingProgressHistoryGraph readingHistory={readingHistory} />
-          <ReadingProgressEstimateCard
-            currentProgress={book.progress}
-            estimatedDate={estimatedDate}
-            daysRemaining={daysRemaining}
-            slope={slope}
-            pageCount={book.pageCount}
-          />
+          <div className="flex h-[368px] gap-4">
+            <ReadingProgressEstimateCard
+              currentProgress={book.progress}
+              estimatedDate={estimatedDate}
+              daysRemaining={daysRemaining}
+              slope={slope}
+              pageCount={book.pageCount}
+            />
+            <ReadingProgressHistory
+              readingProgressHistory={readingHistory}
+              book={book}
+            />
+          </div>
         </div>
       )}
-      <ReadingProgressHistory
-        readingProgressHistory={readingHistory}
-        book={book}
-      />
     </div>
   );
 }

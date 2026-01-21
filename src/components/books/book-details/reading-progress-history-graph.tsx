@@ -43,7 +43,7 @@ const ReadingProgressHistoryGraph = ({
   // Check minimum data
   if (aggregatedData.length < 3) {
     return (
-      <div className="border-primary mb-4 flex h-[300px] w-full max-w-4xl items-center justify-center rounded-lg border-2">
+      <div className="border-primary flex h-[368px] w-full max-w-4xl items-center justify-center rounded-lg border-2">
         <div className="px-4 text-center">
           <p className="text-foreground text-lg font-semibold">
             Keep tracking your progress!
@@ -101,8 +101,8 @@ const ReadingProgressHistoryGraph = ({
   }
 
   return (
-    <div className="border-primary mb-4 w-full max-w-4xl rounded-lg border-2 p-4">
-      <ChartContainer config={chartConfig} className="h-[300px] w-full">
+    <div className="border-primary h-[368px] w-full max-w-4xl rounded-lg border-2 p-4">
+      <ChartContainer config={chartConfig} className="h-full w-full">
         <LineChart data={chartData}>
           <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
           <XAxis

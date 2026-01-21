@@ -2,7 +2,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import {
   Table,
   TableBody,
-  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
@@ -11,7 +10,7 @@ import {
 import type { Book } from "@/generated/prisma/client";
 import type { ReadingProgressWithProgressSinceLast } from "@/hooks/use-reading-history";
 import { calculatePagesFromProgress } from "@/lib/book-utils";
-import { formatRelativeDate } from "@/lib/chart-utils";
+import { aggregateByDay, formatRelativeDate } from "@/lib/chart-utils";
 
 const ReadingProgressHistory = ({
   readingProgressHistory,
@@ -20,21 +19,35 @@ const ReadingProgressHistory = ({
   readingProgressHistory: ReadingProgressWithProgressSinceLast[];
   book: Book;
 }) => {
-  const historyForBook = readingProgressHistory.filter(
-    (entry) => entry.bookId === book.id,
+  const aggregatedHistory = aggregateByDay(
+    readingProgressHistory.filter((entry) => entry.bookId === book.id),
   );
 
+  // Recalculate progressSinceLast based on aggregated data
+  // (the original values were calculated before aggregation, so they're incorrect)
+  const historyForBook = aggregatedHistory.map((entry, index) => ({
+    ...entry,
+    progressSinceLast:
+      index === 0
+        ? entry.progress
+        : entry.progress - aggregatedHistory[index - 1].progress,
+  }));
+
   return (
-    <Card className="w-1/4 p-2">
+    <Card className="border-primary h-full overflow-auto border-2">
       <CardContent>
         <Table>
-          <TableCaption>{`Reading Progress for ${book.title}`}</TableCaption>
+          <TableHeader className="text-lg font-semibold">{`Reading progress for ${book.title}`}</TableHeader>
           <TableHeader>
             <TableRow>
-              <TableHead>Date</TableHead>
-              <TableHead>Progress</TableHead>
-              <TableHead>Progress since last (%)</TableHead>
-              <TableHead>Progress since last (pages)</TableHead>
+              <TableHead className="font-semibold">Date</TableHead>
+              <TableHead className="font-semibold">Progress</TableHead>
+              <TableHead className="font-semibold">
+                Progress since last (%)
+              </TableHead>
+              <TableHead className="font-semibold">
+                Progress since last (pages)
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
