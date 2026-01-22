@@ -3,7 +3,7 @@ mkdir -p .husky/logs
 
 # Run TypeScript type checking
 echo "=== TypeScript check: $(date) ===" > .husky/logs/tsc.log
-NO_COLOR=1 pnpm exec tsc --noEmit 2>&1 | tee -a .husky/logs/tsc.log
+pnpm exec tsc --noEmit 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | tee -a .husky/logs/tsc.log
 TSC_EXIT=${PIPESTATUS[0]}
 
 if [ $TSC_EXIT -ne 0 ]; then
@@ -12,5 +12,5 @@ fi
 
 # Run tests
 echo "=== Tests: $(date) ===" > .husky/logs/test.log
-NO_COLOR=1 pnpm test 2>&1 | tee -a .husky/logs/test.log
+pnpm test 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | tee -a .husky/logs/test.log
 exit ${PIPESTATUS[0]}
