@@ -322,7 +322,7 @@ const Page = ({
             {book.summary && (
               <div
                 className={cn(
-                  "rounded-md border p-1 text-sm leading-5 font-normal text-pretty whitespace-pre-line shadow-md",
+                  "rounded-md p-1 text-sm leading-5 font-normal text-pretty whitespace-pre-line",
                   isReading ? "h-[35%] w-3/4 overflow-y-auto" : "h-[57%] w-2/3",
                 )}
               >
