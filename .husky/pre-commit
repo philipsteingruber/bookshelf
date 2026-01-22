@@ -2,8 +2,8 @@
 mkdir -p .husky/logs
 
 # Run TypeScript type checking first (fail fast)
-echo "=== TypeScript check: $(date) ===" >> .husky/logs/tsc.log
-pnpm exec tsc --noEmit 2>&1 | tee -a .husky/logs/tsc.log
+echo "=== TypeScript check: $(date) ===" > .husky/logs/tsc.log
+pnpm exec tsc --noEmit 2>&1 | tee .husky/logs/tsc.log
 TSC_EXIT=${PIPESTATUS[0]}
 
 if [ $TSC_EXIT -ne 0 ]; then
@@ -11,4 +11,4 @@ if [ $TSC_EXIT -ne 0 ]; then
 fi
 
 # Run lint-staged for ESLint fixes and related tests
-pnpm lint-staged 2>&1 | tee -a .husky/logs/lint-staged.log
+pnpm lint-staged 2>&1 | tee .husky/logs/lint-staged.log
