@@ -1,15 +1,46 @@
+#!/bin/bash
+
 # Create logs directory if it doesn't exist
 mkdir -p .husky/logs
 
-# Run TypeScript type checking first (fail fast)
-echo "=== TypeScript check: $(date) ===" > .husky/logs/tsc.log
-pnpm exec tsc --noEmit 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | tee -a .husky/logs/tsc.log
-TSC_EXIT=${PIPESTATUS[0]}
+TOTAL_START=$(date +%s)
 
+# Initialize log files with timestamps
+echo "=== TypeScript check: $(date) ===" > .husky/logs/tsc.log
+echo "=== Lint-staged: $(date) ===" > .husky/logs/lint-staged.log
+
+# Run TypeScript type checking and lint-staged in parallel
+TSC_START=$(date +%s)
+(set -o pipefail; pnpm exec tsc --noEmit 2>&1 | sed 's/\x1b\[[0-9;]*m//g' >> .husky/logs/tsc.log) &
+TSC_PID=$!
+
+LINT_START=$(date +%s)
+(set -o pipefail; pnpm lint-staged 2>&1 | sed 's/\x1b\[[0-9;]*m//g' >> .husky/logs/lint-staged.log) &
+LINT_PID=$!
+
+# Wait for tsc and capture result
+wait $TSC_PID
+TSC_EXIT=$?
+TSC_END=$(date +%s)
+echo "=== Duration: $((TSC_END - TSC_START)) seconds ===" >> .husky/logs/tsc.log
+
+# Wait for lint-staged and capture result
+wait $LINT_PID
+LINT_EXIT=$?
+LINT_END=$(date +%s)
+echo "=== Duration: $((LINT_END - LINT_START)) seconds ===" >> .husky/logs/lint-staged.log
+
+# Log total time
+TOTAL_END=$(date +%s)
+echo "=== Total pre-commit duration: $((TOTAL_END - TOTAL_START)) seconds ==="
+
+# Check for failures
 if [ $TSC_EXIT -ne 0 ]; then
+  echo "TypeScript check failed. See .husky/logs/tsc.log for details."
   exit $TSC_EXIT
 fi
 
-# Run lint-staged for ESLint fixes and related tests
-echo "=== Lint-staged: $(date) ===" > .husky/logs/lint-staged.log
-pnpm lint-staged 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | tee -a .husky/logs/lint-staged.log
+if [ $LINT_EXIT -ne 0 ]; then
+  echo "Lint-staged failed. See .husky/logs/lint-staged.log for details."
+  exit $LINT_EXIT
+fi

@@ -1,16 +1,16 @@
+#!/bin/bash
+
 # Create logs directory if it doesn't exist
 mkdir -p .husky/logs
 
-# Run TypeScript type checking
-echo "=== TypeScript check: $(date) ===" > .husky/logs/tsc.log
-pnpm exec tsc --noEmit 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | tee -a .husky/logs/tsc.log
-TSC_EXIT=${PIPESTATUS[0]}
-
-if [ $TSC_EXIT -ne 0 ]; then
-  exit $TSC_EXIT
-fi
-
-# Run tests
+# Run tests only (tsc already ran in pre-commit)
 echo "=== Tests: $(date) ===" > .husky/logs/test.log
+
+TEST_START=$(date +%s)
 pnpm test 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | tee -a .husky/logs/test.log
-exit ${PIPESTATUS[0]}
+TEST_EXIT=${PIPESTATUS[0]}
+TEST_END=$(date +%s)
+
+echo "=== Duration: $((TEST_END - TEST_START)) seconds ===" >> .husky/logs/test.log
+
+exit $TEST_EXIT
