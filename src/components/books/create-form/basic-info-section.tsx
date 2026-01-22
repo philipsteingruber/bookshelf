@@ -15,11 +15,13 @@ interface BasicInfoSectionProps {
   form: UseFormReturn<z.infer<typeof createFormSchema>>;
 }
 
-const MandatoryFieldMarker = () => {
+const MandatoryFieldMarker = (): React.ReactElement => {
   return <span className="text-destructive">*</span>;
 };
 
-export const BasicInfoSection = ({ form }: BasicInfoSectionProps) => {
+export const BasicInfoSection = ({
+  form,
+}: BasicInfoSectionProps): React.ReactElement => {
   return (
     <FieldGroup>
       <Controller

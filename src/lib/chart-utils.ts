@@ -102,7 +102,13 @@ export interface ChartDataPoint {
  * Note: Expects data to already be aggregated by day (one entry per day).
  * Use aggregateByDay() before calling this function.
  */
-export const calculateTrendline = (data: ChartDataPoint[]) => {
+export const calculateTrendline = (
+  data: ChartDataPoint[],
+): {
+  trendlineData: { displayDate: string; trend: number }[];
+  slope: number;
+  intercept: number;
+} => {
   if (data.length < 2) {
     return { trendlineData: [], slope: 0, intercept: 0 };
   }
@@ -136,7 +142,8 @@ export const calculateTrendline = (data: ChartDataPoint[]) => {
   const trendlineData: { displayDate: string; trend: number }[] = [];
 
   data.forEach((d) => {
-    const x = (startOfDay(d.date).getTime() - startDate) / (1000 * 60 * 60 * 24);
+    const x =
+      (startOfDay(d.date).getTime() - startDate) / (1000 * 60 * 60 * 24);
     trendlineData.push({
       displayDate: d.displayDate,
       trend: Math.max(0, Math.min(100, slope * x + intercept)),

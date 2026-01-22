@@ -16,7 +16,9 @@ interface OptionalInfoSectionProps {
   form: UseFormReturn<z.infer<typeof createFormSchema>>;
 }
 
-export const OptionalInfoSection = ({ form }: OptionalInfoSectionProps) => {
+export const OptionalInfoSection = ({
+  form,
+}: OptionalInfoSectionProps): React.ReactElement => {
   return (
     <FieldGroup>
       <Controller

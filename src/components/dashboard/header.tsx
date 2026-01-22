@@ -11,7 +11,7 @@ import { Button } from "../ui/button";
 import { Separator } from "../ui/separator";
 import { SidebarTrigger } from "../ui/sidebar";
 
-const Header = () => {
+const Header = (): React.ReactElement => {
   return (
     <>
       <header className="relative flex w-full items-center justify-between gap-8 p-2 pt-4">
@@ -43,12 +43,12 @@ const Header = () => {
   );
 };
 
-const StreakIndicator = () => {
+const StreakIndicator = (): React.ReactElement => {
   const { isStreakActive, currentStreak, isPending } = useReadingStats();
 
   const hasStreak = currentStreak > 0;
 
-  const getMessage = () => {
+  const getMessage = (): string => {
     if (isStreakActive) {
       return `You're on a ${currentStreak} day streak, keep it going!`;
     }

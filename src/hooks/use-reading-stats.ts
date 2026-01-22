@@ -1,9 +1,29 @@
 import { useMemo } from "react";
 
+import type { TRPCClientErrorLike } from "@trpc/client";
+
+import type { ReadingStats } from "@/lib/reading-stats-utils";
 import { calculateReadingStats } from "@/lib/reading-stats-utils";
 import { trpc } from "@/trpc/client";
+import type { AppRouter } from "@/trpc/routers/_app";
 
-export const useReadingStats = () => {
+interface UseReadingStatsReturn {
+  isPending: boolean;
+  isError: boolean;
+  error: TRPCClientErrorLike<AppRouter> | null;
+  readingStats: ReadingStats | null;
+  pagesToday: number;
+  avgPagesPerDay: number;
+  avgPagesPerWeek: number;
+  currentStreak: number;
+  isStreakActive: boolean;
+  pagesThisWeek: number;
+  pagesLastWeek: number;
+  totalPagesRead: number;
+  activeDays: number;
+}
+
+export const useReadingStats = (): UseReadingStatsReturn => {
   const { data, isPending, isError, error } =
     trpc.readingProgress.getAllReadingProgress.useQuery(undefined, {
       refetchOnMount: true,

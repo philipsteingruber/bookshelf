@@ -5,7 +5,7 @@ import { logger } from "@/lib/logger";
 import { createTRPCContext } from "@/trpc/init";
 import { appRouter } from "@/trpc/routers/_app";
 
-const handler = async (req: Request) => {
+const handler = async (req: Request): Promise<Response> => {
   const url = new URL(req.url);
   const procedure = url.searchParams.get("batch") ? "batch" : url.pathname;
 
@@ -46,7 +46,7 @@ const handler = async (req: Request) => {
 
 export { handler as GET, handler as POST };
 
-export const OPTIONS = () => {
+export const OPTIONS = (): Response => {
   return new Response(null, {
     status: 200,
     headers: {

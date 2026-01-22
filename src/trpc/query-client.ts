@@ -5,7 +5,7 @@ import {
 import type { TRPCError } from "@trpc/server";
 import superjson from "superjson";
 
-export function makeQueryClient() {
+export function makeQueryClient(): QueryClient {
   return new QueryClient({
     defaultOptions: {
       queries: {

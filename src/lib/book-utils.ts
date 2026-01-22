@@ -1,6 +1,6 @@
 import type { ReadStatus } from "@/generated/prisma/enums";
 
-export const parseReadStatus = (readStatus: ReadStatus) => {
+export const parseReadStatus = (readStatus: ReadStatus): string => {
   switch (readStatus) {
     case "TO_READ":
       return "To Read";
@@ -15,7 +15,7 @@ export const parseReadStatus = (readStatus: ReadStatus) => {
   }
 };
 
-export const getStatusButtonStyle = (readStatus: ReadStatus) => {
+export const getStatusButtonStyle = (readStatus: ReadStatus): string => {
   switch (readStatus) {
     case "TO_READ":
       return "bg-gradient-to-r from-orange-400 to-orange-700 hover:from-orange-500 hover:to-orange-800 text-white";
@@ -58,6 +58,6 @@ export function createAuthorSort(author: string): string {
 export const calculatePagesFromProgress = (
   progress: number,
   pageCount: number,
-) => {
+): number => {
   return Math.round((progress / 100) * pageCount);
 };

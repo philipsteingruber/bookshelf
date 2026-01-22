@@ -1,3 +1,4 @@
+import type { Logger } from "pino";
 import pino from "pino";
 
 import { env } from "@/env";
@@ -106,7 +107,7 @@ export interface LogContext {
   route?: string;
 }
 
-export const createLoggerWithContext = (context: LogContext) => {
+export const createLoggerWithContext = (context: LogContext): Logger => {
   return logger.child(context);
 };
 
@@ -114,7 +115,7 @@ export const performanceLogger = (
   operation: string,
   threshold: number = 1000,
   loggerInstance: pino.Logger = logger,
-) => {
+): { start: () => void; end: (metadata?: Record<string, unknown>) => void } => {
   let startTime: number;
 
   return {

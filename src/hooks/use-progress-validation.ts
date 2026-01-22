@@ -5,7 +5,13 @@ import type { Book } from "@/generated/prisma/client";
 export const useProgressValidation = (
   book: Book,
   progressType: "%" | "pages",
-) => {
+): {
+  inputValue: string;
+  error: string | null;
+  isValid: boolean;
+  handleChange: (value: string) => void;
+  resetInput: () => void;
+} => {
   const [inputValue, setInputValue] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
 

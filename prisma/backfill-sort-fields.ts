@@ -3,7 +3,7 @@ import "dotenv/config";
 import { createAuthorSort, createTitleSort } from "@/lib/book-utils";
 import prisma from "@/lib/prisma";
 
-async function backfillSortFields() {
+async function backfillSortFields(): Promise<void> {
   const books = await prisma.book.findMany({
     where: {
       OR: [{ titleSort: "" }, { authorSort: "" }],

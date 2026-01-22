@@ -39,7 +39,7 @@ import { Spinner } from "../ui/spinner";
 import { BasicInfoSection } from "./create-form/basic-info-section";
 import { OptionalInfoSection } from "./create-form/optional-info-section";
 
-const CreateBookForm = () => {
+const CreateBookForm = (): React.ReactElement => {
   const [isImportPanelOpen, setIsImportPanelOpen] = useState<boolean>(false);
   const [inputUrl, setInputUrl] = useState<string>("");
   const [urlError, setUrlError] = useState<string | null>(null);
@@ -65,7 +65,7 @@ const CreateBookForm = () => {
       coverUrl: "",
     },
   });
-  const validateUrl = (url: string) => {
+  const validateUrl = (url: string): void => {
     const result = z.url().safeParse(url);
     if (!result.success) {
       setUrlError("Please enter a valid URL");
@@ -78,7 +78,7 @@ const CreateBookForm = () => {
 
   const router = useRouter();
 
-  const handleGoodReadsImport = (data: ScrapeData) => {
+  const handleGoodReadsImport = (data: ScrapeData): void => {
     form.setValue("title", data.title);
     form.setValue("author", data.author);
     form.setValue("publishedYear", data.publishedYear);
@@ -126,7 +126,9 @@ const CreateBookForm = () => {
       },
     });
 
-  const onSubmit = async (data: z.infer<typeof createFormSchema>) => {
+  const onSubmit = async (
+    data: z.infer<typeof createFormSchema>,
+  ): Promise<void> => {
     let coverUrl = data.coverUrl;
 
     if (pendingCoverFile) {

@@ -43,7 +43,7 @@ const SetGoalDialog = ({
   onOpenChange,
   onSave,
   open,
-}: SetGoalDialogProps) => {
+}: SetGoalDialogProps): React.ReactElement => {
   const form = useForm<SetGoalFormValues>({
     resolver: zodResolver(setGoalSchema),
     defaultValues: { goal: currentGoal },
@@ -55,7 +55,7 @@ const SetGoalDialog = ({
     }
   }, [open, currentGoal, form]);
 
-  const onSubmit = async (data: SetGoalFormValues) => {
+  const onSubmit = async (data: SetGoalFormValues): Promise<void> => {
     await onSave(data.goal);
     onOpenChange(false);
   };

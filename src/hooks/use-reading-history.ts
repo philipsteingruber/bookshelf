@@ -1,13 +1,23 @@
 import { useMemo } from "react";
 
+import type { TRPCClientErrorLike } from "@trpc/client";
+
 import type { ReadingProgress } from "@/generated/prisma/client";
 import { trpc } from "@/trpc/client";
+import type { AppRouter } from "@/trpc/routers/_app";
 
 export type ReadingProgressWithProgressSinceLast = ReadingProgress & {
   progressSinceLast: number;
 };
 
-export const useReadingHistory = (bookId: number) => {
+interface UseReadingHistoryReturn {
+  result: ReadingProgressWithProgressSinceLast[];
+  isPending: boolean;
+  isError: boolean;
+  error: TRPCClientErrorLike<AppRouter> | null;
+}
+
+export const useReadingHistory = (bookId: number): UseReadingHistoryReturn => {
   const { data, isPending, isError, error } =
     trpc.readingProgress.getProgressHistory.useQuery(bookId);
 

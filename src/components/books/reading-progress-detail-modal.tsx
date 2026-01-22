@@ -18,7 +18,7 @@ export const ReadingProgressDetailModal = ({
   entry,
   open,
   onOpenChange,
-}: ReadingProgressDetailModalProps) => {
+}: ReadingProgressDetailModalProps): React.ReactElement | null => {
   if (!entry) return null;
 
   return (
@@ -34,19 +34,19 @@ export const ReadingProgressDetailModal = ({
         <div className="space-y-4">
           {/* Progress info */}
           <div>
-            <p className="text-sm font-medium text-muted-foreground">
+            <p className="text-muted-foreground text-sm font-medium">
               Progress
             </p>
-            <p className="text-2xl font-bold text-primary">{entry.progress}%</p>
+            <p className="text-primary text-2xl font-bold">{entry.progress}%</p>
           </div>
 
           {/* Session progress */}
           {entry.progressSinceLast > 0 && (
             <div>
-              <p className="text-sm font-medium text-muted-foreground">
+              <p className="text-muted-foreground text-sm font-medium">
                 Progress This Session
               </p>
-              <p className="text-lg font-semibold text-foreground">
+              <p className="text-foreground text-lg font-semibold">
                 +{entry.progressSinceLast}%
               </p>
             </div>
@@ -55,8 +55,8 @@ export const ReadingProgressDetailModal = ({
           {/* Comments */}
           {entry.comments && (
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Notes</p>
-              <p className="text-sm text-foreground whitespace-pre-line">
+              <p className="text-muted-foreground text-sm font-medium">Notes</p>
+              <p className="text-foreground text-sm whitespace-pre-line">
                 {entry.comments}
               </p>
             </div>
@@ -64,7 +64,7 @@ export const ReadingProgressDetailModal = ({
 
           {/* No comments state */}
           {!entry.comments && (
-            <p className="text-sm text-muted-foreground italic">
+            <p className="text-muted-foreground text-sm italic">
               No notes for this session
             </p>
           )}

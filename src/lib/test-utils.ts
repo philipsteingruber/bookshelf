@@ -12,6 +12,7 @@ import type {
 import type { ReadingProgressWithProgressSinceLast } from "@/hooks/use-reading-history";
 import { type ChartDataPoint, formatRelativeDate } from "@/lib/chart-utils";
 import { READING_GOAL_DEFAULT_THRESHOLD } from "@/lib/constants";
+import type { ReadingProgressWithBook } from "@/lib/reading-stats-utils";
 
 // Extract the auth type from Clerk's auth() function
 export type AuthType = Awaited<ReturnType<typeof auth>>;
@@ -20,7 +21,7 @@ export type AuthType = Awaited<ReturnType<typeof auth>>;
  * Creates a mock PrismaClient with the most commonly used methods.
  * Add more methods as needed for your tests.
  */
-export function createMockDb() {
+export function createMockDb(): PrismaClient {
   return {
     book: {
       findUnique: vi.fn(),
@@ -52,7 +53,7 @@ export function createMockDb() {
 /**
  * Creates a mock logger with all standard pino methods.
  */
-export function createMockLogger() {
+export function createMockLogger(): Logger {
   return {
     info: vi.fn(),
     warn: vi.fn(),
@@ -128,7 +129,7 @@ export function createFakeReadingProgress(
 
 export function createFakeReadingProgressWithProgressSinceLast(
   overrides: Partial<ReadingProgressWithProgressSinceLast> = {},
-) {
+): ReadingProgressWithProgressSinceLast {
   const readingProgress = createFakeReadingProgress(overrides);
 
   return {
@@ -142,7 +143,7 @@ export const createFakeReadingProgressWithBook = (
   overrides?: Partial<
     ReadingProgress & { book: Pick<Book, "pageCount" | "id" | "title"> }
   >,
-) => {
+): ReadingProgressWithBook => {
   const fakeBook = createFakeBook();
   const fakeProgress = createFakeReadingProgress();
 
@@ -160,7 +161,9 @@ export const createFakeReadingProgressWithBook = (
   };
 };
 
-export const createFakeReadingGoal = (overrides?: Partial<ReadingGoal>) => {
+export const createFakeReadingGoal = (
+  overrides?: Partial<ReadingGoal>,
+): ReadingGoal => {
   const currentYear = new Date().getFullYear();
   return {
     id: "1",
@@ -181,7 +184,7 @@ export function createMockContext(
   options: {
     clerkId?: string;
   } = {},
-) {
+): { db: PrismaClient; auth: AuthType; logger: Logger } {
   const clerkId = options.clerkId ?? "clerk-user-123";
 
   return {
@@ -193,7 +196,7 @@ export function createMockContext(
 
 export function createFakeChartDataPoint(
   overrides: Partial<ChartDataPoint> = {},
-) {
+): ChartDataPoint {
   const date = overrides.date ?? new Date();
   return {
     date,
@@ -238,7 +241,13 @@ export function createMockCaller<
     mockDb?: PrismaClient;
     mockLogger?: Logger;
   } = {},
-) {
+): {
+  caller: TCaller;
+  mockDb: PrismaClient;
+  mockLogger: Logger;
+  mockUser: User;
+  context: { db: PrismaClient; auth: AuthType; logger: Logger };
+} {
   const mockDb = options.mockDb ?? createMockDb();
   const mockLogger = options.mockLogger ?? createMockLogger();
 

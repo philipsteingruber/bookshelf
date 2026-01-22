@@ -7,7 +7,7 @@ import { useTheme } from "next-themes";
 
 import { Button } from "./ui/button";
 
-export default function ThemeToggle() {
+const ThemeToggle = (): React.ReactElement | null => {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   // Avoid hydration mismatch
@@ -34,4 +34,6 @@ export default function ThemeToggle() {
       </motion.div>
     </Button>
   );
-}
+};
+
+export default ThemeToggle;

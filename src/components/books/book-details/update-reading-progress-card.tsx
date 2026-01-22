@@ -19,7 +19,11 @@ import type { Book } from "@/generated/prisma/client";
 import { useProgressValidation } from "@/hooks/use-progress-validation";
 import { trpc } from "@/trpc/client";
 
-const UpdateReadingProgressCard = ({ book }: { book: Book }) => {
+const UpdateReadingProgressCard = ({
+  book,
+}: {
+  book: Book;
+}): React.ReactElement => {
   const { pageCount, progress } = book;
   const utils = trpc.useUtils();
 

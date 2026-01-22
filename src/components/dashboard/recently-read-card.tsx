@@ -14,7 +14,7 @@ const RecentlyReadCard = ({
 }: {
   books: Book[];
   className?: string;
-}) => {
+}): React.ReactElement => {
   return (
     <div className={cn("mb-8 flex flex-col gap-y-2", className)}>
       <StatusCategoryHeader text="Recently Finished" count={books.length} />

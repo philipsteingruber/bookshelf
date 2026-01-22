@@ -6,7 +6,7 @@ import { Button } from "../ui/button";
 import { SidebarTrigger } from "../ui/sidebar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 
-const Header = () => {
+const Header = (): React.ReactElement => {
   return (
     <header className="flex h-14 items-center justify-between py-0 pr-6 pl-2">
       {process.env.NODE_ENV === "development" && (

@@ -11,7 +11,12 @@ interface Props {
   href?: string;
 }
 
-const BaseState = ({ Icon, text, linkText, href }: Props) => {
+const BaseState = ({
+  Icon,
+  text,
+  linkText,
+  href,
+}: Props): React.ReactElement => {
   return (
     <div className="flex size-full flex-col items-center justify-center">
       <Icon className="size-25" />

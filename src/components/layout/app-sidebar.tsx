@@ -42,7 +42,7 @@ const sidebarItems: SidebarItem[] = [
   { title: "Journal", href: "/journal", icon: ScrollIcon },
 ];
 
-export function AppSidebar() {
+export const AppSidebar = (): React.ReactElement => {
   const currentPathName = usePathname();
 
   return (
@@ -102,4 +102,4 @@ export function AppSidebar() {
       <SidebarFooter />
     </Sidebar>
   );
-}
+};

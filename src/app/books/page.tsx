@@ -126,33 +126,37 @@ const SORT_CONFIG: Record<
   LONGEST_FIRST: { sortBy: "pageCount", sortDirection: "desc" },
 } as const;
 
-const parseSelectedSort = (value: string) => {
+const parseSelectedSort = (
+  value: string,
+): { sortBy: BookScalarFieldEnum; sortDirection: "asc" | "desc" } => {
   return (
     SORT_CONFIG[value as SortOptions] ?? {
-      sortBy: "title",
-      sortDirection: "asc",
+      sortBy: "title" as BookScalarFieldEnum,
+      sortDirection: "asc" as const,
     }
   );
 };
-const parseSelectedFilter = (value: ReadStatus | "ALL_BOOKS") => {
+const parseSelectedFilter = (
+  value: ReadStatus | "ALL_BOOKS",
+): ReadStatus | undefined => {
   if (value === "ALL_BOOKS") {
     return undefined;
   }
   return value;
 };
 
-const Page = () => {
+const Page = (): React.ReactElement => {
   const [selectedSorting, setSelectedSorting] =
     useState<SortOptions>("RECENTLY_UPDATED");
   const [selectedFilter, setSelectedFilter] = useState<
     ReadStatus | "ALL_BOOKS"
   >("ALL_BOOKS");
   const [inputSearch, setInputSearch] = useState<string>("");
-  const handleSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleSearchChange = (e: ChangeEvent<HTMLInputElement>): void => {
     setInputSearch(e.target.value);
   };
 
-  const handleClearFilters = () => {
+  const handleClearFilters = (): void => {
     setInputSearch("");
     setSelectedFilter(DEFAULT_FILTER);
     setSelectedSorting(DEFAULT_SORTING);
@@ -216,13 +220,13 @@ const LibraryFilterPicker = ({
   selectedFilter: ReadStatus | "ALL_BOOKS";
   onFilterChange: (value: ReadStatus | "ALL_BOOKS") => void;
   onClearFilters: () => void;
-}) => {
-  const getSelectedSort = () => {
+}): React.ReactElement => {
+  const getSelectedSort = (): SortItem | undefined => {
     return sortGroups
       .flatMap((group) => group.items)
       .find((item) => item.value === selectedSorting);
   };
-  const getSelectedFilter = () => {
+  const getSelectedFilter = (): StatusFilterOption | undefined => {
     return statusFilterOptions.find((item) => item.value === selectedFilter);
   };
   const hasActiveFilters =

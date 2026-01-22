@@ -23,7 +23,7 @@ const CoverDropzone = ({
   file,
   disabled,
   isUploading,
-}: CoverDropzoneProps) => {
+}: CoverDropzoneProps): React.ReactElement => {
   const previewUrl = useMemo(() => {
     return file ? URL.createObjectURL(file) : null;
   }, [file]);

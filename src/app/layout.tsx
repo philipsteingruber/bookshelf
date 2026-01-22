@@ -14,11 +14,11 @@ export const metadata: Metadata = {
   description: "NextJS based reading tracker",
 };
 
-export default function RootLayout({
+const RootLayout = ({
   children,
 }: Readonly<{
   children: React.ReactNode;
-}>) {
+}>): React.ReactElement => {
   return (
     <ClerkProvider>
       <TRPCProvider>
@@ -45,4 +45,6 @@ export default function RootLayout({
       </TRPCProvider>
     </ClerkProvider>
   );
-}
+};
+
+export default RootLayout;

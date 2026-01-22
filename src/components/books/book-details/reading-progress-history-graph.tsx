@@ -36,7 +36,7 @@ const ReadingProgressHistoryGraph = ({
   readingHistory,
 }: {
   readingHistory: ReadingProgressWithProgressSinceLast[];
-}) => {
+}): React.ReactElement => {
   // Aggregate by day
   const aggregatedData = aggregateByDay(readingHistory);
 

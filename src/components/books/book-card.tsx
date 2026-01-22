@@ -27,12 +27,12 @@ const BookCard = ({
   className,
   priority,
   orientation = "vertical",
-}: BookCardProps) => {
+}: BookCardProps): React.ReactElement => {
   const [imageError, setImageError] = useState(false);
   const coverUrl = book.coverUrl || BOOK_COVER_PLACEHOLDER_URL;
 
   const utils = trpc.useUtils();
-  const handleMouseEnter = () => {
+  const handleMouseEnter = (): void => {
     utils.book.getBook.prefetch(book.id);
 
     if (book.coverUrl) {

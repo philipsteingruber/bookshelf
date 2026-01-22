@@ -20,7 +20,7 @@ const ErrorState = ({
   message,
   linkText = "Click here to return to your Bookshelf",
   href = "/books",
-}: ErrorStateProps) => {
+}: ErrorStateProps): React.ReactElement => {
   let text = "An error occurred.";
   let Icon = ShieldXIcon;
 

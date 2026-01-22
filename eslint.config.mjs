@@ -54,6 +54,25 @@ const eslintConfig = defineConfig([
           argsIgnorePattern: "^_",
         },
       ],
+      // Enforce arrow functions for React components
+      "react/function-component-definition": [
+        "warn",
+        {
+          namedComponents: "arrow-function",
+          unnamedComponents: "arrow-function",
+        },
+      ],
+      // Require explicit return types on complex functions
+      "@typescript-eslint/explicit-function-return-type": [
+        "warn",
+        {
+          allowExpressions: true,
+          allowTypedFunctionExpressions: true,
+          allowHigherOrderFunctions: true,
+          allowDirectConstAssertionInArrowFunctions: true,
+          allowConciseArrowFunctionExpressionsStartingWithVoid: true,
+        },
+      ],
       "no-restricted-imports": [
         "error",
         {

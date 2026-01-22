@@ -10,7 +10,7 @@ const ReadStatusButton = ({
 }: {
   book: Book;
   className?: string;
-}) => {
+}): React.ReactElement => {
   const buttonText = parseReadStatus(book.status);
   const buttonStyle = getStatusButtonStyle(book.status);
 

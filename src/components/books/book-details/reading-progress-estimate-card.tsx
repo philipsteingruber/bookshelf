@@ -15,7 +15,7 @@ export const ReadingProgressEstimateCard = ({
   daysRemaining,
   slope,
   pageCount,
-}: ReadingProgressEstimateCardProps) => {
+}: ReadingProgressEstimateCardProps): React.ReactElement => {
   const isFinished = currentProgress >= 100;
   const canEstimate = slope > 0 && !isFinished;
 

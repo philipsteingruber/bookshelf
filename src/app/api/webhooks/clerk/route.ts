@@ -6,7 +6,7 @@ import { env } from "@/env";
 import { logger, performanceLogger } from "@/lib/logger";
 import prisma from "@/lib/prisma";
 
-export async function POST(req: NextRequest) {
+export async function POST(req: NextRequest): Promise<Response> {
   try {
     logger.debug(
       {

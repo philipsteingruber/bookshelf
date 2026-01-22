@@ -18,7 +18,7 @@ const ReadingProgressHistory = ({
 }: {
   readingProgressHistory: ReadingProgressWithProgressSinceLast[];
   book: Book;
-}) => {
+}): React.ReactElement => {
   const aggregatedHistory = aggregateByDay(
     readingProgressHistory.filter((entry) => entry.bookId === book.id),
   );

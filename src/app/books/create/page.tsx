@@ -3,7 +3,7 @@ import { currentUser } from "@clerk/nextjs/server";
 
 import CreateBookForm from "@/components/books/create-form";
 
-const Page = async () => {
+const Page = async (): Promise<React.ReactElement> => {
   const user = await currentUser();
 
   if (!user) {

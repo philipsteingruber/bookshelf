@@ -1,6 +1,6 @@
 "use client";
 // ^-- to make sure we can mount the Provider from a server component
-import { useState } from "react";
+import React, { useState } from "react";
 
 import type { QueryClient } from "@tanstack/react-query";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -12,7 +12,7 @@ import { makeQueryClient } from "./query-client";
 import type { AppRouter } from "./routers/_app";
 export const trpc = createTRPCReact<AppRouter>();
 let clientQueryClientSingleton: QueryClient;
-function getQueryClient() {
+function getQueryClient(): QueryClient {
   if (typeof window === "undefined") {
     // Server: always make a new query client
     return makeQueryClient();
@@ -20,7 +20,7 @@ function getQueryClient() {
   // Browser: use singleton pattern to keep the same query client
   return (clientQueryClientSingleton ??= makeQueryClient());
 }
-function getUrl() {
+function getUrl(): string {
   const base = (() => {
     if (typeof window !== "undefined") return "";
     if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
@@ -28,11 +28,11 @@ function getUrl() {
   })();
   return `${base}/api/trpc`;
 }
-export function TRPCProvider(
+export const TRPCProvider = (
   props: Readonly<{
     children: React.ReactNode;
   }>,
-) {
+): React.ReactElement => {
   // NOTE: Avoid useState when initializing the query client if you don't
   //       have a suspense boundary between this and the code that may
   //       suspend because React will throw away the client on the initial
@@ -55,4 +55,4 @@ export function TRPCProvider(
       </QueryClientProvider>
     </trpc.Provider>
   );
-}
+};

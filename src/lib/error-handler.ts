@@ -3,7 +3,14 @@ import { toast } from "sonner";
 
 import type { AppRouter } from "@/trpc/routers/_app";
 
-const formatErrorLog = (error: unknown, context?: string) => {
+interface ErrorData {
+  context?: string;
+  message: string;
+  name?: string;
+  code?: string;
+}
+
+const formatErrorLog = (error: unknown, context?: string): ErrorData => {
   // Check if error has nested data.code property
   const getTRPCErrorCode = (err: unknown): string | undefined => {
     if (
@@ -24,7 +31,7 @@ const formatErrorLog = (error: unknown, context?: string) => {
     message: error instanceof Error ? error.message : String(error),
     name: error instanceof Error ? error.name : undefined,
     code: getTRPCErrorCode(error),
-  };
+  } satisfies ErrorData;
 
   return errorData;
 };
@@ -37,7 +44,7 @@ const formatErrorLog = (error: unknown, context?: string) => {
 export const handleTRPCError = (
   error: TRPCClientErrorLike<AppRouter>,
   context?: string,
-) => {
+): void => {
   // Handle different error types with user-friendly messages
   if (error.data?.code === "CONFLICT") {
     // Server sends specific messages for conflicts (ISBN, series, etc.)
@@ -70,7 +77,7 @@ export const handleTRPCError = (
  * @param error - The upload error
  * @param context - Optional context string (e.g., "Cover upload")
  */
-export const handleUploadError = (error: Error, context?: string) => {
+export const handleUploadError = (error: Error, context?: string): void => {
   // Provide specific error messages based on error type
   if (
     error.message.includes("file too large") ||

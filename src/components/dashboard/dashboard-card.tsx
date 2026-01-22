@@ -18,7 +18,7 @@ const DashboardCard = ({
   footer,
   icon: Icon,
   className,
-}: DashboardCardProps) => {
+}: DashboardCardProps): React.ReactElement => {
   return (
     <Card className={cn("h-40 w-1/5", className)}>
       <CardContent className="flex h-full w-full items-start justify-between">

@@ -7,7 +7,7 @@ import prisma from "@/lib/prisma";
 
 config();
 
-async function main() {
+async function main(): Promise<void> {
   type Book = {
     title: string;
     author: string;

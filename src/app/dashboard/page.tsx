@@ -30,7 +30,7 @@ import {
   DASHBOARD_MAX_READING_BOOKS,
 } from "@/lib/constants";
 
-const Page = () => {
+const Page = (): React.ReactElement => {
   const {
     readingBooksCount,
     readingBooks,

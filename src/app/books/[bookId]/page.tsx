@@ -49,11 +49,11 @@ import { BOOK_COVER_PLACEHOLDER_URL } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/trpc/client";
 
-export default function Page({
+const Page = ({
   params,
 }: {
   params: Promise<{ bookId: string }>;
-}) {
+}): React.ReactElement => {
   const { bookId } = use(params);
   const { book, isPending, isForbidden, isNotFound, error, isReading } =
     useBook(bookId);
@@ -352,4 +352,6 @@ export default function Page({
       )}
     </div>
   );
-}
+};
+
+export default Page;

@@ -1,14 +1,45 @@
 import { useCallback, useMemo } from "react";
 
+import type { TRPCClientErrorLike } from "@trpc/client";
 import { useDebounce } from "use-debounce";
 
 import type { Book } from "@/generated/prisma/client";
 import { ReadStatus } from "@/generated/prisma/enums";
 import { trpc } from "@/trpc/client";
+import type { AppRouter } from "@/trpc/routers/_app";
 
 import type { BookFilters } from "./../trpc/routers/book";
 
-export const useBooks = (options?: BookFilters & { enabled?: boolean }) => {
+interface UseBooksReturn {
+  books: Book[];
+  isPending: boolean;
+  isError: boolean;
+  error: TRPCClientErrorLike<AppRouter> | null;
+  isEmpty: boolean;
+  hasBooks: boolean;
+  hasFilters: boolean;
+  count: number;
+  readBooks: Book[];
+  readBooksCount: number;
+  toReadBooks: Book[];
+  toReadBooksCount: number;
+  readingBooks: Book[];
+  readingBooksCount: number;
+  dnfBooks: Book[];
+  dnfBooksCount: number;
+  readNextBooks: Book[];
+  readNextBooksCount: number;
+  booksByStatus: Book[][];
+  finishedThisYearBooks: Book[];
+  finishedThisYearBooksCount: number;
+  totalReadPageCount: number;
+  findBookById: (id: number) => Book | null;
+  getBooksByAuthor: (authorName: string) => Book[];
+}
+
+export const useBooks = (
+  options?: BookFilters & { enabled?: boolean },
+): UseBooksReturn => {
   const {
     status,
     rating,
@@ -138,5 +169,5 @@ export const useBooks = (options?: BookFilters & { enabled?: boolean }) => {
     totalReadPageCount,
     findBookById,
     getBooksByAuthor,
-  };
+  } satisfies UseBooksReturn;
 };

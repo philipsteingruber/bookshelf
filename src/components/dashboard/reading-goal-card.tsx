@@ -45,12 +45,12 @@ const ReadingGoalCard = ({
   setThreshold,
   isSettingThreshold,
   className,
-}: ReadingGoalCardProps) => {
+}: ReadingGoalCardProps): React.ReactElement => {
   const [newThresholdValue, setNewThresholdValue] = useState<number>(threshold);
   const [isThresholdDialogOpen, setIsThresholdDialogOpen] =
     useState<boolean>(false);
 
-  const handleDialogOpenChange = (open: boolean) => {
+  const handleDialogOpenChange = (open: boolean): void => {
     if (open === false && isSettingThreshold) {
       return;
     }
