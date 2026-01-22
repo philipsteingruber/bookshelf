@@ -23,7 +23,7 @@ export function makeQueryClient() {
           // Default retry behavior (3 retries)
           return failureCount < 3;
         },
-        refetchOnWindowFocus: false,
+        refetchOnWindowFocus: true,
       },
       dehydrate: {
         serializeData: superjson.serialize,
