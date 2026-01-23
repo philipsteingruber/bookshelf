@@ -23,6 +23,7 @@ interface UseReadingGoalsReturn {
   isOnTrack: boolean;
   paceMessage: string;
   pageCountThreshold: number;
+  expectedAtThisPoint: number;
 
   goalHistory: {
     year: number;
@@ -102,6 +103,7 @@ export const useReadingGoals = (books: Book[]): UseReadingGoalsReturn => {
     paceMessage,
     progressPercentage,
     booksRemaining,
+    expectedAtThisPoint,
   } = useMemo(
     () => calculateReadingGoalStats(booksFinishedByYear, readingGoal),
     [booksFinishedByYear, readingGoal],
@@ -134,6 +136,7 @@ export const useReadingGoals = (books: Book[]): UseReadingGoalsReturn => {
     progressPercentage,
     booksRemaining,
     isOnTrack,
+    expectedAtThisPoint,
     paceMessage,
     pageCountThreshold: defaultReadingThreshold,
 

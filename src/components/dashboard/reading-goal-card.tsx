@@ -18,6 +18,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Spinner } from "@/components/ui/spinner";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { handleTRPCError } from "@/lib/error-handler";
 import { cn } from "@/lib/utils";
 
@@ -26,6 +31,7 @@ interface ReadingGoalCardProps {
   goal: number;
   progressPercentage: number;
   isOnTrack: boolean;
+  expectedAtThisPoint: number;
   paceMessage: string;
   threshold: number;
   setThreshold: (newThreshold: number) => Promise<void>;
@@ -42,6 +48,7 @@ const ReadingGoalCard = ({
   paceMessage,
   progressPercentage,
   threshold,
+  expectedAtThisPoint,
   setThreshold,
   isSettingThreshold,
   className,
@@ -134,7 +141,14 @@ const ReadingGoalCard = ({
                 <AlertCircle className="size-8 text-amber-500" />
               )}
             </div>
-            <span className="hidden text-sm lg:flex">{paceMessage}</span>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="hidden cursor-pointer text-sm underline decoration-dotted lg:flex">
+                  {paceMessage}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>{`At this point you should have read ${expectedAtThisPoint} books`}</TooltipContent>
+            </Tooltip>
           </div>
           <div className="flex items-center justify-center gap-x-2">
             <span className="text-sm font-semibold whitespace-nowrap lg:whitespace-normal">

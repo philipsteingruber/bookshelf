@@ -65,6 +65,7 @@ const Page = (): React.ReactElement => {
     booksReadThisYear,
     progressPercentage,
     isOnTrack,
+    expectedAtThisPoint,
     paceMessage,
     pageCountThreshold,
     setGoal,
@@ -243,6 +244,7 @@ const Page = (): React.ReactElement => {
           onEditClick={() => setGoalDialogOpen(true)}
           paceMessage={paceMessage}
           progressPercentage={progressPercentage}
+          expectedAtThisPoint={expectedAtThisPoint}
         />
         <SetGoalDialog
           open={goalDialogOpen}
