@@ -61,10 +61,11 @@ const ReadingGoalCard = ({
   };
 
   return (
-    <Card className={cn("h-auto min-h-40 w-full md:h-40", className)}>
+    <Card className={cn("h-40 min-h-40 w-full", className)}>
       <CardContent className="flex w-full justify-between">
         <div className="mt-2 flex w-full -translate-y-3 flex-col items-center gap-y-1">
-          <p className="flex items-center gap-x-1 text-center text-sm font-semibold md:whitespace-nowrap">
+          <span className="text-xs font-semibold md:hidden">READING GOAL</span>
+          <p className="hidden items-center gap-x-1 text-center text-sm font-semibold md:flex md:whitespace-nowrap">
             <span>{`${currentCount} of ${goal} books`}</span>
             <Dialog
               open={isThresholdDialogOpen}
@@ -118,29 +119,33 @@ const ReadingGoalCard = ({
                 </div>
               </DialogContent>
             </Dialog>
-            <span> read this year</span>
+            <span> read so far</span>
           </p>
           <Progress
             value={progressPercentage}
             className="my-1 h-4 w-full md:w-2/3"
           />
-          <div className="flex items-center gap-x-4">
-            <span className="text-sm">{`${progressPercentage}% complete`}</span>
-            {isOnTrack ? (
-              <TrendingUp className="size-8 text-green-500" />
-            ) : (
-              <AlertCircle className="size-8 text-amber-500" />
-            )}
-            <span className="text-sm">{paceMessage}</span>
+          <div className="flex flex-col items-center gap-x-4 text-center md:flex-row">
+            <div className="flex items-center gap-x-2">
+              <span className="text-sm">{`${progressPercentage}% complete`}</span>
+              {isOnTrack ? (
+                <TrendingUp className="size-8 text-green-500" />
+              ) : (
+                <AlertCircle className="size-8 text-amber-500" />
+              )}
+            </div>
+            <span className="hidden text-sm md:flex">{paceMessage}</span>
           </div>
           <div className="flex items-center justify-center gap-x-2">
-            <span className="text-sm font-semibold">Current goal: {goal}</span>
+            <span className="text-sm font-semibold whitespace-nowrap md:whitespace-normal">
+              Current goal: {goal}
+            </span>
             <Button variant={"ghost"} size={"icon"} onClick={onEditClick}>
               <EditIcon />
             </Button>
           </div>
         </div>
-        <TargetIcon />
+        <TargetIcon className="hidden md:ml-2 md:flex" />
       </CardContent>
     </Card>
   );
