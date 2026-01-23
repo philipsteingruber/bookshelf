@@ -173,7 +173,7 @@ const CreateBookForm = (): React.ReactElement => {
             </CollapsibleTrigger>
           </div>
           <CollapsibleContent className="my-2 w-full rounded-md border p-2">
-            <div className="sm:items-ctart flex flex-col items-center justify-center gap-y-2 sm:flex-row sm:gap-x-4">
+            <div className="flex flex-col items-center justify-center gap-y-2 sm:flex-row sm:items-start sm:gap-x-4">
               <div className="flex flex-col items-center gap-y-2">
                 <Label htmlFor="importUrl">GoodReads URL</Label>
                 <Input
