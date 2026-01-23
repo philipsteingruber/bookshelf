@@ -11,7 +11,7 @@ const StatusCategoryHeader = ({
     <p className="mb-2 text-xl font-semibold">
       {text}{" "}
       <span className="text-primary text-md font-normal">
-        ({visibleCount >= count ? count : `${visibleCount} of ${count}`})
+        ({visibleCount >= count ? count : `${visibleCount} of ${count} shown`})
       </span>
     </p>
   );

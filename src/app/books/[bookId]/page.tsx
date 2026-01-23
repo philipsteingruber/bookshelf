@@ -327,7 +327,7 @@ const Page = ({
                   "rounded-md p-1 text-sm leading-5 font-normal text-pretty whitespace-pre-line",
                   isReading
                     ? "h-auto max-h-[35%] w-full overflow-y-auto lg:w-3/4"
-                    : "h-auto w-full max-w-[57%] lg:w-2/3",
+                    : "h-auto w-full max-w-full lg:w-2/3 lg:max-w-[57%]",
                 )}
               >
                 {book.summary}
