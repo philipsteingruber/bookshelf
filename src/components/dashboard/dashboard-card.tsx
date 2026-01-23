@@ -20,7 +20,7 @@ const DashboardCard = ({
   className,
 }: DashboardCardProps): React.ReactElement => {
   return (
-    <Card className={cn("h-40 w-1/5", className)}>
+    <Card className={cn("h-40 w-full min-w-[140px]", className)}>
       <CardContent className="flex h-full w-full items-start justify-between">
         <div className="flex flex-col items-start justify-between gap-y-4">
           <span className="text-xs font-semibold">{header}</span>

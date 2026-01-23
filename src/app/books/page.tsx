@@ -185,7 +185,7 @@ const Page = (): React.ReactElement => {
   }
 
   return (
-    <div className="flex w-full flex-col items-center">
+    <div className="flex w-full flex-col items-center px-2 sm:px-0">
       <LibraryFilterPicker
         selectedSorting={selectedSorting}
         onSortingChange={setSelectedSorting}
@@ -195,7 +195,7 @@ const Page = (): React.ReactElement => {
         onFilterChange={setSelectedFilter}
         onClearFilters={handleClearFilters}
       />
-      <div className="grid w-5/6 grid-cols-5 items-center gap-x-8 gap-y-4 pt-4">
+      <div className="grid w-full grid-cols-2 items-center gap-4 px-4 pt-4 sm:grid-cols-3 md:w-5/6 md:grid-cols-4 md:px-0 xl:grid-cols-5 2xl:grid-cols-6">
         {books.map((book) => (
           <BookCard book={book} key={book.id} showStatusButton />
         ))}
@@ -235,8 +235,8 @@ const LibraryFilterPicker = ({
     selectedSorting !== DEFAULT_SORTING;
 
   return (
-    <Card className="flex w-5/6 flex-col items-center justify-center rounded-md px-6 py-4">
-      <div className="flex w-full items-center justify-between">
+    <Card className="flex w-full flex-col items-center justify-center rounded-md px-4 py-4 md:w-5/6 md:px-6">
+      <div className="flex w-full flex-col items-center gap-y-4 sm:gap-y-2 md:flex-row md:justify-between">
         <span className="flex items-center gap-x-2 text-sm">
           <FilterIcon className="size-6" />
           Filters & Sorting
@@ -280,7 +280,7 @@ const LibraryFilterPicker = ({
           />
         </div>
       </div>
-      <div className="flex flex-col items-center gap-y-4">
+      <div className="flex flex-col items-center gap-y-4 md:flex-row md:gap-x-4 md:gap-y-0">
         <Select
           value={selectedFilter ?? undefined}
           onValueChange={onFilterChange}

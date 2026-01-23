@@ -146,7 +146,7 @@ const CreateBookForm = (): React.ReactElement => {
   };
 
   return (
-    <Card className="w-1/2">
+    <Card className="w-full md:w-2/3 xl:w-1/2">
       <CardHeader className="flex flex-col items-center">
         <CardTitle>Add a new Book to your Bookshelf</CardTitle>
         <CardDescription>
@@ -156,7 +156,7 @@ const CreateBookForm = (): React.ReactElement => {
         <Collapsible
           open={isImportPanelOpen}
           onOpenChange={setIsImportPanelOpen}
-          className="mt-6 mb-2 flex w-1/2 flex-col items-center justify-center"
+          className="mt-6 mb-2 flex w-full flex-col items-center justify-center text-center md:w-2/3 xl:w-1/2"
         >
           <div className="flex items-center justify-between gap-x-4">
             Want to get started with data from GoodReads?
@@ -173,7 +173,7 @@ const CreateBookForm = (): React.ReactElement => {
             </CollapsibleTrigger>
           </div>
           <CollapsibleContent className="my-2 w-full rounded-md border p-2">
-            <div className="flex items-start justify-center gap-x-4">
+            <div className="sm:items-ctart flex flex-col items-center justify-center gap-y-2 sm:flex-row sm:gap-x-4">
               <div className="flex flex-col items-center gap-y-2">
                 <Label htmlFor="importUrl">GoodReads URL</Label>
                 <Input
@@ -220,7 +220,7 @@ const CreateBookForm = (): React.ReactElement => {
       <CardFooter>
         <Field
           orientation="horizontal"
-          className="mt-4 flex w-full justify-center"
+          className="mt-4 flex w-full flex-col justify-center gap-y-2 sm:flex-row"
         >
           <Button
             type="button"
@@ -229,7 +229,7 @@ const CreateBookForm = (): React.ReactElement => {
               form.reset();
               setPendingCoverFile(null);
             }}
-            className="w-50 text-lg"
+            className="w-full text-lg sm:w-50"
             size="lg"
             disabled={isCreatingBook || isImportingFromGoodReads || isUploading}
           >
@@ -238,7 +238,7 @@ const CreateBookForm = (): React.ReactElement => {
           <Button
             type="submit"
             form="create-book-form"
-            className="w-50 text-lg"
+            className="w-full text-lg sm:w-50"
             size="lg"
             disabled={isCreatingBook || isImportingFromGoodReads || isUploading}
           >

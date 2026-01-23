@@ -23,12 +23,14 @@ import ErrorState from "@/components/error-state";
 import LoadingState from "@/components/loading-state";
 import { ReadStatus } from "@/generated/prisma/enums";
 import { useBooks } from "@/hooks/use-books";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useReadingGoals } from "@/hooks/use-reading-goals";
 import { useReadingStats } from "@/hooks/use-reading-stats";
 import {
-  DASHBOARD_MAX_READ_NEXT_BOOKS,
-  DASHBOARD_MAX_READING_BOOKS,
-} from "@/lib/constants";
+  getDashboardMaxReadingBooksCount,
+  getDashboardMaxReadNextBooksCount,
+  getDashboardRecentlyReadBooksCount,
+} from "@/lib/dashboard-utils";
 
 const Page = (): React.ReactElement => {
   const {
@@ -44,16 +46,6 @@ const Page = (): React.ReactElement => {
     sortBy: "updatedAt",
     sortDirection: "desc",
   });
-
-  const recentlyReadBooks = books
-    .filter(
-      (book) =>
-        book.status === ReadStatus.READ &&
-        book.finishedAt &&
-        startOfDay(book.finishedAt) > startOfDay(subWeeks(new Date(), 2)),
-    )
-    .sort((a, b) => b.finishedAt!.getTime() - a.finishedAt!.getTime())
-    .slice(0, 3);
 
   const {
     pagesToday,
@@ -77,6 +69,36 @@ const Page = (): React.ReactElement => {
     isSettingThreshold,
   } = useReadingGoals(books);
 
+  const isMobile = useIsMobile();
+  const readingBooksToShowCount = Math.min(
+    getDashboardMaxReadingBooksCount(isMobile),
+    readingBooksCount,
+  );
+  const readingBooksToShow = readingBooks.slice(0, readingBooksToShowCount);
+
+  const readNextBooksToShowCount = Math.min(
+    getDashboardMaxReadNextBooksCount(isMobile),
+    readNextBooksCount,
+  );
+  const readNextBooksToShow = readNextBooks.slice(0, readNextBooksToShowCount);
+
+  const recentlyReadBooks = books
+    .filter(
+      (book) =>
+        book.status === ReadStatus.READ &&
+        book.finishedAt &&
+        startOfDay(book.finishedAt) > startOfDay(subWeeks(new Date(), 2)),
+    )
+    .sort((a, b) => b.finishedAt!.getTime() - a.finishedAt!.getTime());
+  const recentlyReadBooksToShowCount = Math.min(
+    getDashboardRecentlyReadBooksCount(isMobile),
+    recentlyReadBooks.length,
+  );
+  const recentlyReadBooksToShow = recentlyReadBooks.slice(
+    0,
+    recentlyReadBooksToShowCount,
+  );
+
   const [goalDialogOpen, setGoalDialogOpen] = useState<boolean>(false);
 
   const { isSignedIn } = useAuth();
@@ -84,11 +106,6 @@ const Page = (): React.ReactElement => {
   if (!isSignedIn) {
     return <RedirectToSignIn />;
   }
-
-  let sliceLength = Math.min(DASHBOARD_MAX_READING_BOOKS, readingBooksCount);
-  const readingBooksToShow = readingBooks.slice(0, sliceLength);
-  sliceLength = Math.min(DASHBOARD_MAX_READ_NEXT_BOOKS, readNextBooksCount);
-  const readNextBooksToShow = readNextBooks.slice(0, sliceLength);
 
   const dashBoardCardData: DashboardCardProps[] = [
     {
@@ -133,25 +150,25 @@ const Page = (): React.ReactElement => {
   }
 
   return (
-    <div className="flex h-full w-full flex-col p-4 pl-8">
+    <div className="flex h-full w-full flex-col p-4 pl-4 md:pl-8">
       {readingBooksCount > 0 && (
-        <div className="mb-4 flex w-4/5 flex-1 flex-col gap-y-2">
+        <div className="mb-4 flex w-full flex-1 flex-col gap-y-2 xl:w-4/5">
           <StatusCategoryHeader
             text="Currently Reading"
             count={readingBooksCount}
           />
-          <div className="flex gap-x-4">
+          <div className="flex flex-wrap gap-4 md:flex-nowrap md:gap-x-4 md:overflow-x-auto">
             {readingBooksToShow.map((book) => (
               <ReadingProgressCard book={book} key={book.id} />
             ))}
           </div>
         </div>
       )}
-      <div className="mb-4 flex w-full gap-x-8 pr-4">
+      <div className="mb-4 flex w-full flex-col gap-y-4 pr-4 md:flex-row md:gap-x-8">
         {readNextBooksCount > 0 && (
-          <div className="flex w-3/5 flex-1 flex-col gap-y-2">
+          <div className="flex w-full flex-1 flex-col gap-y-2 md:w-3/5">
             <StatusCategoryHeader text="Up Next" count={readNextBooksCount} />
-            <div className="flex gap-x-4">
+            <div className="flex flex-wrap gap-4 md:flex-nowrap md:gap-x-4">
               {readNextBooksToShow.map((book) => (
                 <BookCard
                   book={book}
@@ -164,11 +181,14 @@ const Page = (): React.ReactElement => {
             </div>
           </div>
         )}
-        {recentlyReadBooks.length > 0 && (
-          <RecentlyReadCard books={recentlyReadBooks} className="w-2/5" />
+        {recentlyReadBooksToShow.length > 0 && (
+          <RecentlyReadCard
+            books={recentlyReadBooks}
+            className="w-full md:w-2/5"
+          />
         )}
       </div>
-      <div className="flex gap-x-4">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:flex xl:gap-x-4">
         <ReadingGoalCard
           currentCount={booksReadThisYear}
           goal={currentGoal}

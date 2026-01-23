@@ -18,7 +18,7 @@ const RecentlyReadCard = ({
   return (
     <div className={cn("mb-8 flex flex-col gap-y-2", className)}>
       <StatusCategoryHeader text="Recently Finished" count={books.length} />
-      <div className="flex h-full w-full gap-x-4">
+      <div className="flex h-full w-full flex-wrap gap-4 md:flex-nowrap md:gap-x-4">
         {books.map((book) => {
           return (
             <Tooltip key={book.id}>
