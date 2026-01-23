@@ -489,4 +489,117 @@ describe("readingProgressRouter", () => {
       });
     });
   });
+  describe("Edge Cases", () => {
+    beforeEach(() => vi.clearAllMocks());
+
+    it("should handle very large page counts (>10000 pages)", async () => {
+      const { mockDb, caller } = createMockCaller(readingProgressRouter);
+
+      const largePageCountBook = createFakeBook({
+        progress: 0,
+        pageCount: 15000,
+      });
+
+      const pagesRead = 1500; // 10% of a 15,000 page book
+      const expectedProgress = Math.floor(
+        (pagesRead / largePageCountBook.pageCount) * 100,
+      ); // 10
+
+      const fakeReadingProgress = createFakeReadingProgress({
+        bookId: largePageCountBook.id,
+        progress: expectedProgress,
+      });
+      const updatedBook = createFakeBook({
+        ...largePageCountBook,
+        progress: expectedProgress,
+      });
+
+      vi.mocked(mockDb.book.findUnique).mockResolvedValue(largePageCountBook);
+      vi.mocked(mockDb.$transaction).mockImplementation(async (callback) => {
+        const fakeTxClient = {
+          readingProgress: {
+            create: vi.fn().mockResolvedValue(fakeReadingProgress),
+          },
+          book: {
+            update: vi.fn().mockResolvedValue(updatedBook),
+          },
+        } as unknown as PrismaClient;
+        return callback(fakeTxClient);
+      });
+
+      const result = await caller.createReadingProgressInstance({
+        bookId: largePageCountBook.id,
+        newPagesRead: pagesRead,
+      });
+
+      expect(result.readingProgress.progress).toBe(expectedProgress);
+      expect(result.updatedBook.progress).toBe(expectedProgress);
+    });
+
+    it("should handle progress updates happening rapidly in succession", async () => {
+      const { mockDb, caller } = createMockCaller(readingProgressRouter);
+
+      const fakeBook = createFakeBook({ progress: 0, pageCount: 100 });
+
+      // Each rapid update should succeed because we're mocking the database
+      // and updating the mock state between calls
+      const progressValues = [25, 50, 75];
+
+      for (const progress of progressValues) {
+        const currentBook = createFakeBook({
+          ...fakeBook,
+          progress: progress - 25, // Previous progress
+        });
+        const fakeReadingProgress = createFakeReadingProgress({
+          bookId: fakeBook.id,
+          progress,
+        });
+        const updatedBook = createFakeBook({ ...fakeBook, progress });
+
+        vi.mocked(mockDb.book.findUnique).mockResolvedValue(currentBook);
+        vi.mocked(mockDb.$transaction).mockImplementation(async (callback) => {
+          const fakeTxClient = {
+            readingProgress: {
+              create: vi.fn().mockResolvedValue(fakeReadingProgress),
+            },
+            book: {
+              update: vi.fn().mockResolvedValue(updatedBook),
+            },
+          } as unknown as PrismaClient;
+          return callback(fakeTxClient);
+        });
+
+        const result = await caller.createReadingProgressInstance({
+          bookId: fakeBook.id,
+          newProgress: progress,
+        });
+
+        expect(result.readingProgress.progress).toBe(progress);
+        expect(result.updatedBook.progress).toBe(progress);
+      }
+
+      // Verify all three updates were processed
+      expect(mockDb.$transaction).toHaveBeenCalledTimes(3);
+    });
+
+    it("should throw error when newPagesRead exceeds book pageCount (resulting in >100% progress)", async () => {
+      const { mockDb, caller, mockLogger } = createMockCaller(
+        readingProgressRouter,
+      );
+
+      const fakeBook = createFakeBook({ progress: 0, pageCount: 100 });
+
+      vi.mocked(mockDb.book.findUnique).mockResolvedValue(fakeBook);
+
+      // Trying to record 150 pages read on a 100-page book (150% progress)
+      await expect(
+        caller.createReadingProgressInstance({
+          bookId: fakeBook.id,
+          newPagesRead: 150,
+        }),
+      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+
+      expect(mockLogger.warn).toHaveBeenCalled();
+    });
+  });
 });

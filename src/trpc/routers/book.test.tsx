@@ -591,4 +591,55 @@ describe("bookRouter", () => {
       });
     });
   });
+  describe("Edge Cases", () => {
+    beforeEach(() => vi.clearAllMocks());
+
+    it("should handle books with special characters in title/author", async () => {
+      const { caller, mockDb } = createMockCaller(bookRouter);
+
+      const specialCharacterBook = {
+        title: "The Hitchhiker's — Guide: Vol. 1",
+        author: "J.R.R. Tolkien & C. Tolkien",
+        publishedYear: 2026,
+      };
+
+      const createdBook = createFakeBook(specialCharacterBook);
+
+      vi.mocked(mockDb.book.create).mockResolvedValue(createdBook);
+      vi.mocked(mockDb.book.findFirst).mockResolvedValue(null);
+
+      const result = await caller.createBook(specialCharacterBook);
+
+      expect(result.book.title).toEqual(specialCharacterBook.title);
+      expect(result.book.author).toEqual(specialCharacterBook.author);
+      expect(mockDb.book.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          title: specialCharacterBook.title,
+          author: specialCharacterBook.author,
+        }),
+      });
+    });
+
+    it("should handle concurrent updates to same book (transaction safety)", async () => {
+      const { mockDb, caller } = createMockCaller(bookRouter);
+
+      const fakeBook = createFakeBook({ status: "READING", progress: 50 });
+      const updatedBook = createFakeBook({ status: "READ", progress: 100 });
+
+      vi.mocked(mockDb.book.findUnique).mockResolvedValue(fakeBook);
+      vi.mocked(mockDb.book.update).mockResolvedValue(updatedBook);
+
+      // Simulate two concurrent status update calls
+      const [result1, result2] = await Promise.all([
+        caller.updateReadingStatus({ bookId: fakeBook.id, newStatus: "READ" }),
+        caller.updateReadingStatus({ bookId: fakeBook.id, newStatus: "READ" }),
+      ]);
+
+      // Both calls should complete (router doesn't enforce locking at this level)
+      // In production, database-level constraints and transactions handle true concurrency
+      expect(result1.status).toEqual("READ");
+      expect(result2.status).toEqual("READ");
+      expect(mockDb.book.update).toHaveBeenCalledTimes(2);
+    });
+  });
 });
