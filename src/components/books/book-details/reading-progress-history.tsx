@@ -11,6 +11,7 @@ import type { Book } from "@/generated/prisma/client";
 import type { ReadingProgressWithProgressSinceLast } from "@/hooks/use-reading-history";
 import { calculatePagesFromProgress } from "@/lib/book-utils";
 import { aggregateByDay, formatRelativeDate } from "@/lib/chart-utils";
+import { cn } from "@/lib/utils";
 
 const ReadingProgressHistory = ({
   readingProgressHistory,
@@ -34,7 +35,12 @@ const ReadingProgressHistory = ({
   }));
 
   return (
-    <Card className="border-primary h-full flex-2 overflow-auto border-2">
+    <Card
+      className={cn(
+        "border-primary h-full flex-2 overflow-auto border-2",
+        historyForBook.length <= 6 && "lg:overflow-y-hidden",
+      )}
+    >
       <CardHeader>
         <CardTitle className="text-lg">{`Reading progress for ${book.title}`}</CardTitle>
       </CardHeader>
@@ -51,7 +57,7 @@ const ReadingProgressHistory = ({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {historyForBook.map((entry) => (
+            {historyForBook.toReversed().map((entry) => (
               <TableRow key={entry.id}>
                 <TableCell>{formatRelativeDate(entry.createdAt)}</TableCell>
                 <TableCell className="text-center font-semibold">
