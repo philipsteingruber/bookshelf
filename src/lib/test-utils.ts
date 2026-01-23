@@ -307,3 +307,19 @@ export function createMockCaller<
     context,
   };
 }
+
+/**
+ * Creates a mock TRPC client error for testing error handlers.
+ *
+ * @param code - The TRPC error code (e.g., "NOT_FOUND", "FORBIDDEN")
+ * @param message - Optional error message
+ */
+export function createMockTRPCError(
+  code: string,
+  message = "Error message",
+): { message: string; data: { code: string } } {
+  return {
+    message,
+    data: { code },
+  };
+}
