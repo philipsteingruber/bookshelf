@@ -235,6 +235,32 @@ export function createMockStorage(
   };
 }
 
+/**
+ * Creates a mock return value for tRPC's useQuery hook.
+ * Use this when mocking trpc.*.useQuery in component/hook tests.
+ *
+ * Cast to `never` so it can be assigned to any useQuery mock without type errors.
+ * This is a common pattern for test utilities where type safety is less critical.
+ *
+ * @param overrides - Override any default values
+ */
+export function createMockUseQueryReturn<TData = null>(
+  overrides: Partial<{
+    data: TData;
+    isLoading: boolean;
+    isError: boolean;
+    error: Error | null;
+  }> = {},
+) {
+  return {
+    data: null as TData,
+    isLoading: false,
+    isError: false,
+    error: null,
+    ...overrides,
+  } as never;
+}
+
 export function createMockCaller<
   TRouter extends {
     createCaller: (ctx: {
