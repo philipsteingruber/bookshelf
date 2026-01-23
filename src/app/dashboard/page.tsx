@@ -181,9 +181,9 @@ const Page = (): React.ReactElement => {
             </div>
           </div>
         )}
-        {recentlyReadBooksToShow.length > 0 && (
+        {recentlyReadBooksToShowCount > 0 && (
           <RecentlyReadCard
-            books={recentlyReadBooks}
+            books={recentlyReadBooksToShow}
             className="w-full md:w-2/5"
           />
         )}

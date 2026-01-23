@@ -55,11 +55,11 @@ const UpdateReadingProgressCard = ({
   } = useProgressValidation(book, selectedProgressType);
 
   return (
-    <Card className="bg-card/40 h-80 w-3/4 rounded-md">
+    <Card className="bg-card/40 mf:h-80 h-auto min-h-80 w-full rounded-md md:w-3/4">
       <CardContent>
         <div className="flex h-full flex-col gap-y-2">
-          <div className="flex gap-x-6">
-            <div className="relative flex w-1/3 flex-col items-center gap-y-2">
+          <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-end sm:gap-x-4 md:gap-x-6">
+            <div className="relative flex w-full flex-col items-center gap-y-2 sm:w-1/3">
               <Label htmlFor="value">{`Progress (${selectedProgressType})`}</Label>
               <Input
                 id="value"
@@ -80,7 +80,7 @@ const UpdateReadingProgressCard = ({
                 </p>
               )}
             </div>
-            <div className="flex w-1/3 flex-col items-center gap-y-2">
+            <div className="flex w-full flex-col items-center gap-y-2 sm:w-1/3">
               <Label htmlFor="progressType">Progress Type</Label>
               <Select
                 value={selectedProgressType}
@@ -97,7 +97,7 @@ const UpdateReadingProgressCard = ({
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex w-1/3 items-end">
+            <div className="flex w-full items-end sm:mt-6 sm:w-1/3">
               <Button
                 className="w-full cursor-pointer rounded-md"
                 disabled={isPending || !isValidProgress}

@@ -137,7 +137,7 @@ const Page = ({
         <div className="flex w-full flex-col items-center gap-y-4 md:w-3/4 md:flex-row md:items-start md:gap-x-4">
           <div className="flex flex-col gap-y-4">
             <Link href={coverUrl} target="_blank" prefetch={false}>
-              <div className="relativ h-[450px] w-[300px] overflow-hidden rounded-md bg-linear-to-br from-gray-100 to-gray-200 md:h-[500px] md:w-[333px] xl:h-[600px] xl:w-[400px]">
+              <div className="relative h-[450px] w-[300px] overflow-hidden rounded-md bg-linear-to-br from-gray-100 to-gray-200 md:h-[500px] md:w-[333px] xl:h-[600px] xl:w-[400px]">
                 {imageError ? (
                   <div className="flex h-full w-full items-center justify-center bg-linear-to-br from-slate-200 via-slate-300 to-slate-400 p-12">
                     <div className="flex flex-col items-center gap-6 text-center">

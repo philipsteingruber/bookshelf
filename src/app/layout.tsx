@@ -34,7 +34,7 @@ const RootLayout = ({
             <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
               <SidebarProvider className="h-full w-full">
                 <AppSidebar />
-                <SidebarInset>
+                <SidebarInset className="min-w-0">
                   <div className="mb-6 flex flex-1 flex-col">{children}</div>
                 </SidebarInset>
               </SidebarProvider>

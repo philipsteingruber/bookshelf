@@ -1,5 +1,5 @@
 export const getDashboardMaxReadingBooksCount = (isMobile: boolean): number => {
-  return isMobile ? 3 : 3;
+  return isMobile ? 2 : 3;
 };
 export const getDashboardMaxReadNextBooksCount = (
   isMobile: boolean,

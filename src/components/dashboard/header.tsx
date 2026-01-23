@@ -14,7 +14,7 @@ import { SidebarTrigger } from "../ui/sidebar";
 const Header = (): React.ReactElement => {
   return (
     <>
-      <header className="relative flex w-full items-center justify-between gap-8 p-2 pt-4">
+      <header className="relative flex w-full items-center justify-between gap-4 overflow-hidden p-2 pt-4">
         {process.env.NODE_ENV === "development" && (
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded bg-amber-500 px-3 py-0.5 text-xl font-medium text-black">
             Development
@@ -23,14 +23,16 @@ const Header = (): React.ReactElement => {
         <div className="flex gap-8">
           <SidebarTrigger size={"icon-lg"} className="size-8" />
           <div className="flex flex-col gap-y-2">
-            <p className="flex items-center gap-x-4 font-serif text-4xl">
+            <p className="flex items-center gap-x-2 font-serif text-2xl md:gap-x-4 md:text-4xl">
               <BookIcon className="size-8" /> Dashboard
             </p>
-            <p className="text-xl">Welcome back to Bookshelf</p>
+            <p className="hidden md:block md:text-xl">
+              Welcome back to Bookshelf
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-x-8 pr-4">
-          <StreakIndicator />
+          <StreakIndicator className="hidden md:flex" />
           <Link href={"/books/create"}>
             <Button className="cursor-pointer">
               <PlusIcon /> Add
@@ -43,7 +45,11 @@ const Header = (): React.ReactElement => {
   );
 };
 
-const StreakIndicator = (): React.ReactElement => {
+const StreakIndicator = ({
+  className,
+}: {
+  className?: string;
+}): React.ReactElement => {
   const { isStreakActive, currentStreak, isPending } = useReadingStats();
 
   const hasStreak = currentStreak > 0;
@@ -63,6 +69,7 @@ const StreakIndicator = (): React.ReactElement => {
       className={cn(
         hasStreak ? "rounded-md border-2 font-semibold shadow-md" : null,
         "flex cursor-default items-center gap-x-2 px-4 py-2",
+        className,
       )}
     >
       {isPending ? null : (
