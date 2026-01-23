@@ -9,6 +9,7 @@ import { READING_GOAL_DEFAULT_THRESHOLD } from "@/lib/constants";
 import {
   buildGoalHistory,
   calculateReadingGoalStats,
+  checkGoalCelebration,
 } from "@/lib/reading-goal-utils";
 import { calculateYearlyStats } from "@/lib/reading-stats-utils";
 import { trpc } from "@/trpc/client";
@@ -107,29 +108,18 @@ export const useReadingGoals = (books: Book[]): UseReadingGoalsReturn => {
   );
 
   useEffect(() => {
-    if (fetchingReadingGoal || fetchingReadingGoalHistory) {
-      return;
-    }
-    if (booksReadThisYear < currentGoal) {
-      return;
-    }
-
-    const currentYear = new Date().getFullYear();
-    const storageKey = `goal-celebration-${currentYear}`;
-    const highestCelebrated = parseInt(
-      localStorage.getItem(storageKey) || "0",
-      10,
-    );
-
-    if (booksReadThisYear >= currentGoal && currentGoal > highestCelebrated) {
-      toast.success("Congratulations!", {
-        description: `You've reached your reading goal of ${currentGoal} books!`,
-        duration: 10000,
-        position: "bottom-right",
-      });
-
-      localStorage.setItem(storageKey, currentGoal.toString());
-    }
+    checkGoalCelebration({
+      isLoading: fetchingReadingGoal || fetchingReadingGoalHistory,
+      booksReadThisYear,
+      currentGoal,
+      onCelebrate: (goal) => {
+        toast.success("Congratulations!", {
+          description: `You've reached your reading goal of ${goal} books!`,
+          duration: 10000,
+          position: "bottom-right",
+        });
+      },
+    });
   }, [
     booksReadThisYear,
     currentGoal,

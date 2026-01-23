@@ -97,3 +97,75 @@ export function buildGoalHistory({
     actual: booksFinishedByYear.find((b) => b.year === entry.year)?.count ?? 0,
   }));
 }
+
+export interface CheckGoalCelebrationParams {
+  isLoading: boolean;
+  booksReadThisYear: number;
+  currentGoal: number;
+  year?: number;
+  storage?: {
+    getItem: (key: string) => string | null;
+    setItem: (key: string, value: string) => void;
+  };
+  onCelebrate?: (goal: number) => void;
+}
+
+export interface CheckGoalCelebrationResult {
+  shouldCelebrate: boolean;
+  celebratedGoal: number | null;
+}
+
+/**
+ * Checks whether a goal celebration should be triggered and handles the side effects.
+ *
+ * The celebration logic:
+ * 1. Skip if data is still loading
+ * 2. Skip if user hasn't reached their goal yet
+ * 3. Skip if we've already celebrated this goal (or a higher one) this year
+ * 4. Otherwise, trigger celebration and record it
+ *
+ * @param params.isLoading - Whether goal data is still being fetched
+ * @param params.booksReadThisYear - Number of books the user has finished this year
+ * @param params.currentGoal - The user's reading goal for the year
+ * @param params.year - The year to check (defaults to current year)
+ * @param params.storage - Storage interface for persistence (defaults to localStorage)
+ * @param params.onCelebrate - Callback to trigger when celebration should happen
+ * @returns Object indicating whether celebration was triggered and for which goal
+ */
+export function checkGoalCelebration({
+  isLoading,
+  booksReadThisYear,
+  currentGoal,
+  year = new Date().getFullYear(),
+  storage = typeof window !== "undefined"
+    ? localStorage
+    : { getItem: () => null, setItem: () => {} },
+  onCelebrate,
+}: CheckGoalCelebrationParams): CheckGoalCelebrationResult {
+  // Don't celebrate while data is loading
+  if (isLoading) {
+    return { shouldCelebrate: false, celebratedGoal: null };
+  }
+
+  // Don't celebrate if goal not reached
+  if (booksReadThisYear < currentGoal) {
+    return { shouldCelebrate: false, celebratedGoal: null };
+  }
+
+  // Don't celebrate if goal is 0 (no goal set)
+  if (currentGoal <= 0) {
+    return { shouldCelebrate: false, celebratedGoal: null };
+  }
+
+  const storageKey = `goal-celebration-${year}`;
+  const highestCelebrated = parseInt(storage.getItem(storageKey) || "0", 10);
+
+  // Only celebrate if this is a new higher goal
+  if (currentGoal > highestCelebrated) {
+    storage.setItem(storageKey, currentGoal.toString());
+    onCelebrate?.(currentGoal);
+    return { shouldCelebrate: true, celebratedGoal: currentGoal };
+  }
+
+  return { shouldCelebrate: false, celebratedGoal: null };
+}
