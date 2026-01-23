@@ -23,6 +23,7 @@ import {
   SidebarHeader,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 
@@ -44,6 +45,13 @@ const sidebarItems: SidebarItem[] = [
 
 export const AppSidebar = (): React.ReactElement => {
   const currentPathName = usePathname();
+  const { setOpenMobile, isMobile } = useSidebar();
+
+  const handleNavClick = (): void => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  };
 
   return (
     <Sidebar>
@@ -72,7 +80,11 @@ export const AppSidebar = (): React.ReactElement => {
                 )}
               >
                 <SidebarMenuButton asChild>
-                  <Link href={item.href} className="mb-4 text-lg font-semibold">
+                  <Link
+                    href={item.href}
+                    className="mb-4 text-lg font-semibold"
+                    onClick={handleNavClick}
+                  >
                     <item.icon className="size-4" /> {item.title}
                   </Link>
                 </SidebarMenuButton>
