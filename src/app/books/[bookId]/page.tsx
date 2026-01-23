@@ -342,7 +342,7 @@ const Page = ({
             readingHistory={readingHistory}
             className="hidden md:flex"
           />
-          <div className="flex h-auto flex-col gap-4 lg:h-[368px] lg:flex-row">
+          <div className="flex h-auto w-full max-w-4xl flex-1 flex-col gap-4 lg:h-[368px] lg:flex-row">
             <ReadingProgressEstimateCard
               currentProgress={book.progress}
               estimatedDate={estimatedDate}

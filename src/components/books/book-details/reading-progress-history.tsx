@@ -34,7 +34,7 @@ const ReadingProgressHistory = ({
   }));
 
   return (
-    <Card className="border-primary h-full overflow-auto border-2">
+    <Card className="border-primary h-full flex-2 overflow-auto border-2">
       <CardHeader>
         <CardTitle className="text-lg">{`Reading progress for ${book.title}`}</CardTitle>
       </CardHeader>
@@ -43,12 +43,10 @@ const ReadingProgressHistory = ({
           <TableHeader>
             <TableRow>
               <TableHead className="font-semibold">Date</TableHead>
-              <TableHead className="font-semibold">Progress</TableHead>
-              <TableHead className="font-semibold">
-                Progress since last (%)
-              </TableHead>
-              <TableHead className="font-semibold">
-                Progress since last (pages)
+              <TableHead className="font-semibold">Total Progress</TableHead>
+              <TableHead className="font-semibold">Progress (%)</TableHead>
+              <TableHead className="hidden font-semibold md:block">
+                Progress (pages)
               </TableHead>
             </TableRow>
           </TableHeader>
@@ -56,9 +54,13 @@ const ReadingProgressHistory = ({
             {historyForBook.map((entry) => (
               <TableRow key={entry.id}>
                 <TableCell>{formatRelativeDate(entry.createdAt)}</TableCell>
-                <TableCell>{entry.progress}</TableCell>
-                <TableCell>{entry.progressSinceLast}</TableCell>
-                <TableCell>
+                <TableCell className="text-center font-semibold">
+                  {entry.progress}
+                </TableCell>
+                <TableCell className="text-center">
+                  {entry.progressSinceLast}
+                </TableCell>
+                <TableCell className="hidden text-center md:block">
                   {calculatePagesFromProgress(
                     entry.progressSinceLast,
                     book.pageCount,
