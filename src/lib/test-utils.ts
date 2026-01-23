@@ -213,16 +213,28 @@ export function createFakeChartDataPoint(
   } as ChartDataPoint;
 }
 
+export interface MockStorage {
+  getItem: () => string | null;
+  setItem: (_key: string, value: string) => void;
+}
 /**
- * Helper to create a caller with all mocks set up.
- * Automatically mocks the user lookup that happens in auth middleware.
+ * Creates a mock storage object for testing localStorage-dependent code.
+ * Returns an object with vi.fn() spies for getItem and setItem.
  *
- * Usage:
- * const { caller, mockDb, mockLogger } = createMockCaller(
- *   readingProgressRouter,
- *   { userId: "custom-user-id" }
- * );
+ * @param initialValue - The initial value to return from getItem (simulates existing storage)
  */
+export function createMockStorage(
+  initialValue: string | null = null,
+): MockStorage {
+  let stored = initialValue;
+  return {
+    getItem: vi.fn(() => stored),
+    setItem: vi.fn((_key: string, value: string) => {
+      stored = value;
+    }),
+  };
+}
+
 export function createMockCaller<
   TRouter extends {
     createCaller: (ctx: {

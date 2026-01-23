@@ -2,13 +2,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type {
   BooksFinishedByYear,
+  CheckGoalCelebrationParams,
   GoalHistoryEntry,
   ReadingGoalHistoryEntry,
 } from "@/lib/reading-goal-utils";
 import {
   buildGoalHistory,
   calculateReadingGoalStats,
+  checkGoalCelebration,
 } from "@/lib/reading-goal-utils";
+import { createMockStorage } from "@/lib/test-utils";
 
 const mockDate = new Date("2026-01-15T12:00:00");
 const currentYear = 2026;
@@ -322,6 +325,146 @@ describe("readingGoalUtils", () => {
         { year: currentYear - 1, goal: 1, actual: 0 },
         { year: currentYear, goal: 1, actual: 1 },
       ] satisfies GoalHistoryEntry[]);
+    });
+  });
+  describe("checkGoalCelebration", () => {
+    it("should celebrate when reaching goal for the first time", () => {
+      const mockStorage = createMockStorage(null);
+      const onCelebrate = vi.fn();
+
+      const result = checkGoalCelebration({
+        isLoading: false,
+        booksReadThisYear: 10,
+        currentGoal: 10,
+        year: currentYear,
+        storage: mockStorage,
+        onCelebrate,
+      } satisfies CheckGoalCelebrationParams);
+
+      expect(result.shouldCelebrate).toEqual(true);
+      expect(result.celebratedGoal).toEqual(10);
+    });
+
+    it("should not celebrate while data is loading", () => {
+      const mockStorage = createMockStorage(null);
+      const onCelebrate = vi.fn();
+
+      const result = checkGoalCelebration({
+        isLoading: true,
+        booksReadThisYear: 10,
+        currentGoal: 10,
+        year: currentYear,
+        storage: mockStorage,
+        onCelebrate,
+      } satisfies CheckGoalCelebrationParams);
+
+      expect(result.shouldCelebrate).toEqual(false);
+      expect(result.celebratedGoal).toBeNull();
+      expect(onCelebrate).not.toHaveBeenCalled();
+    });
+
+    it("should not celebrate when below goal", () => {
+      const mockStorage = createMockStorage(null);
+      const onCelebrate = vi.fn();
+
+      const result = checkGoalCelebration({
+        isLoading: false,
+        booksReadThisYear: 5,
+        currentGoal: 10,
+        year: currentYear,
+        storage: mockStorage,
+        onCelebrate,
+      } satisfies CheckGoalCelebrationParams);
+
+      expect(result.shouldCelebrate).toEqual(false);
+      expect(onCelebrate).not.toHaveBeenCalled();
+    });
+
+    it("should not celebrate when goal is 0 (no goal set)", () => {
+      const mockStorage = createMockStorage(null);
+      const onCelebrate = vi.fn();
+
+      const result = checkGoalCelebration({
+        isLoading: false,
+        booksReadThisYear: 10,
+        currentGoal: 0,
+        year: currentYear,
+        storage: mockStorage,
+        onCelebrate,
+      } satisfies CheckGoalCelebrationParams);
+
+      expect(result.shouldCelebrate).toEqual(false);
+      expect(onCelebrate).not.toHaveBeenCalled();
+    });
+
+    it("should not celebrate duplicate for same goal (storage check)", () => {
+      const mockStorage = createMockStorage("10");
+      const onCelebrate = vi.fn();
+
+      const result = checkGoalCelebration({
+        isLoading: false,
+        booksReadThisYear: 10,
+        currentGoal: 10,
+        year: currentYear,
+        storage: mockStorage,
+        onCelebrate,
+      } satisfies CheckGoalCelebrationParams);
+
+      expect(result.shouldCelebrate).toEqual(false);
+      expect(onCelebrate).not.toHaveBeenCalled();
+    });
+
+    it("should celebrate again when goal is increased and reached again", () => {
+      const mockStorage = createMockStorage("10");
+      const onCelebrate = vi.fn();
+
+      const result = checkGoalCelebration({
+        isLoading: false,
+        booksReadThisYear: 15,
+        currentGoal: 15,
+        year: currentYear,
+        storage: mockStorage,
+        onCelebrate,
+      } satisfies CheckGoalCelebrationParams);
+
+      expect(result.shouldCelebrate).toEqual(true);
+      expect(onCelebrate).toHaveBeenCalledWith(15);
+    });
+
+    it("should call onCelebrate callback with goal when celebrating", () => {
+      const mockStorage = createMockStorage(null);
+      const onCelebrate = vi.fn();
+
+      const result = checkGoalCelebration({
+        isLoading: false,
+        booksReadThisYear: 10,
+        currentGoal: 10,
+        year: currentYear,
+        storage: mockStorage,
+        onCelebrate,
+      } satisfies CheckGoalCelebrationParams);
+
+      expect(result.shouldCelebrate).toEqual(true);
+      expect(onCelebrate).toHaveBeenCalledWith(10);
+    });
+
+    it("should update storage when celebrating", () => {
+      const mockStorage = createMockStorage(null);
+      const onCelebrate = vi.fn();
+
+      checkGoalCelebration({
+        isLoading: false,
+        booksReadThisYear: 10,
+        currentGoal: 10,
+        year: currentYear,
+        storage: mockStorage,
+        onCelebrate,
+      } satisfies CheckGoalCelebrationParams);
+
+      expect(mockStorage.setItem).toHaveBeenCalledWith(
+        `goal-celebration-${currentYear}`,
+        "10",
+      );
     });
   });
 });
