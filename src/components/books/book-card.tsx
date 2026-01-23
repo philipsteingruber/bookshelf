@@ -17,6 +17,7 @@ interface BookCardProps {
   book: Book;
   showStatusButton: boolean;
   className?: string;
+  wrapperClassName?: string;
   priority?: boolean;
   orientation?: "horizontal" | "vertical";
 }
@@ -25,6 +26,7 @@ const BookCard = ({
   book,
   showStatusButton,
   className,
+  wrapperClassName,
   priority,
   orientation = "vertical",
 }: BookCardProps): React.ReactElement => {
@@ -42,10 +44,14 @@ const BookCard = ({
   };
 
   return (
-    <Link href={`/books/${book.id}`} onMouseEnter={handleMouseEnter}>
+    <Link
+      href={`/books/${book.id}`}
+      onMouseEnter={handleMouseEnter}
+      className={wrapperClassName}
+    >
       <Card
         className={cn(
-          "hover:bg-card/80 overflow-hidden border-2 p-0",
+          "hover:bg-card/80 overflow-hidden rounded-md border-2 p-0",
           className,
         )}
       >

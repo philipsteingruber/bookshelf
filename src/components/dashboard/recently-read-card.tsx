@@ -16,9 +16,14 @@ const RecentlyReadCard = ({
   className?: string;
 }): React.ReactElement => {
   return (
-    <div className={cn("mb-8 flex flex-col gap-y-2", className)}>
+    <div
+      className={cn(
+        "mb-8 flex flex-col items-center gap-y-2 md:items-start",
+        className,
+      )}
+    >
       <StatusCategoryHeader text="Recently Finished" count={books.length} />
-      <div className="flex h-full w-full flex-wrap gap-4 md:flex-nowrap md:gap-x-4">
+      <div className="flex h-full w-full flex-wrap justify-center gap-4 md:flex-nowrap md:justify-start md:gap-x-4">
         {books.map((book) => {
           return (
             <Tooltip key={book.id}>
@@ -31,7 +36,7 @@ const RecentlyReadCard = ({
                   />
                 </div>
               </TooltipTrigger>
-              <TooltipContent>{`${book.title} - Finished on ${book.finishedAt?.toLocaleDateString()}`}</TooltipContent>
+              <TooltipContent>{`Finished on ${book.finishedAt?.toLocaleDateString()}`}</TooltipContent>
             </Tooltip>
           );
         })}

@@ -155,28 +155,37 @@ const Page = (): React.ReactElement => {
         {breakPoint} - {window.innerWidth}px
       </span>
       {readingBooksCount > 0 && (
-        <div className="mb-4 flex w-full flex-1 flex-col gap-y-2 xl:w-4/5">
+        <div className="mb-4 flex w-full flex-1 flex-col items-center gap-y-2 md:items-start xl:w-4/5">
           <StatusCategoryHeader
             text="Currently Reading"
             count={readingBooksCount}
           />
           <div className="flex flex-wrap gap-4 md:flex-nowrap md:gap-x-4 md:overflow-x-auto">
-            {readingBooksToShow.map((book) => (
-              <ReadingProgressCard book={book} key={book.id} />
-            ))}
+            {readingBooksToShow.map((book) =>
+              breakPoint === "sm" ? (
+                <BookCard
+                  book={book}
+                  key={book.id}
+                  showStatusButton={false}
+                  className="w-64"
+                />
+              ) : (
+                <ReadingProgressCard book={book} key={book.id} />
+              ),
+            )}
           </div>
         </div>
       )}
-      <div className="mb-4 flex w-full flex-col gap-y-4 pr-4 md:gap-x-8 lg:flex-row">
+      <div className="mb-4 flex w-full flex-col items-center gap-y-4 pr-4 md:gap-x-8 lg:flex-row">
         {readNextBooksCount > 0 && (
-          <div className="flex w-full flex-1 flex-col gap-y-2 md:w-3/5">
+          <div className="flex w-full flex-1 flex-col items-center gap-y-2 md:w-3/5 md:items-start">
             <StatusCategoryHeader text="Up Next" count={readNextBooksCount} />
-            <div className="flex flex-wrap gap-4 md:flex-nowrap md:gap-x-4">
+            <div className="flex flex-wrap justify-center gap-4 md:flex-nowrap md:justify-start md:gap-x-4">
               {readNextBooksToShow.map((book) => (
                 <BookCard
                   book={book}
                   key={book.id}
-                  className="w-64 rounded-md"
+                  className="w-64"
                   showStatusButton={false}
                   priority
                 />
