@@ -23,10 +23,10 @@ const Header = (): React.ReactElement => {
         <div className="flex gap-8">
           <SidebarTrigger size={"icon-lg"} className="size-8" />
           <div className="flex flex-col gap-y-2">
-            <p className="flex items-center gap-x-2 font-serif text-2xl md:gap-x-4 md:text-4xl">
+            <p className="flex items-center gap-x-2 font-serif text-2xl lg:gap-x-4 lg:text-4xl">
               <BookIcon className="size-8" /> Dashboard
             </p>
-            <p className="hidden md:block md:text-xl">
+            <p className="hidden lg:block lg:text-xl">
               Welcome back to Bookshelf
             </p>
           </div>
@@ -63,6 +63,12 @@ const StreakIndicator = ({
     }
     return "You lost your streak, get back on the horse!";
   };
+  const getShortMessage = (): string => {
+    if (isStreakActive || hasStreak) {
+      return `On a ${currentStreak} day streak`;
+    }
+    return "You lost your streak, get back on the horse!";
+  };
 
   return (
     <div
@@ -77,7 +83,10 @@ const StreakIndicator = ({
           <FlameIcon
             className={cn(hasStreak ? "text-red-400" : "text-white")}
           />
-          <span className="text-primary">{getMessage()}</span>
+          <span className="text-primary hidden lg:flex">{getMessage()}</span>
+          <span className="text-primary flex lg:hidden">
+            {getShortMessage()}
+          </span>
         </>
       )}
     </div>

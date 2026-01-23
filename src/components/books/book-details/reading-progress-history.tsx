@@ -1,4 +1,4 @@
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -35,9 +35,11 @@ const ReadingProgressHistory = ({
 
   return (
     <Card className="border-primary h-full overflow-auto border-2">
+      <CardHeader>
+        <CardTitle className="text-lg">{`Reading progress for ${book.title}`}</CardTitle>
+      </CardHeader>
       <CardContent>
         <Table>
-          <TableHeader className="text-lg font-semibold">{`Reading progress for ${book.title}`}</TableHeader>
           <TableHeader>
             <TableRow>
               <TableHead className="font-semibold">Date</TableHead>

@@ -25,6 +25,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { useMounted } from "@/hooks/use-mounted";
 import { cn } from "@/lib/utils";
 
 import ThemeToggle from "../theme-toggle";
@@ -46,6 +47,7 @@ const sidebarItems: SidebarItem[] = [
 export const AppSidebar = (): React.ReactElement => {
   const currentPathName = usePathname();
   const { setOpenMobile, isMobile } = useSidebar();
+  const isMounted = useMounted();
 
   const handleNavClick = (): void => {
     if (isMobile) {
@@ -54,7 +56,7 @@ export const AppSidebar = (): React.ReactElement => {
   };
 
   return (
-    <Sidebar>
+    <Sidebar className="h-full">
       <SidebarHeader />
       <SidebarContent className="justify-between overflow-hidden">
         <SidebarGroup>
@@ -95,19 +97,25 @@ export const AppSidebar = (): React.ReactElement => {
         <SidebarGroup>
           <SidebarGroupContent className="flex items-center justify-center gap-x-8">
             <ThemeToggle />
-            <ClerkLoading>
+            {!isMounted ? (
               <Spinner />
-            </ClerkLoading>
-            <ClerkLoaded>
-              <SignedOut>
-                <SignInButton>
-                  <Button>Sign In</Button>
-                </SignInButton>
-              </SignedOut>
-              <SignedIn>
-                <UserButton />
-              </SignedIn>
-            </ClerkLoaded>
+            ) : (
+              <>
+                <ClerkLoading>
+                  <Spinner />
+                </ClerkLoading>
+                <ClerkLoaded>
+                  <SignedOut>
+                    <SignInButton>
+                      <Button>Sign In</Button>
+                    </SignInButton>
+                  </SignedOut>
+                  <SignedIn>
+                    <UserButton />
+                  </SignedIn>
+                </ClerkLoaded>
+              </>
+            )}
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>

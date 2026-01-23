@@ -115,13 +115,15 @@ const Page = ({
       onSuccess: () => trpcUtils.book.getBook.invalidate(parseInt(bookId)),
     });
 
-  const { isSignedIn } = useAuth();
-  if (!isSignedIn) {
-    return <RedirectToSignIn />;
+  const { isSignedIn, isLoaded } = useAuth();
+
+  // Show loading state until Clerk has loaded - ensures server/client render the same thing
+  if (!isLoaded || isPending) {
+    return <LoadingState />;
   }
 
-  if (isPending) {
-    return <LoadingState />;
+  if (!isSignedIn) {
+    return <RedirectToSignIn />;
   }
   if (isForbidden || isNotFound) {
     const err = error as TRPCError;
@@ -132,12 +134,12 @@ const Page = ({
   }
 
   return (
-    <div className="flex h-full w-full flex-col items-center justify-center px-4 md:px-0">
-      <div className="flex h-full w-full flex-col justify-center px-4 md:flex-row md:px-8">
-        <div className="flex w-full flex-col items-center gap-y-4 md:w-3/4 md:flex-row md:items-start md:gap-x-4">
+    <div className="flex h-full w-full flex-col items-center justify-center px-4 lg:px-0">
+      <div className="flex h-full w-full flex-col justify-center px-4 lg:flex-row lg:px-8">
+        <div className="flex w-full flex-col items-center gap-y-4 lg:w-3/4 lg:flex-row lg:items-start lg:gap-x-4">
           <div className="flex flex-col gap-y-4">
             <Link href={coverUrl} target="_blank" prefetch={false}>
-              <div className="relative h-[450px] w-[300px] overflow-hidden rounded-md bg-linear-to-br from-gray-100 to-gray-200 md:h-[500px] md:w-[333px] xl:h-[600px] xl:w-[400px]">
+              <div className="relative h-[450px] w-[300px] overflow-hidden rounded-md bg-linear-to-br from-gray-100 to-gray-200 lg:h-[500px] lg:w-[333px] xl:h-[600px] xl:w-[400px]">
                 {imageError ? (
                   <div className="flex h-full w-full items-center justify-center bg-linear-to-br from-slate-200 via-slate-300 to-slate-400 p-12">
                     <div className="flex flex-col items-center gap-6 text-center">
@@ -274,7 +276,7 @@ const Page = ({
               </DialogContent>
             </Dialog>
           </div>
-          <div className="flex w-full flex-col gap-y-2 md:w-3/4">
+          <div className="flex w-full flex-col gap-y-2 lg:w-3/4">
             {book.series && book.seriesIndex && (
               <p className="font-serif text-sm font-light italic">{`${book.series} #${book.seriesIndex}`}</p>
             )}
@@ -310,7 +312,7 @@ const Page = ({
               </span>
             </div>
             {isReading && (
-              <div className="relative w-full md:w-3/4">
+              <div className="relative w-full lg:w-3/4">
                 <Progress value={book.progress} className="h-6 rounded-md" />
                 <span className="absolute inset-0 flex items-center justify-center text-sm text-white">
                   {book.progress}% /{" "}
@@ -324,8 +326,8 @@ const Page = ({
                 className={cn(
                   "rounded-md p-1 text-sm leading-5 font-normal text-pretty whitespace-pre-line",
                   isReading
-                    ? "h-auto max-h-[35%] w-full overflow-y-auto md:w-3/4"
-                    : "h-auto w-full max-w-[57%] md:w-2/3",
+                    ? "h-auto max-h-[35%] w-full overflow-y-auto lg:w-3/4"
+                    : "h-auto w-full max-w-[57%] lg:w-2/3",
                 )}
               >
                 {book.summary}
@@ -335,9 +337,12 @@ const Page = ({
         </div>
       </div>
       {book.status !== "READ_NEXT" && book.status !== "TO_READ" && (
-        <div className="mt-4 flex w-full flex-col items-center justify-center gap-4 lg:flex-row">
-          <ReadingProgressHistoryGraph readingHistory={readingHistory} />
-          <div className="flex h-auto flex-col gap-4 md:h-[368px] md:flex-row">
+        <div className="mt-4 flex w-full flex-col items-center justify-center gap-4 px-4 lg:flex-row">
+          <ReadingProgressHistoryGraph
+            readingHistory={readingHistory}
+            className="hidden md:flex"
+          />
+          <div className="flex h-auto flex-col gap-4 lg:h-[368px] lg:flex-row">
             <ReadingProgressEstimateCard
               currentProgress={book.progress}
               estimatedDate={estimatedDate}

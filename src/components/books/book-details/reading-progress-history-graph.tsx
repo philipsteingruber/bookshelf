@@ -20,6 +20,7 @@ import {
   type ChartDataPoint,
   formatRelativeDate,
 } from "@/lib/chart-utils";
+import { cn } from "@/lib/utils";
 
 const chartConfig = {
   progress: {
@@ -34,8 +35,10 @@ const chartConfig = {
 
 const ReadingProgressHistoryGraph = ({
   readingHistory,
+  className,
 }: {
   readingHistory: ReadingProgressWithProgressSinceLast[];
+  className?: string;
 }): React.ReactElement => {
   // Aggregate by day
   const aggregatedData = aggregateByDay(readingHistory);
@@ -101,7 +104,12 @@ const ReadingProgressHistoryGraph = ({
   }
 
   return (
-    <div className="border-primary h-[368px] w-full max-w-4xl rounded-lg border-2 p-4">
+    <div
+      className={cn(
+        "border-primary h-[368px] w-full max-w-4xl rounded-lg border-2 p-4",
+        className,
+      )}
+    >
       <ChartContainer config={chartConfig} className="h-full w-full">
         <LineChart data={chartData}>
           <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />

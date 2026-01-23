@@ -64,8 +64,8 @@ const ReadingGoalCard = ({
     <Card className={cn("h-40 min-h-40 w-full", className)}>
       <CardContent className="flex w-full justify-between">
         <div className="mt-2 flex w-full -translate-y-3 flex-col items-center gap-y-1">
-          <span className="text-xs font-semibold md:hidden">READING GOAL</span>
-          <p className="hidden items-center gap-x-1 text-center text-sm font-semibold md:flex md:whitespace-nowrap">
+          <span className="text-xs font-semibold lg:hidden">READING GOAL</span>
+          <p className="hidden items-center gap-x-1 text-center text-sm font-semibold lg:flex lg:whitespace-nowrap">
             <span>{`${currentCount} of ${goal} books`}</span>
             <Dialog
               open={isThresholdDialogOpen}
@@ -123,9 +123,9 @@ const ReadingGoalCard = ({
           </p>
           <Progress
             value={progressPercentage}
-            className="my-1 h-4 w-full md:w-2/3"
+            className="my-1 h-4 w-full lg:w-2/3"
           />
-          <div className="flex flex-col items-center gap-x-4 text-center md:flex-row">
+          <div className="flex flex-col items-center gap-x-4 text-center lg:flex-row">
             <div className="flex items-center gap-x-2">
               <span className="text-sm">{`${progressPercentage}% complete`}</span>
               {isOnTrack ? (
@@ -134,10 +134,10 @@ const ReadingGoalCard = ({
                 <AlertCircle className="size-8 text-amber-500" />
               )}
             </div>
-            <span className="hidden text-sm md:flex">{paceMessage}</span>
+            <span className="hidden text-sm lg:flex">{paceMessage}</span>
           </div>
           <div className="flex items-center justify-center gap-x-2">
-            <span className="text-sm font-semibold whitespace-nowrap md:whitespace-normal">
+            <span className="text-sm font-semibold whitespace-nowrap lg:whitespace-normal">
               Current goal: {goal}
             </span>
             <Button variant={"ghost"} size={"icon"} onClick={onEditClick}>
@@ -145,7 +145,7 @@ const ReadingGoalCard = ({
             </Button>
           </div>
         </div>
-        <TargetIcon className="hidden md:ml-2 md:flex" />
+        <TargetIcon className="hidden lg:ml-2 lg:flex" />
       </CardContent>
     </Card>
   );

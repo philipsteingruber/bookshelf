@@ -23,7 +23,7 @@ import ErrorState from "@/components/error-state";
 import LoadingState from "@/components/loading-state";
 import { ReadStatus } from "@/generated/prisma/enums";
 import { useBooks } from "@/hooks/use-books";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useBreakPoint } from "@/hooks/use-breakpoint";
 import { useReadingGoals } from "@/hooks/use-reading-goals";
 import { useReadingStats } from "@/hooks/use-reading-stats";
 import {
@@ -69,15 +69,15 @@ const Page = (): React.ReactElement => {
     isSettingThreshold,
   } = useReadingGoals(books);
 
-  const isMobile = useIsMobile();
+  const breakPoint = useBreakPoint();
   const readingBooksToShowCount = Math.min(
-    getDashboardMaxReadingBooksCount(isMobile),
+    getDashboardMaxReadingBooksCount(breakPoint),
     readingBooksCount,
   );
   const readingBooksToShow = readingBooks.slice(0, readingBooksToShowCount);
 
   const readNextBooksToShowCount = Math.min(
-    getDashboardMaxReadNextBooksCount(isMobile),
+    getDashboardMaxReadNextBooksCount(breakPoint),
     readNextBooksCount,
   );
   const readNextBooksToShow = readNextBooks.slice(0, readNextBooksToShowCount);
@@ -91,7 +91,7 @@ const Page = (): React.ReactElement => {
     )
     .sort((a, b) => b.finishedAt!.getTime() - a.finishedAt!.getTime());
   const recentlyReadBooksToShowCount = Math.min(
-    getDashboardRecentlyReadBooksCount(isMobile),
+    getDashboardRecentlyReadBooksCount(breakPoint),
     recentlyReadBooks.length,
   );
   const recentlyReadBooksToShow = recentlyReadBooks.slice(
@@ -151,6 +151,9 @@ const Page = (): React.ReactElement => {
 
   return (
     <div className="flex h-full w-full flex-col p-4 pl-4 md:pl-8">
+      <span className="fixed top-0 left-0 z-50 bg-red-500 p-2 text-white">
+        {breakPoint} - {window.innerWidth}px
+      </span>
       {readingBooksCount > 0 && (
         <div className="mb-4 flex w-full flex-1 flex-col gap-y-2 xl:w-4/5">
           <StatusCategoryHeader
@@ -164,7 +167,7 @@ const Page = (): React.ReactElement => {
           </div>
         </div>
       )}
-      <div className="mb-4 flex w-full flex-col gap-y-4 pr-4 md:flex-row md:gap-x-8">
+      <div className="mb-4 flex w-full flex-col gap-y-4 pr-4 md:gap-x-8 lg:flex-row">
         {readNextBooksCount > 0 && (
           <div className="flex w-full flex-1 flex-col gap-y-2 md:w-3/5">
             <StatusCategoryHeader text="Up Next" count={readNextBooksCount} />

@@ -1,13 +1,50 @@
-export const getDashboardMaxReadingBooksCount = (isMobile: boolean): number => {
-  return isMobile ? 2 : 3;
+import type { BreakPoint } from "@/hooks/use-breakpoint";
+
+export const getDashboardMaxReadingBooksCount = (
+  breakPoint: BreakPoint,
+): number => {
+  switch (breakPoint) {
+    case "sm":
+      return 2;
+    case "md":
+      return 2;
+    case "lg":
+      return 2;
+    case "xl":
+      return 3;
+    case "2xl":
+      return 3;
+  }
 };
 export const getDashboardMaxReadNextBooksCount = (
-  isMobile: boolean,
+  breakPoint: BreakPoint,
 ): number => {
-  return isMobile ? 3 : 8;
+  switch (breakPoint) {
+    case "sm":
+      return 2;
+    case "md":
+      return 2;
+    case "lg":
+      return 3;
+    case "xl":
+      return 3;
+    case "2xl":
+      return 8;
+  }
 };
 export const getDashboardRecentlyReadBooksCount = (
-  isMobile: boolean,
+  breakPoint: BreakPoint,
 ): number => {
-  return isMobile ? 1 : 3;
+  switch (breakPoint) {
+    case "sm":
+      return 1;
+    case "md":
+      return 2;
+    case "lg":
+      return 2;
+    case "xl":
+      return 2;
+    case "2xl":
+      return 3;
+  }
 };
