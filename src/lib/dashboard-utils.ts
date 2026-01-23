@@ -29,7 +29,7 @@ export const getDashboardMaxReadNextBooksCount = (
     case "xl":
       return 3;
     case "2xl":
-      return 8;
+      return 5;
   }
 };
 export const getDashboardRecentlyReadBooksCount = (
