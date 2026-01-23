@@ -12,6 +12,34 @@ import { calculatePagesFromProgress } from "@/lib/book-utils";
 export type ReadingProgressWithBook = ReadingProgress & {
   book: Pick<Book, "pageCount" | "id" | "title">;
 };
+
+export type ReadingProgressWithProgressSinceLast = ReadingProgress & {
+  progressSinceLast: number;
+};
+
+/**
+ * Transforms a chronologically-ordered array of reading progress entries
+ * by adding `progressSinceLast` to each entry.
+ *
+ * @param history - Array of reading progress entries (must be in chronological order)
+ * @returns Transformed array with progressSinceLast calculated for each entry
+ */
+export function transformProgressHistory(
+  history: ReadingProgress[],
+): ReadingProgressWithProgressSinceLast[] {
+  const transformed: ReadingProgressWithProgressSinceLast[] = [];
+  let lastProgress = 0;
+
+  history.forEach((element) => {
+    transformed.push({
+      ...element,
+      progressSinceLast: element.progress - lastProgress,
+    });
+    lastProgress = element.progress;
+  });
+
+  return transformed;
+}
 export interface DailyStats {
   pagesToday: number;
   averagePagesPerDay: number;
