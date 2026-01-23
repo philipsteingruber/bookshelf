@@ -17,9 +17,11 @@ import {
   calculateStreakDetails,
   calculateWeeklyStats,
   calculateYearlyStats,
+  transformProgressHistory,
 } from "./reading-stats-utils";
 import {
   createFakeBook,
+  createFakeReadingProgress,
   createFakeReadingProgressWithBook,
 } from "./test-utils";
 
@@ -819,6 +821,45 @@ describe("reading-stats-utils", () => {
           ),
         } satisfies StreakDetails,
       } satisfies ReadingStats);
+    });
+  });
+  describe("transformProgressHistory", () => {
+    it("should handle empty history (return empty array)", () => {
+      const result = transformProgressHistory([]);
+
+      expect(result).toEqual([]);
+    });
+
+    it("should add progressSinceLast field to each entry", () => {
+      const entry = createFakeReadingProgress({ progress: 25 });
+
+      const result = transformProgressHistory([entry]);
+
+      expect(result[0]).toHaveProperty("progressSinceLast");
+    });
+
+    it("should calculate first entry's progressSinceLast as its own progress", () => {
+      const entry = createFakeReadingProgress({ progress: 25 });
+
+      const result = transformProgressHistory([entry]);
+
+      expect(result[0].progressSinceLast).toEqual(25);
+    });
+
+    it("should calculate subsequent entries correctly (current - previous)", () => {
+      const firstEntry = createFakeReadingProgress({ id: "1", progress: 25 });
+      const secondEntry = createFakeReadingProgress({ id: "2", progress: 50 });
+      const thirdEntry = createFakeReadingProgress({ id: "3", progress: 75 });
+
+      const result = transformProgressHistory([
+        firstEntry,
+        secondEntry,
+        thirdEntry,
+      ]);
+
+      expect(result[0].progressSinceLast).toEqual(25);
+      expect(result[1].progressSinceLast).toEqual(25);
+      expect(result[2].progressSinceLast).toEqual(25);
     });
   });
 });
