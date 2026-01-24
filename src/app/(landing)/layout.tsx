@@ -7,7 +7,7 @@ const Layout = ({
   children: React.ReactNode;
 }): React.ReactElement => {
   return (
-    <div className="flex h-full w-full flex-col">
+    <div className="flex min-h-screen w-full flex-col">
       <LandingHeader />
       <div className="flex h-full w-full flex-1 flex-col">{children}</div>
       <LandingFooter />
