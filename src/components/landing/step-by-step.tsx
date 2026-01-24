@@ -30,7 +30,7 @@ const StepByStep = (): React.ReactElement => {
       <SignUpButton>
         <Button
           size={"lg"}
-          className="mt-8 w-full p-6 text-xl sm:w-1/2 lg:w-1/3"
+          className="mt-8 w-full p-6 text-xl sm:w-1/2 lg:w-1/2"
         >
           Create Your BookShelf Now
         </Button>
