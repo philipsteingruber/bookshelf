@@ -162,13 +162,13 @@ const Page = (): React.ReactElement => {
         </span>
       )}
       {readingBooksCount > 0 && (
-        <div className="mb-4 flex w-full flex-1 flex-col items-center gap-y-2 md:items-start xl:w-4/5">
+        <div className="mb-4 flex w-full flex-1 flex-col items-center gap-y-2 md:items-start xl:h-full xl:w-4/5">
           <StatusCategoryHeader
             text="Currently Reading"
             count={readingBooksCount}
             visibleCount={readingBooksToShowCount}
           />
-          <div className="flex flex-wrap gap-4 md:flex-nowrap md:gap-x-4 md:overflow-x-auto">
+          <div className="flex flex-wrap justify-center gap-4 md:flex-nowrap md:justify-start md:gap-x-4 md:overflow-x-auto xl:h-full">
             {readingBooksToShow.map((book) =>
               breakPoint === "sm" ? (
                 <BookCard
@@ -184,7 +184,7 @@ const Page = (): React.ReactElement => {
           </div>
         </div>
       )}
-      <div className="mb-4 flex w-full flex-col items-center gap-y-4 pr-4 md:gap-x-8 lg:flex-row lg:items-start">
+      <div className="mb-4 flex w-full flex-col items-center gap-y-4 md:pr-4 md:gap-x-8 lg:flex-row lg:items-start">
         {readNextBooksCount > 0 && (
           <div className="flex w-full flex-1 flex-col items-center gap-y-2 md:w-3/5 md:items-start">
             <StatusCategoryHeader

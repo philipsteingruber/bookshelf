@@ -39,11 +39,11 @@ const ReadingProgressCard = ({ book }: { book: Book }): React.ReactElement => {
 
   return (
     <div
-      className="w-full min-w-[200px] md:w-auto md:min-w-[280px]"
+      className="w-full min-w-[200px] md:w-auto md:min-w-[280px] xl:h-full xl:w-full"
       onMouseEnter={handleMouseEnter}
     >
-      <Card className="hover:bg-card/80 h-auto min-h-48 w-full overflow-hidden rounded-md py-0 md:h-48">
-        <CardContent className="flex h-full p-0">
+      <Card className="hover:bg-card/80 h-auto min-h-48 w-full overflow-hidden rounded-md py-0 md:h-48 xl:h-full xl:max-w-[500px]">
+        <CardContent className="flex h-full w-full p-0">
           <div className="relative aspect-2/3 h-full shrink-0 bg-linear-to-br from-gray-100 to-gray-200">
             {imageError ? (
               <div className="flex h-full w-full items-center justify-center bg-linear-to-br from-slate-200 via-slate-300 to-slate-400 p-2">
@@ -67,7 +67,7 @@ const ReadingProgressCard = ({ book }: { book: Book }): React.ReactElement => {
                   src={coverUrl}
                   alt={book.title}
                   fill
-                  sizes="128px"
+                  sizes="(max-width: 768px) 100vw, 200px"
                   style={{ objectFit: "cover" }}
                   priority
                   placeholder="blur"
@@ -77,16 +77,23 @@ const ReadingProgressCard = ({ book }: { book: Book }): React.ReactElement => {
               </Link>
             )}
           </div>
-          <div className="flex flex-1 gap-x-2 p-1">
-            <Link href={`/books/${book.id}`} className="flex flex-1">
-              <div className="flex w-full flex-col justify-center gap-y-1 px-2">
-                <div className="flex flex-col gap-y-1">
-                  <span className="font-semibold">{book.title}</span>
-                  <span className="font-serif">{book.author}</span>
+          <div className="flex w-full min-w-0 flex-1 gap-x-2 p-1">
+            <Link
+              href={`/books/${book.id}`}
+              className="flex w-full min-w-0 flex-1"
+            >
+              <div className="flex w-full min-w-0 flex-col justify-center gap-y-1 px-2">
+                <div className="flex w-full min-w-0 flex-col gap-y-1">
+                  <span className="w-full truncate font-semibold">
+                    {book.title}
+                  </span>
+                  <span className="w-full truncate font-serif">
+                    {book.author}
+                  </span>
                 </div>
                 <div className="flex w-full items-center gap-x-2">
                   <span className="text-sm">{book.progress}%</span>
-                  <Progress value={book.progress} className="w-full" />
+                  <Progress value={book.progress} className="h-3 w-full" />
                 </div>
               </div>
             </Link>
