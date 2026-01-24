@@ -184,7 +184,7 @@ const Page = (): React.ReactElement => {
           </div>
         </div>
       )}
-      <div className="mb-4 flex w-full flex-col items-center gap-y-4 md:pr-4 md:gap-x-8 lg:flex-row lg:items-start">
+      <div className="mb-4 flex w-full flex-col items-center gap-y-4 md:items-start md:pr-4 md:gap-x-8 lg:flex-row">
         {readNextBooksCount > 0 && (
           <div className="flex w-full flex-1 flex-col items-center gap-y-2 md:w-3/5 md:items-start">
             <StatusCategoryHeader
