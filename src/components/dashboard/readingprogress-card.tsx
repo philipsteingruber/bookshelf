@@ -39,7 +39,7 @@ const ReadingProgressCard = ({ book }: { book: Book }): React.ReactElement => {
 
   return (
     <div
-      className="w-full min-w-[200px] md:w-auto md:min-w-[280px] xl:h-full xl:w-full"
+      className="w-full min-w-[240px] md:w-auto md:min-w-[450px] xl:h-full xl:w-full"
       onMouseEnter={handleMouseEnter}
     >
       <Card className="hover:bg-card/80 h-auto min-h-48 w-full overflow-hidden rounded-md py-0 md:h-48 xl:h-full xl:max-w-[500px]">
@@ -77,7 +77,7 @@ const ReadingProgressCard = ({ book }: { book: Book }): React.ReactElement => {
               </Link>
             )}
           </div>
-          <div className="flex w-full min-w-0 flex-1 gap-x-2 p-1">
+          <div className="relative flex w-full min-w-0 flex-1 gap-x-2 p-1">
             <Link
               href={`/books/${book.id}`}
               className="flex w-full min-w-0 flex-1"
@@ -107,7 +107,7 @@ const ReadingProgressCard = ({ book }: { book: Book }): React.ReactElement => {
                     <DialogTrigger asChild>
                       <Button
                         variant={"ghost"}
-                        className="hover:border-primary hover:ring-primary cursor-pointer border-none hover:border-2 hover:ring-2"
+                        className="hover:border-primary hover:ring-primary absolute right-1 bottom-1 cursor-pointer border-none hover:border-2 hover:ring-2"
                       >
                         <PenIcon />
                       </Button>
