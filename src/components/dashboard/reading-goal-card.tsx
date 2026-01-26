@@ -68,7 +68,7 @@ const ReadingGoalCard = ({
   };
 
   return (
-    <Card className={cn("h-40 min-h-40 w-full", className)}>
+    <Card className={cn("h-40 w-full", className)}>
       <CardContent className="flex w-full justify-between">
         <div className="mt-2 flex w-full -translate-y-3 flex-col items-center gap-y-1">
           <span className="text-xs font-semibold lg:hidden">READING GOAL</span>

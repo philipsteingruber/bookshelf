@@ -38,6 +38,7 @@ import type { ReadStatus } from "@/generated/prisma/enums";
 import type { BookScalarFieldEnum } from "@/generated/prisma/internal/prismaNamespace";
 import { useBooks } from "@/hooks/use-books";
 import { DEFAULT_FILTER, DEFAULT_SORTING } from "@/lib/constants";
+import { cn } from "@/lib/utils";
 
 type SortItem = { Icon: LucideIcon; text: string; value: string };
 const sortGroups: { text: string; items: SortItem[] }[] = [
@@ -194,6 +195,7 @@ const Page = (): React.ReactElement => {
         selectedFilter={selectedFilter}
         onFilterChange={setSelectedFilter}
         onClearFilters={handleClearFilters}
+        className="w-full md:w-5/6"
       />
       <div className="grid w-full grid-cols-2 items-center gap-4 px-4 pt-4 sm:grid-cols-3 md:w-5/6 md:grid-cols-4 md:px-0 xl:grid-cols-5 2xl:grid-cols-6">
         {books.map((book) => (
@@ -212,6 +214,7 @@ const LibraryFilterPicker = ({
   selectedFilter,
   onFilterChange,
   onClearFilters,
+  className,
 }: {
   selectedSorting: SortOptions;
   onSortingChange: (value: SortOptions) => void;
@@ -220,6 +223,7 @@ const LibraryFilterPicker = ({
   selectedFilter: ReadStatus | "ALL_BOOKS";
   onFilterChange: (value: ReadStatus | "ALL_BOOKS") => void;
   onClearFilters: () => void;
+  className?: string;
 }): React.ReactElement => {
   const getSelectedSort = (): SortItem | undefined => {
     return sortGroups
@@ -235,7 +239,12 @@ const LibraryFilterPicker = ({
     selectedSorting !== DEFAULT_SORTING;
 
   return (
-    <Card className="flex w-full flex-col items-center justify-center rounded-md px-4 py-4 md:w-5/6 md:px-6">
+    <Card
+      className={cn(
+        "flex flex-col items-center justify-center rounded-md px-4 py-4 md:px-6",
+        className,
+      )}
+    >
       <div className="flex w-full flex-col items-center gap-y-4 sm:gap-y-2 md:flex-row md:justify-between">
         <span className="flex items-center gap-x-2 text-sm">
           <FilterIcon className="size-6" />

@@ -27,7 +27,7 @@ export const getDashboardMaxReadNextBooksCount = (
     case "lg":
       return 2;
     case "xl":
-      return 4;
+      return 3;
     case "2xl":
       return 5;
   }
@@ -43,7 +43,7 @@ export const getDashboardRecentlyReadBooksCount = (
     case "lg":
       return 2;
     case "xl":
-      return 3;
+      return 2;
     case "2xl":
       return 3;
   }
