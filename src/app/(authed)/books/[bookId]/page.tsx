@@ -307,12 +307,18 @@ const Page = ({
                 <PenIcon className="size-3" />
               </div>
               <span className="text-secondary align-middle">•</span>
-              <span className="text-sm">
-                Published{" "}
-                <span className="text-sm font-semibold">
-                  {book.publishedYear}
+              {book.publishedYear ? (
+                <span className="text-sm">
+                  Published{" "}
+                  <span className="text-sm font-semibold">
+                    {book.publishedYear}
+                  </span>
                 </span>
-              </span>
+              ) : (
+                <span className="text-sm font-semibold">
+                  Unknown publishing year
+                </span>
+              )}
             </div>
             {isReading && (
               <div className="relative w-full lg:w-3/4">

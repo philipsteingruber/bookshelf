@@ -251,7 +251,7 @@ export function createMockUseQueryReturn<TData = null>(
     isError: boolean;
     error: Error | null;
   }> = {},
-) {
+): never {
   return {
     data: null as TData,
     isLoading: false,

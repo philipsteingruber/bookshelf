@@ -66,7 +66,7 @@ model Book {
     progress  Int @default(0)
 
     rating          Int?
-    goodreadsRating Decimal?
+    goodreadsRating Decimal? @db.Decimal(3, 2)
     goodreadsUrl    String?
     googleBooksUrl  String?
     review          String?  @db.Text
@@ -78,7 +78,7 @@ model Book {
     series      String?
     seriesIndex Int?
 
-    publishedYear Int
+    publishedYear Int?
 
     summary String? @db.Text
 
@@ -100,6 +100,7 @@ model Book {
     @@index([author])
     @@index([series])
     @@index([rating])
+    @@index([finishedAt])
     @@index([status, userId])
 }
 
@@ -120,4 +121,5 @@ model ReadingProgress {
 
     @@index([userId])
     @@index([bookId])
+    @@index([bookId, createdAt])
 }
