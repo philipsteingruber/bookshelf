@@ -30,7 +30,6 @@ model User {
     readingGoals      ReadingGoal[]
 
     @@index([clerkId])
-    @@index([email])
 }
 
 model ReadingGoal {
@@ -43,7 +42,6 @@ model ReadingGoal {
     userId String
 
     @@unique([userId, year])
-    @@index([year, userId])
 }
 
 enum ReadStatus {
@@ -96,12 +94,9 @@ model Book {
     @@unique([series, seriesIndex, userId])
     @@unique([isbn, userId])
     @@index([userId])
-    @@index([status])
-    @@index([author])
-    @@index([series])
-    @@index([rating])
-    @@index([finishedAt])
     @@index([status, userId])
+    @@index([userId, createdAt])
+    @@index([userId, updatedAt])
 }
 
 model ReadingProgress {
@@ -122,4 +117,5 @@ model ReadingProgress {
     @@index([userId])
     @@index([bookId])
     @@index([bookId, createdAt])
+    @@index([userId, createdAt])
 }
