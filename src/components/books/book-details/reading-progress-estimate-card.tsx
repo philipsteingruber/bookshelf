@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { calculatePagesFromProgress } from "@/lib/book-utils";
 import { formatEstimatedDate } from "@/lib/chart-utils";
 
 interface ReadingProgressEstimateCardProps {
@@ -7,6 +8,7 @@ interface ReadingProgressEstimateCardProps {
   daysRemaining: number | null;
   slope: number;
   pageCount: number;
+  averagePace: number;
 }
 
 export const ReadingProgressEstimateCard = ({
@@ -15,6 +17,7 @@ export const ReadingProgressEstimateCard = ({
   daysRemaining,
   slope,
   pageCount,
+  averagePace,
 }: ReadingProgressEstimateCardProps): React.ReactElement => {
   const isFinished = currentProgress >= 100;
   const canEstimate = slope > 0 && !isFinished;
@@ -35,8 +38,8 @@ export const ReadingProgressEstimateCard = ({
         <div>
           <p className="text-muted-foreground text-sm">Average Pace</p>
           <p className="text-lg font-semibold">
-            {slope > 0
-              ? `${slope.toFixed(1)}% (${((parseFloat(slope.toFixed(1)) / 100) * pageCount).toFixed(1)} pages) per day`
+            {averagePace > 0
+              ? `${averagePace.toFixed(1)}% (${calculatePagesFromProgress(averagePace, pageCount)} pages) per day`
               : "Not enough data"}
           </p>
         </div>

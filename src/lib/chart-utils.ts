@@ -202,3 +202,29 @@ export const estimateCompletion = (
 
   return { estimatedDate, daysRemaining };
 };
+
+export const calculateAveragePace = (
+  readingHistory: ReadingProgressWithProgressSinceLast[],
+): number => {
+  if (readingHistory.length < 2) {
+    return 0;
+  }
+
+  const sortedHistory = [...readingHistory].sort(
+    (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
+  );
+
+  const firstEntry = sortedHistory[0];
+  const lastEntry = sortedHistory[sortedHistory.length - 1];
+
+  const daysElapsed = differenceInDays(
+    startOfDay(lastEntry.createdAt),
+    startOfDay(firstEntry.createdAt),
+  );
+
+  if (daysElapsed === 0) {
+    return 0;
+  }
+
+  return lastEntry.progress / daysElapsed;
+};

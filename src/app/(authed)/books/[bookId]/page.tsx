@@ -41,6 +41,7 @@ import { useReadingHistory } from "@/hooks/use-reading-history";
 import { getStatusButtonStyle, parseReadStatus } from "@/lib/book-utils";
 import {
   aggregateByDay,
+  calculateAveragePace,
   calculateTrendline,
   type ChartDataPoint,
   estimateCompletion,
@@ -116,6 +117,8 @@ const Page = ({
     });
 
   const { isSignedIn, isLoaded } = useAuth();
+
+  const averagePace = calculateAveragePace(readingHistory);
 
   // Show loading state until Clerk has loaded - ensures server/client render the same thing
   if (!isLoaded || isPending) {
@@ -349,6 +352,7 @@ const Page = ({
               daysRemaining={daysRemaining}
               slope={slope}
               pageCount={book.pageCount}
+              averagePace={averagePace}
             />
             <ReadingProgressHistory
               readingProgressHistory={readingHistory}
