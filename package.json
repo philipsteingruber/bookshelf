@@ -15,7 +15,8 @@
     "test:ui": "vitest --ui",
     "prisma:studio": "prisma studio --browser none",
     "postinstall": "prisma generate",
-    "prepare": "husky"
+    "prepare": "husky",
+    "cleanup:covers": "tsx scripts/cleanup-orphaned-covers.ts"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.36.5",
