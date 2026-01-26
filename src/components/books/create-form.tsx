@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -145,6 +145,17 @@ const CreateBookForm = (): React.ReactElement => {
     createBook({ ...data, coverUrl });
   };
 
+  const importUrlRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isImportPanelOpen) {
+      const timer = setTimeout(() => {
+        importUrlRef.current?.focus();
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [isImportPanelOpen]);
+
   return (
     <Card className="w-full md:w-2/3 xl:w-1/2">
       <CardHeader className="flex flex-col items-center">
@@ -159,17 +170,27 @@ const CreateBookForm = (): React.ReactElement => {
           className="mt-6 mb-2 flex w-full flex-col items-center justify-center text-center md:w-2/3 xl:w-1/2"
         >
           <div className="flex items-center justify-between gap-x-4">
-            Want to get started with data from GoodReads?
             <CollapsibleTrigger asChild>
-              <Button>
-                <ChevronDown
+              <div className="flex cursor-pointer items-center justify-between gap-x-4">
+                <span
                   className={
                     isImportPanelOpen
-                      ? "rotate-180 transition-transform"
-                      : "transition-transform"
+                      ? "text-muted-foreground transition-colors"
+                      : ""
                   }
-                />
-              </Button>
+                >
+                  Want to get started with data from GoodReads?
+                </span>
+                <Button>
+                  <ChevronDown
+                    className={
+                      isImportPanelOpen
+                        ? "rotate-180 transition-transform"
+                        : "transition-transform"
+                    }
+                  />
+                </Button>
+              </div>
             </CollapsibleTrigger>
           </div>
           <CollapsibleContent className="my-2 w-full rounded-md border p-2">
@@ -178,6 +199,7 @@ const CreateBookForm = (): React.ReactElement => {
                 <Label htmlFor="importUrl">GoodReads URL</Label>
                 <Input
                   id="importUrl"
+                  ref={importUrlRef}
                   className="w-64"
                   disabled={isImportingFromGoodReads}
                   value={inputUrl}
@@ -187,6 +209,11 @@ const CreateBookForm = (): React.ReactElement => {
                   }}
                   onBlur={(evt) => {
                     validateUrl(evt.target.value);
+                  }}
+                  onKeyDown={(evt) => {
+                    if (evt.key === "Enter" && !urlError && inputUrl) {
+                      importFromGoodReads(inputUrl);
+                    }
                   }}
                 />
                 {urlError && (
