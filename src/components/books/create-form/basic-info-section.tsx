@@ -1,3 +1,4 @@
+import type { RefObject } from "react";
 import type { UseFormReturn } from "react-hook-form";
 import { Controller } from "react-hook-form";
 import type z from "zod";
@@ -13,6 +14,7 @@ import type { createFormSchema } from "@/lib/schemas/book";
 
 interface BasicInfoSectionProps {
   form: UseFormReturn<z.infer<typeof createFormSchema>>;
+  titleInputRef: RefObject<HTMLInputElement | null>;
 }
 
 const MandatoryFieldMarker = (): React.ReactElement => {
@@ -21,6 +23,7 @@ const MandatoryFieldMarker = (): React.ReactElement => {
 
 export const BasicInfoSection = ({
   form,
+  titleInputRef,
 }: BasicInfoSectionProps): React.ReactElement => {
   return (
     <FieldGroup>
@@ -35,6 +38,10 @@ export const BasicInfoSection = ({
             <Input
               {...field}
               id="create-book-form-title"
+              ref={(node) => {
+                field.ref(node);
+                if (titleInputRef) titleInputRef.current = node;
+              }}
               aria-invalid={fieldState.invalid}
               placeholder="Fellowship of the Ring"
               autoComplete="off"

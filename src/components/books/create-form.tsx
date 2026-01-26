@@ -67,9 +67,9 @@ const CreateBookForm = (): React.ReactElement => {
   });
   const validateUrl = (url: string): void => {
     const result = z.url().safeParse(url);
-    if (!result.success) {
+    if (!result.success && inputUrl) {
       setUrlError("Please enter a valid URL");
-    } else if (!url.includes("goodreads.com")) {
+    } else if (!url.includes("goodreads.com") && inputUrl) {
       setUrlError("URL must be from goodreads.com");
     } else {
       setUrlError(null);
@@ -146,13 +146,18 @@ const CreateBookForm = (): React.ReactElement => {
   };
 
   const importUrlRef = useRef<HTMLInputElement>(null);
+  const titleRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (isImportPanelOpen) {
       const timer = setTimeout(() => {
         importUrlRef.current?.focus();
       }, 50);
-      return () => clearTimeout(timer);
+      return () => {
+        clearTimeout(timer);
+      };
+    } else {
+      titleRef.current?.focus();
     }
   }, [isImportPanelOpen]);
 
@@ -233,7 +238,7 @@ const CreateBookForm = (): React.ReactElement => {
       </CardHeader>
       <CardContent>
         <form id="create-book-form" onSubmit={form.handleSubmit(onSubmit)}>
-          <BasicInfoSection form={form} />
+          <BasicInfoSection form={form} titleInputRef={titleRef} />
           <Separator className="my-4" />
           <OptionalInfoSection form={form} />
           <CoverDropzone
