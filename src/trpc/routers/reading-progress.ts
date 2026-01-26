@@ -239,4 +239,63 @@ export const readingProgressRouter = createTRPCRouter({
 
     return { allProgress };
   }),
+  deleteReadingProgressInstance: authedProcedure
+    .input(z.string().min(1))
+    .mutation(async ({ input: readingProgressId, ctx }) => {
+      ctx.logger.debug({ readingProgressId }, "Deleting reading progress instance");
+
+      const fetchReadingProgressTimer = performanceLogger(
+        "DB: Fetch reading progress for deletion",
+        500,
+        ctx.logger,
+      );
+
+      fetchReadingProgressTimer.start();
+      const readingProgress = await ctx.db.readingProgress.findUnique({
+        where: { id: readingProgressId },
+        include: { book: true },
+      });
+      fetchReadingProgressTimer.end({ readingProgressId });
+
+      if (!readingProgress) {
+        ctx.logger.warn(
+          { readingProgressId },
+          `No reading progress with ID ${readingProgressId} found for deletion`,
+        );
+        throw new TRPCError({ code: "NOT_FOUND" });
+      }
+
+      if (readingProgress.book.userId !== ctx.currentUser.id) {
+        ctx.logger.warn(
+          {
+            bookId: readingProgress.book.id,
+            bookOwnerId: readingProgress.book.userId,
+            attemptedBy: ctx.currentUser.id,
+          },
+          "Permission denied: Attempted to access another user's book",
+        );
+        throw new TRPCError({ code: "FORBIDDEN" });
+      }
+
+      const deleteReadingProgressTimer = performanceLogger(
+        "DB: Delete reading progress instance",
+        500,
+        ctx.logger,
+      );
+
+      deleteReadingProgressTimer.start();
+      await ctx.db.readingProgress.delete({ where: { id: readingProgressId } });
+      deleteReadingProgressTimer.end({ readingProgressId });
+
+      ctx.logger.info(
+        {
+          readingProgressId,
+          bookId: readingProgress.bookId,
+          progress: readingProgress.progress,
+        },
+        "Reading progress instance deleted",
+      );
+
+      return;
+    }),
 });

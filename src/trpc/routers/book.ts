@@ -1,4 +1,5 @@
 import { TRPCError } from "@trpc/server";
+import { UTApi } from "uploadthing/server";
 import z from "zod";
 
 import { ReadStatus } from "@/generated/prisma/enums";
@@ -11,6 +12,7 @@ import { createAuthorSort, createTitleSort } from "@/lib/book-utils";
 import { VALIDATION_LIMITS } from "@/lib/constants";
 import { performanceLogger } from "@/lib/logger";
 import { createFormSchema } from "@/lib/schemas/book";
+import { extractFileKeyFromUrl } from "@/lib/uploadthing-utils";
 
 import { authedProcedure, createTRPCRouter } from "../init";
 
@@ -420,5 +422,79 @@ export const bookRouter = createTRPCRouter({
       );
 
       return updatedBook;
+    }),
+  deleteBook: authedProcedure
+    .input(z.number().int().nonnegative())
+    .mutation(async ({ input: bookId, ctx }) => {
+      ctx.logger.debug({ bookId }, "Deleting book");
+
+      const fetchBookTimer = performanceLogger(
+        "DB: Fetch book for deletion",
+        500,
+        ctx.logger,
+      );
+
+      fetchBookTimer.start();
+      const book = await ctx.db.book.findUnique({ where: { id: bookId } });
+      fetchBookTimer.end({ bookId });
+
+      if (!book) {
+        ctx.logger.warn(
+          { bookId },
+          `No book with ID ${bookId} found for deletion`,
+        );
+        throw new TRPCError({ code: "NOT_FOUND" });
+      }
+      if (book.userId !== ctx.currentUser.id) {
+        ctx.logger.warn(
+          {
+            bookId,
+            bookOwnerId: book.userId,
+            attemptedBy: ctx.currentUser.id,
+          },
+          "Permission denied: Attempted to access another user's book",
+        );
+        throw new TRPCError({ code: "FORBIDDEN" });
+      }
+
+      const deleteBookTimer = performanceLogger(
+        "DB: Delete book",
+        500,
+        ctx.logger,
+      );
+
+      deleteBookTimer.start();
+      await ctx.db.book.delete({ where: { id: bookId } });
+      deleteBookTimer.end({ bookId });
+
+      if (book.coverUrl) {
+        const fileKey = extractFileKeyFromUrl(book.coverUrl);
+        if (fileKey) {
+          try {
+            const utApi = new UTApi();
+            await utApi.deleteFiles(fileKey);
+            ctx.logger.info(
+              { fileKey, bookId },
+              "Cover image deleted from UploadThing",
+            );
+          } catch (error) {
+            ctx.logger.error(
+              { fileKey, bookId, error },
+              "Failed to delete cover from UploadThing",
+            );
+          }
+        }
+      }
+
+      ctx.logger.info(
+        {
+          bookId,
+          title: book.title,
+          author: book.author,
+        },
+        "Book deleted",
+      );
+
+      return;
     }),
 });
