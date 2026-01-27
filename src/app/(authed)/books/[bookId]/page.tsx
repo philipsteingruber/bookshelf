@@ -3,10 +3,11 @@
 import { use, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import { RedirectToSignIn, useAuth } from "@clerk/nextjs";
 import type { TRPCError } from "@trpc/server";
-import { PenIcon } from "lucide-react";
+import { PenIcon, TrashIcon } from "lucide-react";
 import { toast } from "sonner";
 
 import { ReadingProgressEstimateCard } from "@/components/books/book-details/reading-progress-estimate-card";
@@ -20,7 +21,9 @@ import {
   Dialog,
   DialogClose,
   DialogContent,
+  DialogDescription,
   DialogFooter,
+  DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
@@ -47,6 +50,7 @@ import {
   estimateCompletion,
 } from "@/lib/chart-utils";
 import { BOOK_COVER_PLACEHOLDER_URL } from "@/lib/constants";
+import { handleTRPCError } from "@/lib/error-handler";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/trpc/client";
 
@@ -82,6 +86,19 @@ const Page = ({
   const [imageError, setImageError] = useState(false);
   const [pageCountLabelContent, setPageCountLabelContent] =
     useState<string>("");
+
+  const router = useRouter();
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
+  const { mutate: deleteBook, isPending: isDeleting } =
+    trpc.book.deleteBook.useMutation({
+      onSuccess: () => {
+        toast.success(`Deleted ${book ? book.title : "book"} from BookShelf`);
+        router.replace("/dashboard");
+      },
+      onError: (error) => {
+        handleTRPCError(error);
+      },
+    });
 
   const coverUrl = book?.coverUrl || BOOK_COVER_PLACEHOLDER_URL;
   const statusOptions: ReadStatus[] = [
@@ -283,20 +300,66 @@ const Page = ({
             {book.series && book.seriesIndex && (
               <p className="font-serif text-sm font-light italic">{`${book.series} #${book.seriesIndex}`}</p>
             )}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Link
-                  href={`https://www.goodreads.com/search?utf8=%E2%9C%93&q=${book.title}+${book.author}&search_type=books&search%5Bfield%5D=on`}
-                  target="_blank"
-                  className="w-fit font-serif text-4xl font-semibold hover:underline"
-                >
-                  {book.title}
-                </Link>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>{`Search "${book.title} ${book.author}" on GoodReads`}</p>
-              </TooltipContent>
-            </Tooltip>
+            <div className="flex w-3/4 items-center justify-between gap-x-4">
+              <Dialog
+                open={isDeleteDialogOpen}
+                onOpenChange={setIsDeleteDialogOpen}
+              >
+                <DialogTrigger className="flex w-full items-center justify-between">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Link
+                        href={`https://www.goodreads.com/search?utf8=%E2%9C%93&q=${book.title}+${book.author}&search_type=books&search%5Bfield%5D=on`}
+                        target="_blank"
+                        className="w-fit font-serif text-4xl font-semibold hover:underline"
+                      >
+                        {book.title}
+                      </Link>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{`Search "${book.title} ${book.author}" on GoodReads`}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        className="bg-destructive/90 text-foreground hover:bg-destructive/70 hover:text-muted-foreground transition-colors"
+                        onClick={() => setIsDeleteDialogOpen(true)}
+                      >
+                        <TrashIcon />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{`Delete '${book.title}' from BookShelf`}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>{`Delete '${book.title}'?`}</DialogTitle>
+                    <DialogDescription>{`This will permanently delete '${book.title}' and all its reading progress from your BookShelf. This cannot be undone.`}</DialogDescription>
+                  </DialogHeader>
+                  <div className="flex w-full flex-col gap-y-4 lg:flex-row lg:gap-x-4">
+                    <Button
+                      onClick={() => setIsDeleteDialogOpen(false)}
+                      variant={"outline"}
+                      disabled={isDeleting}
+                      className="flex-1"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={() => deleteBook(book.id)}
+                      variant={"destructive"}
+                      disabled={isDeleting}
+                      className="flex-1"
+                    >
+                      {isDeleting ? <Spinner /> : "Confirm"}
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
 
             <span className="font-serif text-xl italic">{book.author}</span>
             <div className="text-primary flex items-center gap-x-4">

@@ -120,6 +120,7 @@ const CreateBookForm = (): React.ReactElement => {
         handleGoodReadsImport(data);
         setInputUrl("");
         setIsImportPanelOpen(false);
+        toast.success("Successfully imported from GoodReads!");
       },
       onError: (error) => {
         handleTRPCError(error);
