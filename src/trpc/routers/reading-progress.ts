@@ -242,7 +242,10 @@ export const readingProgressRouter = createTRPCRouter({
   deleteReadingProgressInstance: authedProcedure
     .input(z.string().min(1))
     .mutation(async ({ input: readingProgressId, ctx }) => {
-      ctx.logger.debug({ readingProgressId }, "Deleting reading progress instance");
+      ctx.logger.debug(
+        { readingProgressId },
+        "Deleting reading progress instance",
+      );
 
       const fetchReadingProgressTimer = performanceLogger(
         "DB: Fetch reading progress for deletion",
@@ -277,15 +280,44 @@ export const readingProgressRouter = createTRPCRouter({
         throw new TRPCError({ code: "FORBIDDEN" });
       }
 
-      const deleteReadingProgressTimer = performanceLogger(
-        "DB: Delete reading progress instance",
-        500,
+      const deleteReadingProgressTransactionTimer = performanceLogger(
+        "DB: Transaction - Delete ReadingProgress / Update Book Progress",
+        1000,
         ctx.logger,
       );
 
-      deleteReadingProgressTimer.start();
-      await ctx.db.readingProgress.delete({ where: { id: readingProgressId } });
-      deleteReadingProgressTimer.end({ readingProgressId });
+      deleteReadingProgressTransactionTimer.start();
+      try {
+        await ctx.db.$transaction(async (tx) => {
+          await tx.readingProgress.delete({
+            where: { id: readingProgressId },
+          });
+
+          const latestReadingProgress = await tx.readingProgress.findFirst({
+            where: {
+              bookId: readingProgress.bookId,
+              userId: ctx.currentUser.id,
+            },
+            orderBy: { progress: "desc" },
+          });
+
+          const newProgress = latestReadingProgress?.progress ?? 0;
+
+          await tx.book.update({
+            where: { id: readingProgress.bookId },
+            data: { progress: newProgress },
+          });
+        });
+        deleteReadingProgressTransactionTimer.end({ success: true });
+      } catch (error) {
+        deleteReadingProgressTransactionTimer.end({ success: false });
+        ctx.logger.error({ error, readingProgressId: readingProgress.id });
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to delete reading progress",
+          cause: error,
+        });
+      }
 
       ctx.logger.info(
         {
