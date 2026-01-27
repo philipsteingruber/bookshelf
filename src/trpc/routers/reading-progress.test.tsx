@@ -489,6 +489,42 @@ describe("readingProgressRouter", () => {
       });
     });
   });
+  describe("deleteReadingProgressInstance", () => {
+    beforeEach(() => vi.clearAllMocks());
+
+    it.todo("should delete reading progress entry successfully");
+
+    it.todo(
+      "should recalculate book progress to highest remaining entry after deletion",
+    );
+
+    it.todo("should set book progress to 0 when last entry is deleted");
+
+    it.todo("should throw NOT_FOUND when progress entry doesn't exist");
+
+    it.todo("should throw FORBIDDEN when user doesn't own the book");
+  });
+
+  describe("updateReadingProgressInstance", () => {
+    beforeEach(() => vi.clearAllMocks());
+
+    it.todo("should update progress entry successfully");
+
+    it.todo("should update comments without changing progress");
+
+    it.todo("should update book progress when editing the most recent entry");
+
+    it.todo("should not update book progress when editing an older entry");
+
+    it.todo("should reject progress below previous entry's progress");
+
+    it.todo("should reject progress above next entry's progress");
+
+    it.todo("should throw NOT_FOUND when progress entry doesn't exist");
+
+    it.todo("should throw FORBIDDEN when user doesn't own the book");
+  });
+
   describe("Edge Cases", () => {
     beforeEach(() => vi.clearAllMocks());
 

@@ -494,7 +494,165 @@ export const bookRouter = createTRPCRouter({
         },
         "Book deleted",
       );
+    }),
+  updateBook: authedProcedure
+    .input(
+      z.object({
+        bookId: z.number().int().nonnegative(),
+        data: createFormSchema.partial(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      ctx.logger.debug({ bookId: input.bookId }, "Updating book");
 
-      return;
+      const fetchBookTimer = performanceLogger(
+        "DB: Fetch book for update",
+        500,
+        ctx.logger,
+      );
+
+      fetchBookTimer.start();
+      const book = await ctx.db.book.findUnique({
+        where: { id: input.bookId },
+      });
+      fetchBookTimer.end({ bookId: input.bookId });
+
+      if (!book) {
+        ctx.logger.warn(
+          { bookId: input.bookId },
+          `No book with ID ${input.bookId} found for update`,
+        );
+        throw new TRPCError({ code: "NOT_FOUND" });
+      }
+      if (book.userId !== ctx.currentUser.id) {
+        ctx.logger.warn(
+          {
+            bookId: input.bookId,
+            bookOwnerId: book.userId,
+            attemptedBy: ctx.currentUser.id,
+          },
+          "Permission denied: Attempted to update another user's book",
+        );
+        throw new TRPCError({ code: "FORBIDDEN" });
+      }
+
+      const data = input.data;
+
+      if (data.series || data.seriesIndex) {
+        const updatedSeriesState = {
+          series: data.series || book.series,
+          seriesIndex: data.seriesIndex || book.seriesIndex,
+        };
+        if (updatedSeriesState.series && updatedSeriesState.seriesIndex) {
+          const seriesDuplicate = await ctx.db.book.findFirst({
+            where: {
+              id: { not: book.id },
+              series: {
+                equals: updatedSeriesState.series,
+                mode: "insensitive",
+              },
+              seriesIndex: updatedSeriesState.seriesIndex,
+              userId: ctx.currentUser.id,
+            },
+          });
+          if (seriesDuplicate) {
+            ctx.logger.warn(
+              {
+                bookId: input.bookId,
+                series: updatedSeriesState.series,
+                seriesIndex: updatedSeriesState.seriesIndex,
+                existingBookId: seriesDuplicate.id,
+                existingBookTitle: seriesDuplicate.title,
+              },
+              "Duplicate series entry detected during update",
+            );
+            throw new TRPCError({
+              code: "CONFLICT",
+              message: `You already have "${seriesDuplicate.title}" at position ${updatedSeriesState.seriesIndex} in ${updatedSeriesState.series}`,
+            });
+          }
+        }
+      }
+
+      if (data.isbn) {
+        const isbnDuplicate = await ctx.db.book.findFirst({
+          where: {
+            isbn: data.isbn,
+            userId: ctx.currentUser.id,
+            NOT: { id: book.id },
+          },
+        });
+        if (isbnDuplicate) {
+          ctx.logger.warn(
+            {
+              bookId: input.bookId,
+              isbn: data.isbn,
+              existingBookId: isbnDuplicate.id,
+              existingBookTitle: isbnDuplicate.title,
+            },
+            "Duplicate ISBN detected during update",
+          );
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: `You already have "${isbnDuplicate.title}" with ISBN ${data.isbn}`,
+          });
+        }
+      }
+
+      if (
+        book.coverUrl &&
+        data.coverUrl !== undefined &&
+        data.coverUrl !== book.coverUrl
+      ) {
+        const fileKeyToDelete = extractFileKeyFromUrl(book.coverUrl);
+        const utAPI = new UTApi();
+
+        if (fileKeyToDelete) {
+          try {
+            await utAPI.deleteFiles(fileKeyToDelete);
+            ctx.logger.info(
+              { fileKey: fileKeyToDelete, bookId: input.bookId },
+              "Old cover image deleted from UploadThing",
+            );
+          } catch (error) {
+            ctx.logger.warn(
+              { error, fileKey: fileKeyToDelete, bookId: input.bookId },
+              "Failed to delete old cover from UploadThing",
+            );
+          }
+        }
+      }
+
+      let titleSort = book.titleSort;
+      if (data.title) {
+        titleSort = createTitleSort(data.title);
+      }
+      let authorSort = book.authorSort;
+      if (data.author) {
+        authorSort = createAuthorSort(data.author);
+      }
+
+      const updateBookTimer = performanceLogger(
+        "DB: Update book",
+        500,
+        ctx.logger,
+      );
+
+      updateBookTimer.start();
+      const updatedBook = await ctx.db.book.update({
+        where: { id: input.bookId },
+        data: { ...data, titleSort, authorSort },
+      });
+      updateBookTimer.end({ bookId: input.bookId });
+
+      ctx.logger.info(
+        {
+          bookId: input.bookId,
+          updatedFields: Object.keys(data),
+        },
+        "Book updated successfully",
+      );
+
+      return { book: updatedBook };
     }),
 });

@@ -330,4 +330,95 @@ export const readingProgressRouter = createTRPCRouter({
 
       return;
     }),
+
+  updateReadingProgressInstance: authedProcedure
+    .input(
+      z.object({
+        progressId: z.string().min(1),
+        newProgress: z.number().int().nonnegative().max(100),
+        comments: z.string().optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const readingProgress = await ctx.db.readingProgress.findUnique({
+        where: { id: input.progressId },
+        include: { book: true },
+      });
+
+      if (!readingProgress) {
+        ctx.logger.warn(
+          { progressId: input.progressId },
+          `No reading progress with ID ${input.progressId} found for update`,
+        );
+        throw new TRPCError({ code: "NOT_FOUND" });
+      }
+      if (readingProgress.book.userId !== ctx.currentUser.id) {
+        ctx.logger.warn(
+          {
+            bookId: readingProgress.book.id,
+            bookOwnerId: readingProgress.book.userId,
+            attemptedBy: ctx.currentUser.id,
+          },
+          "Permission denied: Attempted to access another user's book",
+        );
+        throw new TRPCError({ code: "FORBIDDEN" });
+      }
+
+      const previousReadingProgressInstance =
+        await ctx.db.readingProgress.findFirst({
+          where: {
+            bookId: readingProgress.bookId,
+            createdAt: { lt: readingProgress.createdAt },
+          },
+          orderBy: { createdAt: "desc" },
+        });
+      const nextReadingProgressInstance =
+        await ctx.db.readingProgress.findFirst({
+          where: {
+            bookId: readingProgress.bookId,
+            createdAt: { gt: readingProgress.createdAt },
+          },
+          orderBy: { createdAt: "asc" },
+        });
+
+      if (
+        previousReadingProgressInstance &&
+        input.newProgress <= previousReadingProgressInstance.progress
+      ) {
+        throw new TRPCError({ code: "BAD_REQUEST" });
+      }
+      if (
+        nextReadingProgressInstance &&
+        input.newProgress >= nextReadingProgressInstance.progress
+      ) {
+        throw new TRPCError({ code: "BAD_REQUEST" });
+      }
+
+      const updatedProgress = await ctx.db.$transaction(async (tx) => {
+        try {
+          const updatedProgress = await tx.readingProgress.update({
+            where: { id: input.progressId },
+            data: { progress: input.newProgress, comments: input.comments },
+          });
+
+          if (!nextReadingProgressInstance) {
+            await tx.book.update({
+              where: { id: readingProgress.bookId },
+              data: { progress: input.newProgress },
+            });
+          }
+
+          return updatedProgress;
+        } catch (error) {
+          ctx.logger.error({ error, readingProgressId: readingProgress.id });
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Failed to update reading progress",
+            cause: error,
+          });
+        }
+      });
+
+      return { updatedProgress };
+    }),
 });

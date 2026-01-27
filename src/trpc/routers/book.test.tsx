@@ -591,6 +591,40 @@ describe("bookRouter", () => {
       });
     });
   });
+  describe("deleteBook", () => {
+    beforeEach(() => vi.clearAllMocks());
+
+    it.todo("should delete book successfully when user owns it");
+
+    it.todo(
+      "should delete associated cover image from UploadThing when book has cover",
+    );
+
+    it.todo("should throw NOT_FOUND when book doesn't exist");
+
+    it.todo("should throw FORBIDDEN when user doesn't own book");
+  });
+
+  describe("updateBook", () => {
+    beforeEach(() => vi.clearAllMocks());
+
+    it.todo("should update book fields successfully");
+
+    it.todo("should recalculate titleSort when title is updated");
+
+    it.todo("should recalculate authorSort when author is updated");
+
+    it.todo("should detect duplicate series position (excluding self)");
+
+    it.todo("should detect duplicate ISBN (excluding self)");
+
+    it.todo("should delete old cover from UploadThing when cover URL changes");
+
+    it.todo("should throw NOT_FOUND when book doesn't exist");
+
+    it.todo("should throw FORBIDDEN when user doesn't own book");
+  });
+
   describe("Edge Cases", () => {
     beforeEach(() => vi.clearAllMocks());
 
