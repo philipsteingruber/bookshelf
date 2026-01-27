@@ -92,7 +92,9 @@ const Page = ({
   const { mutate: deleteBook, isPending: isDeleting } =
     trpc.book.deleteBook.useMutation({
       onSuccess: () => {
-        toast.success(`Deleted ${book ? book.title : "book"} from BookShelf`);
+        toast.success(`Deleted ${book ? book.title : "book"} from BookShelf`, {
+          duration: 5000,
+        });
         router.replace("/dashboard");
       },
       onError: (error) => {
