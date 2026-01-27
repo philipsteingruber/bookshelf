@@ -1,3 +1,5 @@
+import { addDays } from "date-fns";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { calculatePagesFromProgress } from "@/lib/book-utils";
 import { formatEstimatedDate } from "@/lib/chart-utils";
@@ -14,13 +16,13 @@ interface ReadingProgressEstimateCardProps {
 export const ReadingProgressEstimateCard = ({
   currentProgress,
   estimatedDate,
-  daysRemaining,
   slope,
   pageCount,
   averagePace,
 }: ReadingProgressEstimateCardProps): React.ReactElement => {
   const isFinished = currentProgress >= 100;
   const canEstimate = slope > 0 && !isFinished;
+  const daysRemaining = (100 - currentProgress) / averagePace;
 
   return (
     <Card className="border-primary h-full w-full flex-1 border-2">
@@ -39,7 +41,7 @@ export const ReadingProgressEstimateCard = ({
           <p className="text-muted-foreground text-sm">Average Pace</p>
           <p className="text-lg font-semibold">
             {averagePace > 0
-              ? `${averagePace.toFixed(1)}% (${calculatePagesFromProgress(averagePace, pageCount)} pages) per day`
+              ? `${averagePace}% (${calculatePagesFromProgress(averagePace, pageCount)} pages) per day`
               : "Not enough data"}
           </p>
         </div>
@@ -49,10 +51,13 @@ export const ReadingProgressEstimateCard = ({
           <div className="border-border border-t pt-2">
             <p className="text-muted-foreground text-sm">Estimated Finish</p>
             <p className="text-foreground text-lg font-semibold">
-              {formatEstimatedDate(estimatedDate)}
+              {formatEstimatedDate(
+                addDays(new Date(), Math.round(daysRemaining)),
+              )}
             </p>
             <p className="text-muted-foreground text-sm">
-              ({daysRemaining} {daysRemaining === 1 ? "day" : "days"} remaining)
+              ({daysRemaining.toFixed(1)} {daysRemaining === 1 ? "day" : "days"}{" "}
+              remaining)
             </p>
           </div>
         )}
