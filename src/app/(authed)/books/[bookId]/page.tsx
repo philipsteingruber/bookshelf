@@ -102,6 +102,13 @@ const Page = ({
       },
     });
 
+  const handleOpenDeleteDialogChange = (open: boolean): void => {
+    if (isDeleting) {
+      return;
+    }
+    setIsDeleteDialogOpen(open);
+  };
+
   const coverUrl = book?.coverUrl || BOOK_COVER_PLACEHOLDER_URL;
   const statusOptions: ReadStatus[] = [
     "TO_READ",
@@ -305,7 +312,7 @@ const Page = ({
             <div className="flex w-3/4 items-center justify-between gap-x-4">
               <Dialog
                 open={isDeleteDialogOpen}
-                onOpenChange={setIsDeleteDialogOpen}
+                onOpenChange={handleOpenDeleteDialogChange}
               >
                 <DialogTrigger className="flex w-full items-center justify-between">
                   <Tooltip>
@@ -326,7 +333,7 @@ const Page = ({
                     <TooltipTrigger asChild>
                       <Button
                         className="bg-destructive/90 text-foreground hover:bg-destructive/70 hover:text-muted-foreground transition-colors"
-                        onClick={() => setIsDeleteDialogOpen(true)}
+                        onClick={() => handleOpenDeleteDialogChange(true)}
                       >
                         <TrashIcon />
                       </Button>
