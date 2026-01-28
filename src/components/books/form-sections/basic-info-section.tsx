@@ -14,7 +14,7 @@ import type { createFormSchema } from "@/lib/schemas/book";
 
 interface BasicInfoSectionProps {
   form: UseFormReturn<z.infer<typeof createFormSchema>>;
-  titleInputRef: RefObject<HTMLInputElement | null>;
+  titleInputRef?: RefObject<HTMLInputElement | null>;
   idPrefix?: "create" | "edit";
 }
 
