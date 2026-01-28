@@ -12,6 +12,15 @@ import {
 
 import { bookRouter } from "./book";
 
+const { mockDeleteFiles } = vi.hoisted(() => ({ mockDeleteFiles: vi.fn() }));
+vi.mock("uploadthing/server", () => {
+  return {
+    UTApi: class {
+      deleteFiles = mockDeleteFiles;
+    },
+  };
+});
+
 describe("bookRouter", () => {
   describe("createBook", () => {
     beforeEach(() => vi.clearAllMocks());
@@ -592,37 +601,83 @@ describe("bookRouter", () => {
     });
   });
   describe("deleteBook", () => {
-    beforeEach(() => vi.clearAllMocks());
+    beforeEach(() => {
+      mockDeleteFiles.mockClear();
+      vi.clearAllMocks();
+    });
 
-    it.todo("should delete book successfully when user owns it");
+    it("should delete book successfully when user owns it", async () => {
+      const { mockDb, caller } = createMockCaller(bookRouter);
 
-    it.todo(
-      "should delete associated cover image from UploadThing when book has cover",
-    );
+      const fakeBook = createFakeBook();
 
-    it.todo("should throw NOT_FOUND when book doesn't exist");
+      vi.mocked(mockDb.book.findUnique).mockResolvedValue(fakeBook);
+      vi.mocked(mockDb.book.delete).mockResolvedValue(fakeBook);
 
-    it.todo("should throw FORBIDDEN when user doesn't own book");
+      await caller.deleteBook(fakeBook.id);
+
+      expect(mockDb.book.delete).toHaveBeenCalledWith({
+        where: { id: fakeBook.id },
+      });
+    });
+
+    it("should delete associated cover image from UploadThing when book has cover", async () => {
+      const { mockDb, caller } = createMockCaller(bookRouter);
+
+      const fileKey = "abc123-cover.jpg";
+      const fakeBook = createFakeBook({
+        coverUrl: `https://utfs.io/f/${fileKey}`,
+      });
+
+      vi.mocked(mockDb.book.findUnique).mockResolvedValue(fakeBook);
+      mockDeleteFiles.mockResolvedValue({ success: true });
+
+      await caller.deleteBook(fakeBook.id);
+
+      expect(mockDeleteFiles).toHaveBeenCalledWith(fileKey);
+    });
+
+    it("should throw NOT_FOUND when book doesn't exist", async () => {
+      const { mockDb, caller } = createMockCaller(bookRouter);
+
+      vi.mocked(mockDb.book.findUnique).mockResolvedValue(null);
+
+      await expect(caller.deleteBook(1)).rejects.toMatchObject({
+        code: "NOT_FOUND",
+      });
+    });
+
+    it("should throw FORBIDDEN when user doesn't own book", async () => {
+      const { mockDb, caller, mockLogger } = createMockCaller(bookRouter);
+
+      const fakeBook = createFakeBook({ userId: "other-user" });
+      vi.mocked(mockDb.book.findUnique).mockResolvedValue(fakeBook);
+
+      await expect(caller.deleteBook(1)).rejects.toMatchObject({
+        code: "FORBIDDEN",
+      });
+      expect(mockLogger.warn).toHaveBeenCalled();
+    });
   });
 
   describe("updateBook", () => {
     beforeEach(() => vi.clearAllMocks());
 
-    it.todo("should update book fields successfully");
+    it.skip("should update book fields successfully", async () => {});
 
-    it.todo("should recalculate titleSort when title is updated");
+    it.skip("should recalculate titleSort when title is updated", async () => {});
 
-    it.todo("should recalculate authorSort when author is updated");
+    it.skip("should recalculate authorSort when author is updated", async () => {});
 
-    it.todo("should detect duplicate series position (excluding self)");
+    it.skip("should detect duplicate series position (excluding self)", async () => {});
 
-    it.todo("should detect duplicate ISBN (excluding self)");
+    it.skip("should detect duplicate ISBN (excluding self)", async () => {});
 
-    it.todo("should delete old cover from UploadThing when cover URL changes");
+    it.skip("should delete old cover from UploadThing when cover URL changes", async () => {});
 
-    it.todo("should throw NOT_FOUND when book doesn't exist");
+    it.skip("should throw NOT_FOUND when book doesn't exist", async () => {});
 
-    it.todo("should throw FORBIDDEN when user doesn't own book");
+    it.skip("should throw FORBIDDEN when user doesn't own book", async () => {});
   });
 
   describe("Edge Cases", () => {
