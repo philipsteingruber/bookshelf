@@ -42,8 +42,8 @@ export const EditBookForm = ({ book }: { book: Book }): React.ReactElement => {
   const trpcUtils = trpc.useUtils();
   const { mutate: updateBook, isPending: isUpdatingBook } =
     trpc.book.updateBook.useMutation({
-      onSuccess: () => {
-        toast.success(`Successfully updated ${book.title}`);
+      onSuccess: (data) => {
+        toast.success(`Successfully updated ${data.book.title}`);
         trpcUtils.book.getBook.invalidate();
         trpcUtils.book.getBooks.invalidate();
         router.push(`/books/${book.id}`);
@@ -71,19 +71,26 @@ export const EditBookForm = ({ book }: { book: Book }): React.ReactElement => {
   const onSubmit = async (
     data: z.infer<typeof createFormSchema>,
   ): Promise<void> => {
-    let coverUrl: string | null = null;
+    let coverUrl: string | undefined;
     if (coverFile) {
       const uploadResults = await startUpload([coverFile]);
       if (uploadResults && uploadResults.length !== 0) {
         coverUrl = uploadResults[0].ufsUrl;
+      } else {
+        handleUploadError(new Error("Failed to upload cover. Try again."));
+        return;
       }
+    } else if (removeCover) {
+      coverUrl = "";
+    } else {
+      coverUrl = undefined;
     }
 
     updateBook({
       bookId: book.id,
       data: {
         ...data,
-        coverUrl: coverUrl ?? book.coverUrl ?? undefined,
+        coverUrl,
       },
     });
   };

@@ -665,6 +665,7 @@ export const bookRouter = createTRPCRouter({
           authorSort,
           isbn: data.isbn === "" ? null : data.isbn,
           series: data.series === "" ? null : data.series,
+          coverUrl: data.coverUrl === "" ? null : data.coverUrl,
         },
       });
       updateBookTimer.end({ bookId: input.bookId });
