@@ -301,17 +301,29 @@ export const readingProgressRouter = createTRPCRouter({
             orderBy: { progress: "desc" },
           });
 
-          const newProgress = latestReadingProgress?.progress ?? 0;
+          const updateData: { progress: number; status?: "TO_READ" } = {
+            progress: latestReadingProgress?.progress ?? 0,
+          };
+          if (
+            !latestReadingProgress &&
+            readingProgress.book.status !== "DNF" &&
+            readingProgress.book.status !== "READ"
+          ) {
+            updateData.status = "TO_READ";
+          }
 
           await tx.book.update({
             where: { id: readingProgress.bookId },
-            data: { progress: newProgress },
+            data: updateData,
           });
         });
         deleteReadingProgressTransactionTimer.end({ success: true });
       } catch (error) {
         deleteReadingProgressTransactionTimer.end({ success: false });
-        ctx.logger.error({ error, readingProgressId: readingProgress.id });
+        ctx.logger.error(
+          { error, readingProgressId: readingProgress.id },
+          "Failed to delete reading progress",
+        );
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Failed to delete reading progress",
@@ -340,10 +352,23 @@ export const readingProgressRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      ctx.logger.debug(
+        { progressId: input.progressId, newProgress: input.newProgress },
+        "Updating reading progress instance",
+      );
+
+      const fetchProgressTimer = performanceLogger(
+        "DB: Fetch reading progress for update",
+        500,
+        ctx.logger,
+      );
+
+      fetchProgressTimer.start();
       const readingProgress = await ctx.db.readingProgress.findUnique({
         where: { id: input.progressId },
         include: { book: true },
       });
+      fetchProgressTimer.end({ progressId: input.progressId });
 
       if (!readingProgress) {
         ctx.logger.warn(
@@ -364,6 +389,23 @@ export const readingProgressRouter = createTRPCRouter({
         throw new TRPCError({ code: "FORBIDDEN" });
       }
 
+      ctx.logger.debug(
+        {
+          progressId: input.progressId,
+          bookId: readingProgress.bookId,
+          currentProgress: readingProgress.progress,
+          requestedProgress: input.newProgress,
+        },
+        "Fetched progress entry, validating constraints",
+      );
+
+      const fetchConstraintsTimer = performanceLogger(
+        "DB: Fetch previous/next reading progress for chronological validation",
+        500,
+        ctx.logger,
+      );
+
+      fetchConstraintsTimer.start();
       const previousReadingProgressInstance =
         await ctx.db.readingProgress.findFirst({
           where: {
@@ -380,37 +422,102 @@ export const readingProgressRouter = createTRPCRouter({
           },
           orderBy: { createdAt: "asc" },
         });
+      fetchConstraintsTimer.end({
+        hasPreviousEntry: !!previousReadingProgressInstance,
+        hasNextEntry: !!nextReadingProgressInstance,
+      });
 
       if (
         previousReadingProgressInstance &&
         input.newProgress <= previousReadingProgressInstance.progress
       ) {
+        ctx.logger.warn(
+          {
+            progressId: input.progressId,
+            requestedProgress: input.newProgress,
+            previousProgress: previousReadingProgressInstance.progress,
+            previousProgressId: previousReadingProgressInstance.id,
+          },
+          "Validation failed: new progress not greater than previous entry",
+        );
         throw new TRPCError({ code: "BAD_REQUEST" });
       }
       if (
         nextReadingProgressInstance &&
         input.newProgress >= nextReadingProgressInstance.progress
       ) {
+        ctx.logger.warn(
+          {
+            progressId: input.progressId,
+            requestedProgress: input.newProgress,
+            nextProgress: nextReadingProgressInstance.progress,
+            nextProgressId: nextReadingProgressInstance.id,
+          },
+          "Validation failed: new progress not less than next entry",
+        );
         throw new TRPCError({ code: "BAD_REQUEST" });
       }
 
+      ctx.logger.debug(
+        {
+          progressId: input.progressId,
+          bookId: readingProgress.bookId,
+          willUpdateBookProgress: !nextReadingProgressInstance,
+        },
+        "Chronological validation passed, starting transaction",
+      );
+
+      const updateProgressTimer = performanceLogger(
+        "DB: Transaction - Update ReadingProgress and optionally Book Progress",
+        1000,
+        ctx.logger,
+      );
+
+      updateProgressTimer.start();
       const updatedProgress = await ctx.db.$transaction(async (tx) => {
         try {
+          ctx.logger.debug(
+            { progressId: input.progressId },
+            "Updating reading progress entry",
+          );
+
           const updatedProgress = await tx.readingProgress.update({
             where: { id: input.progressId },
             data: { progress: input.newProgress, comments: input.comments },
           });
 
           if (!nextReadingProgressInstance) {
+            ctx.logger.debug(
+              {
+                progressId: input.progressId,
+                bookId: readingProgress.bookId,
+                newBookProgress: input.newProgress,
+              },
+              "This is the most recent progress entry, updating book progress",
+            );
+
             await tx.book.update({
               where: { id: readingProgress.bookId },
               data: { progress: input.newProgress },
             });
+          } else {
+            ctx.logger.debug(
+              {
+                progressId: input.progressId,
+                bookId: readingProgress.bookId,
+                nextProgressId: nextReadingProgressInstance.id,
+              },
+              "Not the most recent entry, skipping book progress update",
+            );
           }
 
           return updatedProgress;
         } catch (error) {
-          ctx.logger.error({ error, readingProgressId: readingProgress.id });
+          updateProgressTimer.end({ success: false });
+          ctx.logger.error(
+            { error, readingProgressId: readingProgress.id },
+            "Transaction failed during reading progress update",
+          );
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
             message: "Failed to update reading progress",
@@ -418,6 +525,20 @@ export const readingProgressRouter = createTRPCRouter({
           });
         }
       });
+      updateProgressTimer.end({ success: true });
+
+      ctx.logger.info(
+        {
+          progressId: input.progressId,
+          bookId: readingProgress.bookId,
+          oldProgress: readingProgress.progress,
+          newProgress: updatedProgress.progress,
+          commentsUpdated: input.comments !== undefined,
+          oldComments: readingProgress.comments,
+          newComments: updatedProgress.comments,
+        },
+        "Reading progress instance updated successfully",
+      );
 
       return { updatedProgress };
     }),

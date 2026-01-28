@@ -544,6 +544,13 @@ export const bookRouter = createTRPCRouter({
           seriesIndex: data.seriesIndex || book.seriesIndex,
         };
         if (updatedSeriesState.series && updatedSeriesState.seriesIndex) {
+          const seriesConflictTimer = performanceLogger(
+            "DB: Check for series conflict during update",
+            500,
+            ctx.logger,
+          );
+
+          seriesConflictTimer.start();
           const seriesDuplicate = await ctx.db.book.findFirst({
             where: {
               id: { not: book.id },
@@ -555,6 +562,8 @@ export const bookRouter = createTRPCRouter({
               userId: ctx.currentUser.id,
             },
           });
+          seriesConflictTimer.end();
+
           if (seriesDuplicate) {
             ctx.logger.warn(
               {
@@ -575,6 +584,13 @@ export const bookRouter = createTRPCRouter({
       }
 
       if (data.isbn) {
+        const isbnConflictTimer = performanceLogger(
+          "DB: Check for ISBN conflict during update",
+          500,
+          ctx.logger,
+        );
+
+        isbnConflictTimer.start();
         const isbnDuplicate = await ctx.db.book.findFirst({
           where: {
             isbn: data.isbn,
@@ -582,6 +598,8 @@ export const bookRouter = createTRPCRouter({
             NOT: { id: book.id },
           },
         });
+        isbnConflictTimer.end();
+
         if (isbnDuplicate) {
           ctx.logger.warn(
             {

@@ -1,4 +1,21 @@
+"use client";
+
+import { useState } from "react";
+
+import { TrashIcon } from "lucide-react";
+import { toast } from "sonner";
+
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Spinner } from "@/components/ui/spinner";
 import {
   Table,
   TableBody,
@@ -11,7 +28,9 @@ import type { Book } from "@/generated/prisma/client";
 import type { ReadingProgressWithProgressSinceLast } from "@/hooks/use-reading-history";
 import { calculatePagesFromProgress } from "@/lib/book-utils";
 import { aggregateByDay, formatRelativeDate } from "@/lib/chart-utils";
+import { handleTRPCError } from "@/lib/error-handler";
 import { cn } from "@/lib/utils";
+import { trpc } from "@/trpc/client";
 
 const ReadingProgressHistory = ({
   readingProgressHistory,
@@ -34,6 +53,32 @@ const ReadingProgressHistory = ({
         : entry.progress - aggregatedHistory[index - 1].progress,
   }));
 
+  const [
+    isDeleteReadingProgressDialogOpen,
+    setIsDeleteReadingProgressDialogOpen,
+  ] = useState<boolean>(false);
+  const handleDeleteReadingProgressDialogOpenChange = (open: boolean): void => {
+    if (isDeleting) {
+      return;
+    }
+    setIsDeleteReadingProgressDialogOpen(open);
+  };
+  const [entryToDelete, setEntryToDelete] = useState<string | null>(null);
+
+  const trpcUtils = trpc.useUtils();
+  const { mutate: deleteReadingProgress, isPending: isDeleting } =
+    trpc.readingProgress.deleteReadingProgressInstance.useMutation({
+      onSuccess: () => {
+        setIsDeleteReadingProgressDialogOpen(false);
+        toast.success("Progress successfully deleted");
+        trpcUtils.book.getBook.invalidate(book.id);
+        trpcUtils.readingProgress.getProgressHistory.invalidate(book.id);
+      },
+      onError: (error) => {
+        handleTRPCError(error);
+      },
+    });
+
   return (
     <Card
       className={cn(
@@ -45,6 +90,50 @@ const ReadingProgressHistory = ({
         <CardTitle className="text-lg">{`Reading progress for ${book.title}`}</CardTitle>
       </CardHeader>
       <CardContent>
+        <Dialog
+          open={isDeleteReadingProgressDialogOpen}
+          onOpenChange={handleDeleteReadingProgressDialogOpenChange}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Delete progress?</DialogTitle>
+              <DialogDescription className="flex flex-col gap-y-1">
+                {readingProgressHistory.length === 1 &&
+                  book.status !== "DNF" &&
+                  book.status !== "READ" && (
+                    <span>
+                      This will reset progress to 0 and set status to To Read
+                    </span>
+                  )}
+                {readingProgressHistory.length === 1 &&
+                  (book.status === "DNF" || book.status === "READ") && (
+                    <span>This will reset progress to 0.</span>
+                  )}
+                <span className="text-destructive">This cannot be undone.</span>
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                variant={"outline"}
+                disabled={isDeleting}
+                onClick={() =>
+                  handleDeleteReadingProgressDialogOpenChange(false)
+                }
+              >
+                Cancel
+              </Button>
+              <Button
+                variant={"destructive"}
+                disabled={isDeleting || !entryToDelete}
+                onClick={() =>
+                  entryToDelete && deleteReadingProgress(entryToDelete)
+                }
+              >
+                {isDeleting ? <Spinner /> : "Confirm"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
         <Table>
           <TableHeader>
             <TableRow>
@@ -58,7 +147,7 @@ const ReadingProgressHistory = ({
           </TableHeader>
           <TableBody>
             {historyForBook.toReversed().map((entry) => (
-              <TableRow key={entry.id}>
+              <TableRow key={entry.id} className="relative">
                 <TableCell>{formatRelativeDate(entry.createdAt)}</TableCell>
                 <TableCell className="text-center font-semibold">
                   {entry.progress}
@@ -71,6 +160,19 @@ const ReadingProgressHistory = ({
                     entry.progressSinceLast,
                     book.pageCount,
                   )}
+                </TableCell>
+                <TableCell>
+                  <Button
+                    variant={"destructive"}
+                    size={"icon"}
+                    className="absolute top-0 right-0"
+                    onClick={() => {
+                      setEntryToDelete(entry.id);
+                      setIsDeleteReadingProgressDialogOpen(true);
+                    }}
+                  >
+                    <TrashIcon />
+                  </Button>
                 </TableCell>
               </TableRow>
             ))}

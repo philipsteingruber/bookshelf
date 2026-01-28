@@ -310,39 +310,38 @@ const Page = ({
               <p className="font-serif text-sm font-light italic">{`${book.series} #${book.seriesIndex}`}</p>
             )}
             <div className="flex w-3/4 items-center justify-between gap-x-4">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Link
+                    href={`https://www.goodreads.com/search?utf8=%E2%9C%93&q=${book.title}+${book.author}&search_type=books&search%5Bfield%5D=on`}
+                    target="_blank"
+                    className="w-fit font-serif text-4xl font-semibold whitespace-nowrap hover:underline"
+                  >
+                    {book.title}
+                  </Link>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{`Search "${book.title} ${book.author}" on GoodReads`}</p>
+                </TooltipContent>
+              </Tooltip>
               <Dialog
                 open={isDeleteDialogOpen}
                 onOpenChange={handleOpenDeleteDialogChange}
               >
-                <DialogTrigger className="flex w-full items-center justify-between">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Link
-                        href={`https://www.goodreads.com/search?utf8=%E2%9C%93&q=${book.title}+${book.author}&search_type=books&search%5Bfield%5D=on`}
-                        target="_blank"
-                        className="w-fit font-serif text-4xl font-semibold hover:underline"
-                      >
-                        {book.title}
-                      </Link>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>{`Search "${book.title} ${book.author}" on GoodReads`}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
+                <Tooltip>
+                  <DialogTrigger asChild>
                     <TooltipTrigger asChild>
                       <Button
                         className="bg-destructive/90 text-foreground hover:bg-destructive/70 hover:text-muted-foreground transition-colors"
-                        onClick={() => handleOpenDeleteDialogChange(true)}
                       >
                         <TrashIcon />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent>
-                      <p>{`Delete '${book.title}' from BookShelf`}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </DialogTrigger>
+                  </DialogTrigger>
+                  <TooltipContent>
+                    <p>{`Delete '${book.title}' from BookShelf`}</p>
+                  </TooltipContent>
+                </Tooltip>
                 <DialogContent>
                   <DialogHeader>
                     <DialogTitle>{`Delete '${book.title}'?`}</DialogTitle>
@@ -369,7 +368,6 @@ const Page = ({
                 </DialogContent>
               </Dialog>
             </div>
-
             <span className="font-serif text-xl italic">{book.author}</span>
             <div className="text-primary flex items-center gap-x-4">
               <div className="group flex cursor-pointer items-center gap-x-1 text-sm font-semibold">
