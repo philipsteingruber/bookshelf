@@ -15,17 +15,20 @@ import type { createFormSchema } from "@/lib/schemas/book";
 interface OptionalInfoSectionProps {
   form: UseFormReturn<z.infer<typeof createFormSchema>>;
   idPrefix?: "create" | "edit";
+  disabled?: boolean;
 }
 
 export const OptionalInfoSection = ({
   form,
   idPrefix = "create",
+  disabled = false,
 }: OptionalInfoSectionProps): React.ReactElement => {
   return (
-    <FieldGroup>
+    <FieldGroup className="gap-y-1">
       <Controller
         name="publishedYear"
         control={form.control}
+        disabled={disabled}
         render={({ field, fieldState }) => (
           <Field data-invalid={fieldState.invalid} className="gap-y-1">
             <FieldLabel htmlFor={`${idPrefix}-book-form-publishedYear`}>
@@ -51,6 +54,7 @@ export const OptionalInfoSection = ({
       <Controller
         name="pageCount"
         control={form.control}
+        disabled={disabled}
         render={({ field, fieldState }) => (
           <Field data-invalid={fieldState.invalid} className="gap-y-1">
             <FieldLabel htmlFor={`${idPrefix}-book-form-pageCount`}>
@@ -76,6 +80,7 @@ export const OptionalInfoSection = ({
       <Controller
         name="series"
         control={form.control}
+        disabled={disabled}
         render={({ field, fieldState }) => (
           <Field data-invalid={fieldState.invalid} className="gap-y-1">
             <FieldLabel htmlFor={`${idPrefix}-book-form-series`}>
@@ -95,6 +100,7 @@ export const OptionalInfoSection = ({
       <Controller
         name="seriesIndex"
         control={form.control}
+        disabled={disabled}
         render={({ field, fieldState }) => (
           <Field data-invalid={fieldState.invalid} className="gap-y-1">
             <FieldLabel htmlFor={`${idPrefix}-book-form-seriesIndex`}>
@@ -123,6 +129,7 @@ export const OptionalInfoSection = ({
       <Controller
         name="isbn"
         control={form.control}
+        disabled={disabled}
         render={({ field, fieldState }) => (
           <Field data-invalid={fieldState.invalid} className="gap-y-1">
             <FieldLabel htmlFor={`${idPrefix}-book-form-isbn`}>
@@ -147,6 +154,7 @@ export const OptionalInfoSection = ({
       <Controller
         name="summary"
         control={form.control}
+        disabled={disabled}
         render={({ field, fieldState }) => (
           <Field data-invalid={fieldState.invalid} className="gap-y-1">
             <FieldLabel htmlFor={`${idPrefix}-book-form-summary`}>

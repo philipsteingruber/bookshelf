@@ -16,6 +16,7 @@ interface BasicInfoSectionProps {
   form: UseFormReturn<z.infer<typeof createFormSchema>>;
   titleInputRef?: RefObject<HTMLInputElement | null>;
   idPrefix?: "create" | "edit";
+  disabled?: boolean;
 }
 
 const MandatoryFieldMarker = (): React.ReactElement => {
@@ -26,14 +27,16 @@ export const BasicInfoSection = ({
   form,
   titleInputRef,
   idPrefix = "create",
+  disabled = false,
 }: BasicInfoSectionProps): React.ReactElement => {
   return (
-    <FieldGroup>
+    <FieldGroup className="gap-y-1">
       <Controller
         name="title"
         control={form.control}
+        disabled={disabled}
         render={({ field, fieldState }) => (
-          <Field data-invalid={fieldState.invalid} className="gap-y-1">
+          <Field data-invalid={fieldState.invalid}>
             <FieldLabel htmlFor={`${idPrefix}-book-form-title`}>
               Title <MandatoryFieldMarker />
             </FieldLabel>
@@ -54,9 +57,10 @@ export const BasicInfoSection = ({
       />
       <Controller
         name="author"
+        disabled={disabled}
         control={form.control}
         render={({ field, fieldState }) => (
-          <Field data-invalid={fieldState.invalid} className="gap-y-1">
+          <Field data-invalid={fieldState.invalid}>
             <FieldLabel htmlFor={`${idPrefix}-book-form-author`}>
               Author <MandatoryFieldMarker />
             </FieldLabel>

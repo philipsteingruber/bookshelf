@@ -659,7 +659,13 @@ export const bookRouter = createTRPCRouter({
       updateBookTimer.start();
       const updatedBook = await ctx.db.book.update({
         where: { id: input.bookId },
-        data: { ...data, titleSort, authorSort },
+        data: {
+          ...data,
+          titleSort,
+          authorSort,
+          isbn: data.isbn === "" ? null : data.isbn,
+          series: data.series === "" ? null : data.series,
+        },
       });
       updateBookTimer.end({ bookId: input.bookId });
 

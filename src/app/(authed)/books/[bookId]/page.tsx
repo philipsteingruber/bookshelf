@@ -324,49 +324,59 @@ const Page = ({
                   <p>{`Search "${book.title} ${book.author}" on GoodReads`}</p>
                 </TooltipContent>
               </Tooltip>
-              <Dialog
-                open={isDeleteDialogOpen}
-                onOpenChange={handleOpenDeleteDialogChange}
-              >
+              <div className="flex gap-x-4">
                 <Tooltip>
-                  <DialogTrigger asChild>
-                    <TooltipTrigger asChild>
-                      <Button
-                        className="bg-destructive/90 text-foreground hover:bg-destructive/70 hover:text-muted-foreground transition-colors"
-                      >
-                        <TrashIcon />
-                      </Button>
-                    </TooltipTrigger>
-                  </DialogTrigger>
-                  <TooltipContent>
-                    <p>{`Delete '${book.title}' from BookShelf`}</p>
-                  </TooltipContent>
+                  <TooltipTrigger asChild>
+                    <Button
+                      onClick={() => router.push(`/books/${bookId}/edit`)}
+                    >
+                      <PenIcon />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Edit book details</TooltipContent>
                 </Tooltip>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>{`Delete '${book.title}'?`}</DialogTitle>
-                    <DialogDescription>{`This will permanently delete '${book.title}' and all its reading progress from your BookShelf. This cannot be undone.`}</DialogDescription>
-                  </DialogHeader>
-                  <div className="flex w-full flex-col gap-y-4 lg:flex-row lg:gap-x-4">
-                    <Button
-                      onClick={() => setIsDeleteDialogOpen(false)}
-                      variant={"outline"}
-                      disabled={isDeleting}
-                      className="flex-1"
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      onClick={() => deleteBook(book.id)}
-                      variant={"destructive"}
-                      disabled={isDeleting}
-                      className="flex-1"
-                    >
-                      {isDeleting ? <Spinner /> : "Confirm"}
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
+                <Dialog
+                  open={isDeleteDialogOpen}
+                  onOpenChange={handleOpenDeleteDialogChange}
+                >
+                  <Tooltip>
+                    <DialogTrigger asChild>
+                      <TooltipTrigger asChild>
+                        <Button className="bg-destructive/90 text-foreground hover:bg-destructive/70 hover:text-muted-foreground transition-colors">
+                          <TrashIcon />
+                        </Button>
+                      </TooltipTrigger>
+                    </DialogTrigger>
+                    <TooltipContent>
+                      <p>{`Delete '${book.title}' from BookShelf`}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>{`Delete '${book.title}'?`}</DialogTitle>
+                      <DialogDescription>{`This will permanently delete '${book.title}' and all its reading progress from your BookShelf. This cannot be undone.`}</DialogDescription>
+                    </DialogHeader>
+                    <div className="flex w-full flex-col gap-y-4 lg:flex-row lg:gap-x-4">
+                      <Button
+                        onClick={() => setIsDeleteDialogOpen(false)}
+                        variant={"outline"}
+                        disabled={isDeleting}
+                        className="flex-1"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={() => deleteBook(book.id)}
+                        variant={"destructive"}
+                        disabled={isDeleting}
+                        className="flex-1"
+                      >
+                        {isDeleting ? <Spinner /> : "Confirm"}
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
             </div>
             <span className="font-serif text-xl italic">{book.author}</span>
             <div className="text-primary flex items-center gap-x-4">

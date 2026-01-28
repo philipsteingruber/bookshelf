@@ -239,9 +239,16 @@ const CreateBookForm = (): React.ReactElement => {
       </CardHeader>
       <CardContent>
         <form id="create-book-form" onSubmit={form.handleSubmit(onSubmit)}>
-          <BasicInfoSection form={form} titleInputRef={titleRef} />
+          <BasicInfoSection
+            form={form}
+            titleInputRef={titleRef}
+            disabled={isUploading || isCreatingBook}
+          />
           <Separator className="my-4" />
-          <OptionalInfoSection form={form} />
+          <OptionalInfoSection
+            form={form}
+            disabled={isUploading || isCreatingBook}
+          />
           <CoverDropzone
             file={pendingCoverFile}
             onFileSelect={setPendingCoverFile}

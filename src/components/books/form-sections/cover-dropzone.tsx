@@ -16,6 +16,8 @@ interface CoverDropzoneProps {
   onFileSelect: (file: File | null) => void;
   isUploading: boolean;
   disabled?: boolean;
+  existingUrl?: string | null;
+  onRemoveExisting?: () => void;
 }
 
 const CoverDropzone = ({
@@ -23,18 +25,27 @@ const CoverDropzone = ({
   file,
   disabled,
   isUploading,
+  existingUrl,
+  onRemoveExisting,
 }: CoverDropzoneProps): React.ReactElement => {
-  const previewUrl = useMemo(() => {
+  const showNewFile = file !== null;
+
+  // Only create blob URL for new files - separated from existingUrl
+  const blobUrl = useMemo(() => {
     return file ? URL.createObjectURL(file) : null;
   }, [file]);
 
+  // Cleanup blob URL only - existingUrl is a regular URL that shouldn't be revoked
   useEffect(() => {
     return () => {
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl);
+      if (blobUrl) {
+        URL.revokeObjectURL(blobUrl);
       }
     };
-  }, [previewUrl]);
+  }, [blobUrl]);
+
+  // Display priority: new file blob > existing URL > null
+  const previewUrl = blobUrl ?? existingUrl ?? null;
 
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
@@ -48,9 +59,13 @@ const CoverDropzone = ({
     (e: React.MouseEvent) => {
       e.stopPropagation();
       e.preventDefault();
-      onFileSelect(null);
+      if (showNewFile) {
+        onFileSelect(null);
+      } else if (onRemoveExisting) {
+        onRemoveExisting();
+      }
     },
-    [onFileSelect],
+    [onFileSelect, showNewFile, onRemoveExisting],
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
