@@ -9,7 +9,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import z from "zod";
 
-import CoverDropzone from "@/components/books/create-form/cover-dropzone";
+import CoverDropzone from "@/components/books/form-sections/cover-dropzone";
 import { useUploadThing } from "@/components/uploadthing";
 import { handleTRPCError, handleUploadError } from "@/lib/error-handler";
 import type { ScrapeData } from "@/lib/goodreads-scraper";
@@ -36,8 +36,8 @@ import { Label } from "../ui/label";
 import { Separator } from "../ui/separator";
 import { Spinner } from "../ui/spinner";
 
-import { BasicInfoSection } from "./create-form/basic-info-section";
-import { OptionalInfoSection } from "./create-form/optional-info-section";
+import { BasicInfoSection } from "./form-sections/basic-info-section";
+import { OptionalInfoSection } from "./form-sections/optional-info-section";
 
 const CreateBookForm = (): React.ReactElement => {
   const [isImportPanelOpen, setIsImportPanelOpen] = useState<boolean>(false);

@@ -69,31 +69,6 @@ export const BasicInfoSection = ({
           </Field>
         )}
       />
-      <Controller
-        name="publishedYear"
-        control={form.control}
-        render={({ field, fieldState }) => (
-          <Field data-invalid={fieldState.invalid} className="gap-y-1">
-            <FieldLabel htmlFor="create-book-form-publishedYear">
-              Published Year <MandatoryFieldMarker />
-            </FieldLabel>
-            <Input
-              {...field}
-              value={field.value ?? ""}
-              id="create-book-form-publishedYear"
-              aria-invalid={fieldState.invalid}
-              placeholder="1954"
-              autoComplete="off"
-              type="number"
-              onChange={(e) => {
-                const val = e.target.valueAsNumber;
-                field.onChange(isNaN(val) ? undefined : val);
-              }}
-            />
-            {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-          </Field>
-        )}
-      />
     </FieldGroup>
   );
 };
