@@ -14,10 +14,12 @@ import type { createFormSchema } from "@/lib/schemas/book";
 
 interface OptionalInfoSectionProps {
   form: UseFormReturn<z.infer<typeof createFormSchema>>;
+  idPrefix?: "create" | "edit";
 }
 
 export const OptionalInfoSection = ({
   form,
+  idPrefix = "create",
 }: OptionalInfoSectionProps): React.ReactElement => {
   return (
     <FieldGroup>
@@ -26,13 +28,13 @@ export const OptionalInfoSection = ({
         control={form.control}
         render={({ field, fieldState }) => (
           <Field data-invalid={fieldState.invalid} className="gap-y-1">
-            <FieldLabel htmlFor="create-book-form-publishedYear">
+            <FieldLabel htmlFor={`${idPrefix}-book-form-publishedYear`}>
               Published Year
             </FieldLabel>
             <Input
               {...field}
               value={field.value ?? ""}
-              id="create-book-form-publishedYear"
+              id={`${idPrefix}-book-form-publishedYear`}
               aria-invalid={fieldState.invalid}
               placeholder="1954"
               autoComplete="off"
@@ -51,13 +53,13 @@ export const OptionalInfoSection = ({
         control={form.control}
         render={({ field, fieldState }) => (
           <Field data-invalid={fieldState.invalid} className="gap-y-1">
-            <FieldLabel htmlFor="create-book-form-pageCount">
+            <FieldLabel htmlFor={`${idPrefix}-book-form-pageCount`}>
               Page Count
             </FieldLabel>
             <Input
               {...field}
               value={field.value ?? ""}
-              id="create-book-form-pageCount"
+              id={`${idPrefix}-book-form-pageCount`}
               aria-invalid={fieldState.invalid}
               placeholder="432"
               autoComplete="off"
@@ -76,10 +78,12 @@ export const OptionalInfoSection = ({
         control={form.control}
         render={({ field, fieldState }) => (
           <Field data-invalid={fieldState.invalid} className="gap-y-1">
-            <FieldLabel htmlFor="create-book-form-series">Series</FieldLabel>
+            <FieldLabel htmlFor={`${idPrefix}-book-form-series`}>
+              Series
+            </FieldLabel>
             <Input
               {...field}
-              id="create-book-form-series"
+              id={`${idPrefix}-book-form-series`}
               aria-invalid={fieldState.invalid}
               placeholder="Lord of the Rings"
               autoComplete="off"
@@ -93,7 +97,7 @@ export const OptionalInfoSection = ({
         control={form.control}
         render={({ field, fieldState }) => (
           <Field data-invalid={fieldState.invalid} className="gap-y-1">
-            <FieldLabel htmlFor="create-book-form-seriesIndex">
+            <FieldLabel htmlFor={`${idPrefix}-book-form-seriesIndex`}>
               Series Index{" "}
               <span className="text-muted-foreground text-xs">
                 (First book is index 1)
@@ -102,7 +106,7 @@ export const OptionalInfoSection = ({
             <Input
               {...field}
               value={field.value ?? ""}
-              id="create-book-form-seriesIndex"
+              id={`${idPrefix}-book-form-seriesIndex`}
               aria-invalid={fieldState.invalid}
               placeholder="1"
               autoComplete="off"
@@ -121,7 +125,7 @@ export const OptionalInfoSection = ({
         control={form.control}
         render={({ field, fieldState }) => (
           <Field data-invalid={fieldState.invalid} className="gap-y-1">
-            <FieldLabel htmlFor="create-book-form-isbn">
+            <FieldLabel htmlFor={`${idPrefix}-book-form-isbn`}>
               ISBN{" "}
               <span className="text-muted-foreground text-xs">
                 {" "}
@@ -131,7 +135,7 @@ export const OptionalInfoSection = ({
             <Input
               {...field}
               value={field.value ?? ""}
-              id="create-book-form-isbn"
+              id={`${idPrefix}-book-form-isbn`}
               aria-invalid={fieldState.invalid}
               placeholder="9780007203543"
               autoComplete="off"
@@ -145,10 +149,12 @@ export const OptionalInfoSection = ({
         control={form.control}
         render={({ field, fieldState }) => (
           <Field data-invalid={fieldState.invalid} className="gap-y-1">
-            <FieldLabel htmlFor="create-book-form-summary">Summary</FieldLabel>
+            <FieldLabel htmlFor={`${idPrefix}-book-form-summary`}>
+              Summary
+            </FieldLabel>
             <Textarea
               {...field}
-              id="create-book-form-summary"
+              id={`${idPrefix}-book-form-summary`}
               aria-invalid={fieldState.invalid}
               placeholder={`Sauron, the Dark Lord, has gathered to him all the Rings of Power – the means by which he intends to rule Middle-earth. All he lacks in his plans for dominion is the One Ring – the ring that rules them all – which has fallen into the hands of the hobbit, Bilbo Baggins.
 

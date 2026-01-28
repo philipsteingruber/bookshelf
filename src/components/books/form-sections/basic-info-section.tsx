@@ -15,6 +15,7 @@ import type { createFormSchema } from "@/lib/schemas/book";
 interface BasicInfoSectionProps {
   form: UseFormReturn<z.infer<typeof createFormSchema>>;
   titleInputRef: RefObject<HTMLInputElement | null>;
+  idPrefix?: "create" | "edit";
 }
 
 const MandatoryFieldMarker = (): React.ReactElement => {
@@ -24,6 +25,7 @@ const MandatoryFieldMarker = (): React.ReactElement => {
 export const BasicInfoSection = ({
   form,
   titleInputRef,
+  idPrefix = "create",
 }: BasicInfoSectionProps): React.ReactElement => {
   return (
     <FieldGroup>
@@ -32,12 +34,12 @@ export const BasicInfoSection = ({
         control={form.control}
         render={({ field, fieldState }) => (
           <Field data-invalid={fieldState.invalid} className="gap-y-1">
-            <FieldLabel htmlFor="create-book-form-title">
+            <FieldLabel htmlFor={`${idPrefix}-book-form-title`}>
               Title <MandatoryFieldMarker />
             </FieldLabel>
             <Input
               {...field}
-              id="create-book-form-title"
+              id={`${idPrefix}-book-form-title`}
               ref={(node) => {
                 field.ref(node);
                 if (titleInputRef) titleInputRef.current = node;
@@ -55,12 +57,12 @@ export const BasicInfoSection = ({
         control={form.control}
         render={({ field, fieldState }) => (
           <Field data-invalid={fieldState.invalid} className="gap-y-1">
-            <FieldLabel htmlFor="create-book-form-author">
+            <FieldLabel htmlFor={`${idPrefix}-book-form-author`}>
               Author <MandatoryFieldMarker />
             </FieldLabel>
             <Input
               {...field}
-              id="create-book-form-author"
+              id={`${idPrefix}-book-form-author`}
               aria-invalid={fieldState.invalid}
               placeholder="J.R.R. Tolkien"
               autoComplete="off"
