@@ -1,15 +1,13 @@
 "use client";
 
 import { use } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 
 import { RedirectToSignIn, useAuth } from "@clerk/nextjs";
 import type { TRPCError } from "@trpc/server";
 import { PenIcon } from "lucide-react";
 
 import BookDetailsCover from "@/components/books/book-details/book-details-cover";
-import DeleteBookDialog from "@/components/books/book-details/delete-book-dialog";
+import BookDetailsHeader from "@/components/books/book-details/book-details-header";
 import { ReadingProgressEstimateCard } from "@/components/books/book-details/reading-progress-estimate-card";
 import ReadingProgressHistory from "@/components/books/book-details/reading-progress-history";
 import ReadingProgressHistoryGraph from "@/components/books/book-details/reading-progress-history-graph";
@@ -17,13 +15,7 @@ import ReadingStatusDialog from "@/components/books/book-details/reading-status-
 import UpdateReadingProgressCard from "@/components/books/book-details/update-reading-progress-card";
 import ErrorState from "@/components/error-state";
 import LoadingState from "@/components/loading-state";
-import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { useBook } from "@/hooks/use-book";
 import { useReadingHistory } from "@/hooks/use-reading-history";
 import {
@@ -64,8 +56,6 @@ const Page = ({
     aggregatedData[aggregatedData.length - 1]?.createdAt ?? new Date(),
   );
 
-  const router = useRouter();
-
   const { isSignedIn, isLoaded } = useAuth();
 
   const averagePace = calculateAveragePace(readingHistory);
@@ -95,39 +85,7 @@ const Page = ({
             <ReadingStatusDialog book={book} />
           </div>
           <div className="flex w-full flex-col gap-y-2 lg:w-3/4">
-            {book.series && book.seriesIndex && (
-              <p className="font-serif text-sm font-light italic">{`${book.series} #${book.seriesIndex}`}</p>
-            )}
-            <div className="flex w-3/4 items-center justify-between gap-x-4">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Link
-                    href={`https://www.goodreads.com/search?utf8=%E2%9C%93&q=${book.title}+${book.author}&search_type=books&search%5Bfield%5D=on`}
-                    target="_blank"
-                    className="w-fit font-serif text-4xl font-semibold whitespace-nowrap hover:underline"
-                  >
-                    {book.title}
-                  </Link>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{`Search "${book.title} ${book.author}" on GoodReads`}</p>
-                </TooltipContent>
-              </Tooltip>
-              <div className="flex gap-x-4">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      onClick={() => router.push(`/books/${bookId}/edit`)}
-                    >
-                      <PenIcon />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Edit book details</TooltipContent>
-                </Tooltip>
-                <DeleteBookDialog book={book} />
-              </div>
-            </div>
-            <span className="font-serif text-xl italic">{book.author}</span>
+            <BookDetailsHeader book={book} className="w-3/4" />
             <div className="text-primary flex items-center gap-x-4">
               <div className="group flex cursor-pointer items-center gap-x-1 text-sm font-semibold">
                 <span className="group-hover:underline">
