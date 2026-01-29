@@ -2,6 +2,7 @@ import { subDays } from "date-fns";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { ReadStatus } from "@/generated/prisma/enums";
+import { createAuthorSort, createTitleSort } from "@/lib/book-utils";
 import { VALIDATION_LIMITS } from "@/lib/constants";
 import {
   createFakeBook,
@@ -166,7 +167,10 @@ describe("bookRouter", () => {
       const { mockDb, caller } = createMockCaller(bookRouter);
 
       const fakeBook = createFakeBook({ status: "TO_READ" });
-      const updatedBook = createFakeBook({ status: "READING", id: fakeBook.id });
+      const updatedBook = createFakeBook({
+        status: "READING",
+        id: fakeBook.id,
+      });
 
       vi.mocked(mockDb.book.findUnique).mockResolvedValue(fakeBook);
 
@@ -198,7 +202,10 @@ describe("bookRouter", () => {
       const { mockDb, caller } = createMockCaller(bookRouter);
 
       const fakeBook = createFakeBook({ status: "TO_READ" });
-      const updatedBook = createFakeBook({ status: "READING", id: fakeBook.id });
+      const updatedBook = createFakeBook({
+        status: "READING",
+        id: fakeBook.id,
+      });
       const zeroReadingProgress = createFakeReadingProgress({
         bookId: fakeBook.id,
         progress: 0,
@@ -292,7 +299,9 @@ describe("bookRouter", () => {
         newStatus: "TO_READ",
       });
 
-      expect(mockDeleteMany).toHaveBeenCalledWith({ where: { bookId: fakeBook.id } });
+      expect(mockDeleteMany).toHaveBeenCalledWith({
+        where: { bookId: fakeBook.id },
+      });
     });
 
     it("should delete all ReadingProgress entries when status changes to READ_NEXT", async () => {
@@ -321,7 +330,9 @@ describe("bookRouter", () => {
         newStatus: "READ_NEXT",
       });
 
-      expect(mockDeleteMany).toHaveBeenCalledWith({ where: { bookId: fakeBook.id } });
+      expect(mockDeleteMany).toHaveBeenCalledWith({
+        where: { bookId: fakeBook.id },
+      });
     });
 
     it("should throw error when book not found", async () => {
@@ -735,21 +746,213 @@ describe("bookRouter", () => {
   describe("updateBook", () => {
     beforeEach(() => vi.clearAllMocks());
 
-    it.skip("should update book fields successfully", async () => {});
+    it("should update book fields successfully", async () => {
+      const { mockDb, caller } = createMockCaller(bookRouter);
 
-    it.skip("should recalculate titleSort when title is updated", async () => {});
+      const fakeBook = createFakeBook({
+        title: "Original Title",
+        summary: "Original Summary",
+        series: "Original Series",
+        pageCount: 100,
+      });
 
-    it.skip("should recalculate authorSort when author is updated", async () => {});
+      const updateData = {
+        title: "Updated Title",
+        summary: "Updated Summary",
+        series: "Updated Series",
+        pageCount: 200,
+      };
+      const updatedBook = createFakeBook(updateData);
 
-    it.skip("should detect duplicate series position (excluding self)", async () => {});
+      vi.mocked(mockDb.book.findUnique).mockResolvedValue(fakeBook);
+      vi.mocked(mockDb.book.update).mockResolvedValue(updatedBook);
 
-    it.skip("should detect duplicate ISBN (excluding self)", async () => {});
+      const result = await caller.updateBook({
+        bookId: fakeBook.id,
+        data: updateData,
+      });
 
-    it.skip("should delete old cover from UploadThing when cover URL changes", async () => {});
+      expect(result.book.title).toEqual(updateData.title);
+      expect(result.book.summary).toEqual(updateData.summary);
+      expect(result.book.series).toEqual(updateData.series);
+      expect(result.book.pageCount).toEqual(updateData.pageCount);
+    });
 
-    it.skip("should throw NOT_FOUND when book doesn't exist", async () => {});
+    it("should recalculate titleSort when title is updated", async () => {
+      const { mockDb, caller } = createMockCaller(bookRouter);
 
-    it.skip("should throw FORBIDDEN when user doesn't own book", async () => {});
+      const fakeBook = createFakeBook({
+        title: "The Original Title",
+      });
+
+      const newTitle = "The Updated Title";
+      const newTitleSort = createTitleSort(newTitle);
+      const updateData = {
+        title: newTitle,
+      };
+      const updatedBook = createFakeBook(updateData);
+
+      vi.mocked(mockDb.book.findUnique).mockResolvedValue(fakeBook);
+      vi.mocked(mockDb.book.update).mockResolvedValue(updatedBook);
+
+      await caller.updateBook({
+        bookId: fakeBook.id,
+        data: updateData,
+      });
+
+      expect(mockDb.book.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            title: newTitle,
+            titleSort: newTitleSort,
+          }),
+        }),
+      );
+    });
+
+    it("should recalculate authorSort when author is updated", async () => {
+      const { mockDb, caller } = createMockCaller(bookRouter);
+
+      const fakeBook = createFakeBook({
+        author: "Original Author",
+      });
+
+      const newAuthor = "Updated Author";
+      const newAuthorSort = createAuthorSort(newAuthor);
+      const updateData = {
+        author: newAuthor,
+      };
+      const updatedBook = createFakeBook(updateData);
+
+      vi.mocked(mockDb.book.findUnique).mockResolvedValue(fakeBook);
+      vi.mocked(mockDb.book.update).mockResolvedValue(updatedBook);
+
+      await caller.updateBook({
+        bookId: fakeBook.id,
+        data: updateData,
+      });
+
+      expect(mockDb.book.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            author: newAuthor,
+            authorSort: newAuthorSort,
+          }),
+        }),
+      );
+    });
+
+    it("should detect duplicate series position (excluding self)", async () => {
+      const { mockDb, caller } = createMockCaller(bookRouter);
+
+      const fakeBook = createFakeBook({
+        id: 1,
+        series: "Test Series",
+        seriesIndex: 1,
+      });
+
+      const conflictingBook = createFakeBook({
+        id: 2,
+        series: "Test Series",
+        seriesIndex: 2,
+        title: "Conflicting Book",
+      });
+
+      vi.mocked(mockDb.book.findUnique).mockResolvedValue(fakeBook);
+      vi.mocked(mockDb.book.findFirst).mockResolvedValue(conflictingBook);
+
+      await expect(
+        caller.updateBook({
+          bookId: fakeBook.id,
+          data: { seriesIndex: 2 },
+        }),
+      ).rejects.toMatchObject({
+        code: "CONFLICT",
+      });
+    });
+
+    it("should detect duplicate ISBN (excluding self)", async () => {
+      const { mockDb, caller } = createMockCaller(bookRouter);
+
+      const fakeBook = createFakeBook({
+        id: 1,
+        isbn: "9781789993448",
+      });
+
+      const conflictingBook = createFakeBook({
+        id: 2,
+        isbn: "9780316769488",
+        title: "Conflicting Book",
+      });
+
+      vi.mocked(mockDb.book.findUnique).mockResolvedValue(fakeBook);
+      vi.mocked(mockDb.book.findFirst).mockResolvedValue(conflictingBook);
+
+      await expect(
+        caller.updateBook({
+          bookId: fakeBook.id,
+          data: { isbn: "9780316769488" },
+        }),
+      ).rejects.toMatchObject({
+        code: "CONFLICT",
+      });
+    });
+
+    it("should delete old cover from UploadThing when cover URL changes", async () => {
+      const { mockDb, caller } = createMockCaller(bookRouter);
+
+      const oldFileKey = "old-cover-key.jpg";
+      const fakeBook = createFakeBook({
+        coverUrl: `https://utfs.io/f/${oldFileKey}`,
+      });
+
+      const newCoverUrl = "https://utfs.io/f/new-cover-key.jpg";
+      const updatedBook = createFakeBook({ coverUrl: newCoverUrl });
+
+      vi.mocked(mockDb.book.findUnique).mockResolvedValue(fakeBook);
+      vi.mocked(mockDb.book.update).mockResolvedValue(updatedBook);
+      mockDeleteFiles.mockResolvedValue({ success: true });
+
+      await caller.updateBook({
+        bookId: fakeBook.id,
+        data: { coverUrl: newCoverUrl },
+      });
+
+      expect(mockDeleteFiles).toHaveBeenCalledWith(oldFileKey);
+    });
+
+    it("should throw NOT_FOUND when book doesn't exist", async () => {
+      const { mockDb, caller } = createMockCaller(bookRouter);
+
+      vi.mocked(mockDb.book.findUnique).mockResolvedValue(null);
+
+      await expect(
+        caller.updateBook({
+          bookId: 999,
+          data: { title: "New Title" },
+        }),
+      ).rejects.toMatchObject({
+        code: "NOT_FOUND",
+      });
+    });
+
+    it("should throw FORBIDDEN when user doesn't own book", async () => {
+      const { mockDb, caller, mockLogger } = createMockCaller(bookRouter);
+
+      const fakeBook = createFakeBook({ userId: "other-user" });
+
+      vi.mocked(mockDb.book.findUnique).mockResolvedValue(fakeBook);
+
+      await expect(
+        caller.updateBook({
+          bookId: fakeBook.id,
+          data: { title: "New Title" },
+        }),
+      ).rejects.toMatchObject({
+        code: "FORBIDDEN",
+      });
+      expect(mockLogger.warn).toHaveBeenCalled();
+    });
   });
 
   describe("Edge Cases", () => {
