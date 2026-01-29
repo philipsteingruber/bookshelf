@@ -15,7 +15,7 @@ import BookCard from "@/components/books/book-card";
 import type { DashboardCardProps } from "@/components/dashboard/dashboard-card";
 import DashboardCard from "@/components/dashboard/dashboard-card";
 import ReadingGoalCard from "@/components/dashboard/reading-goal-card";
-import ReadingProgressCard from "@/components/dashboard/readingprogress-card";
+import ReadingProgressCard from "@/components/dashboard/reading-progress-card";
 import SetGoalDialog from "@/components/dashboard/set-goal-dialog";
 import StatusCategoryHeader from "@/components/dashboard/status-category-header";
 import ErrorState from "@/components/error-state";

@@ -10,6 +10,7 @@ import type { TRPCError } from "@trpc/server";
 import { PenIcon, TrashIcon } from "lucide-react";
 import { toast } from "sonner";
 
+import BookCoverFallback from "@/components/books/book-cover-fallback";
 import { ReadingProgressEstimateCard } from "@/components/books/book-details/reading-progress-estimate-card";
 import ReadingProgressHistory from "@/components/books/book-details/reading-progress-history";
 import ReadingProgressHistoryGraph from "@/components/books/book-details/reading-progress-history-graph";
@@ -170,26 +171,7 @@ const Page = ({
             <Link href={coverUrl} target="_blank" prefetch={false}>
               <div className="relative h-[450px] w-[300px] overflow-hidden rounded-md bg-linear-to-br from-gray-100 to-gray-200 lg:h-[500px] lg:w-[333px] xl:h-[600px] xl:w-[400px]">
                 {imageError ? (
-                  <div className="flex h-full w-full items-center justify-center bg-linear-to-br from-slate-200 via-slate-300 to-slate-400 p-12">
-                    <div className="flex flex-col items-center gap-6 text-center">
-                      <svg
-                        className="h-32 w-32 text-slate-500"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={1.5}
-                          d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-                        />
-                      </svg>
-                      <p className="line-clamp-4 text-lg font-medium text-slate-600">
-                        {book.title}
-                      </p>
-                    </div>
-                  </div>
+                  <BookCoverFallback size="lg" book={book} />
                 ) : (
                   <Image
                     src={coverUrl}
