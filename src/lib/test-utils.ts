@@ -33,6 +33,7 @@ export function createMockDb(): PrismaClient {
     },
     readingProgress: {
       findFirst: vi.fn(),
+      findUnique: vi.fn(),
       findMany: vi.fn(),
       create: vi.fn(),
       delete: vi.fn(),

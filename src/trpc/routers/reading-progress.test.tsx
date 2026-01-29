@@ -492,37 +492,484 @@ describe("readingProgressRouter", () => {
   describe("deleteReadingProgressInstance", () => {
     beforeEach(() => vi.clearAllMocks());
 
-    it.skip("should delete reading progress entry successfully", async () => {});
+    it("should delete reading progress entry successfully", async () => {
+      const { mockDb, caller } = createMockCaller(readingProgressRouter);
 
-    it.skip("should recalculate book progress to highest remaining entry after deletion", async () => {});
+      const fakeBook = createFakeBook();
+      const fakeReadingProgress = createFakeReadingProgressWithBook({
+        bookId: fakeBook.id,
+        book: fakeBook,
+      });
 
-    it.skip("should set book progress to 0 when last entry is deleted", async () => {});
+      vi.mocked(mockDb.readingProgress.findUnique).mockResolvedValue(
+        fakeReadingProgress,
+      );
 
-    it.skip("should set status to TO_READ when last entry is deleted (if book status is not DNF or READ)", async () => {});
+      const mockDelete = vi.fn().mockResolvedValue(fakeReadingProgress);
+      vi.mocked(mockDb.$transaction).mockImplementation(async (callback) => {
+        const fakeTxClient = {
+          readingProgress: {
+            delete: mockDelete,
+            findFirst: vi.fn().mockResolvedValue(null),
+          },
+          book: {
+            update: vi.fn().mockResolvedValue(fakeBook),
+          },
+        } as unknown as PrismaClient;
+        return callback(fakeTxClient);
+      });
 
-    it.skip("should throw NOT_FOUND when progress entry doesn't exist", async () => {});
+      await caller.deleteReadingProgressInstance(fakeReadingProgress.id);
 
-    it.skip("should throw FORBIDDEN when user doesn't own the book", async () => {});
+      expect(mockDelete).toHaveBeenCalledWith({
+        where: { id: fakeReadingProgress.id },
+      });
+    });
+
+    it("should recalculate book progress to highest remaining entry after deletion", async () => {
+      const { mockDb, caller } = createMockCaller(readingProgressRouter);
+
+      const fakeBook = createFakeBook({ progress: 50 });
+      const firstReadingProgress = createFakeReadingProgressWithBook({
+        progress: 25,
+        createdAt: subDays(new Date(), 1),
+        bookId: fakeBook.id,
+        book: fakeBook,
+      });
+      const secondReadingProgress = createFakeReadingProgressWithBook({
+        progress: 50,
+        createdAt: new Date(),
+        bookId: fakeBook.id,
+        book: fakeBook,
+      });
+
+      vi.mocked(mockDb.readingProgress.findUnique).mockResolvedValue(
+        secondReadingProgress,
+      );
+
+      const mockUpdate = vi
+        .fn()
+        .mockResolvedValue({ ...fakeBook, progress: 25 });
+      vi.mocked(mockDb.$transaction).mockImplementation((callback) => {
+        const fakeTxClient = {
+          readingProgress: {
+            delete: vi.fn().mockResolvedValue(secondReadingProgress),
+            findFirst: vi.fn().mockResolvedValue(firstReadingProgress),
+          },
+          book: {
+            update: mockUpdate,
+          },
+        } as unknown as PrismaClient;
+        return callback(fakeTxClient);
+      });
+
+      await caller.deleteReadingProgressInstance(secondReadingProgress.id);
+
+      expect(mockUpdate).toHaveBeenCalledWith({
+        where: { id: fakeBook.id },
+        data: { progress: 25 },
+      });
+    });
+
+    it("should set book progress to 0 when last entry is deleted", async () => {
+      const { mockDb, caller } = createMockCaller(readingProgressRouter);
+
+      const fakeBook = createFakeBook({ progress: 50, status: "READ" });
+      const fakeReadingProgress = createFakeReadingProgressWithBook({
+        progress: 50,
+        bookId: fakeBook.id,
+        book: fakeBook,
+      });
+
+      vi.mocked(mockDb.readingProgress.findUnique).mockResolvedValue(
+        fakeReadingProgress,
+      );
+
+      const mockUpdate = vi.fn().mockResolvedValue({ ...fakeBook, progress: 0 });
+      vi.mocked(mockDb.$transaction).mockImplementation(async (callback) => {
+        const fakeTxClient = {
+          readingProgress: {
+            delete: vi.fn().mockResolvedValue(fakeReadingProgress),
+            findFirst: vi.fn().mockResolvedValue(null), // No remaining entries
+          },
+          book: {
+            update: mockUpdate,
+          },
+        } as unknown as PrismaClient;
+        return callback(fakeTxClient);
+      });
+
+      await caller.deleteReadingProgressInstance(fakeReadingProgress.id);
+
+      expect(mockUpdate).toHaveBeenCalledWith({
+        where: { id: fakeBook.id },
+        data: { progress: 0 },
+      });
+    });
+
+    it("should set status to TO_READ when last entry is deleted (if book status is not DNF or READ)", async () => {
+      const { mockDb, caller } = createMockCaller(readingProgressRouter);
+
+      const fakeBook = createFakeBook({ progress: 50, status: "READING" });
+      const fakeReadingProgress = createFakeReadingProgressWithBook({
+        progress: 50,
+        bookId: fakeBook.id,
+        book: fakeBook,
+      });
+
+      vi.mocked(mockDb.readingProgress.findUnique).mockResolvedValue(
+        fakeReadingProgress,
+      );
+
+      const mockUpdate = vi
+        .fn()
+        .mockResolvedValue({ ...fakeBook, progress: 0, status: "TO_READ" });
+      vi.mocked(mockDb.$transaction).mockImplementation(async (callback) => {
+        const fakeTxClient = {
+          readingProgress: {
+            delete: vi.fn().mockResolvedValue(fakeReadingProgress),
+            findFirst: vi.fn().mockResolvedValue(null), // No remaining entries
+          },
+          book: {
+            update: mockUpdate,
+          },
+        } as unknown as PrismaClient;
+        return callback(fakeTxClient);
+      });
+
+      await caller.deleteReadingProgressInstance(fakeReadingProgress.id);
+
+      expect(mockUpdate).toHaveBeenCalledWith({
+        where: { id: fakeBook.id },
+        data: { progress: 0, status: "TO_READ" },
+      });
+    });
+
+    it("should throw NOT_FOUND when progress entry doesn't exist", async () => {
+      const { mockDb, caller, mockLogger } = createMockCaller(
+        readingProgressRouter,
+      );
+
+      vi.mocked(mockDb.readingProgress.findUnique).mockResolvedValue(null);
+
+      await expect(
+        caller.deleteReadingProgressInstance("nonexistent-id"),
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+
+      expect(mockLogger.warn).toHaveBeenCalled();
+    });
+
+    it("should throw FORBIDDEN when user doesn't own the book", async () => {
+      const { mockDb, caller, mockLogger } = createMockCaller(
+        readingProgressRouter,
+      );
+
+      const fakeBook = createFakeBook({ userId: "other-user" });
+      const fakeReadingProgress = createFakeReadingProgressWithBook({
+        bookId: fakeBook.id,
+        book: fakeBook,
+      });
+
+      vi.mocked(mockDb.readingProgress.findUnique).mockResolvedValue(
+        fakeReadingProgress,
+      );
+
+      await expect(
+        caller.deleteReadingProgressInstance(fakeReadingProgress.id),
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+
+      expect(mockLogger.warn).toHaveBeenCalled();
+    });
   });
 
   describe("updateReadingProgressInstance", () => {
     beforeEach(() => vi.clearAllMocks());
 
-    it.skip("should update progress entry successfully", async () => {});
+    it("should update progress entry successfully", async () => {
+      const { mockDb, caller } = createMockCaller(readingProgressRouter);
 
-    it.skip("should update comments without changing progress", async () => {});
+      const fakeBook = createFakeBook({ progress: 50 });
+      const fakeReadingProgress = createFakeReadingProgressWithBook({
+        progress: 50,
+        bookId: fakeBook.id,
+        book: fakeBook,
+      });
+      const updatedReadingProgress = { ...fakeReadingProgress, progress: 75 };
 
-    it.skip("should update book progress when editing the most recent entry", async () => {});
+      vi.mocked(mockDb.readingProgress.findUnique).mockResolvedValue(
+        fakeReadingProgress,
+      );
+      vi.mocked(mockDb.readingProgress.findFirst).mockResolvedValue(null); // No previous or next
 
-    it.skip("should not update book progress when editing an older entry", async () => {});
+      const mockUpdate = vi.fn().mockResolvedValue(updatedReadingProgress);
+      vi.mocked(mockDb.$transaction).mockImplementation(async (callback) => {
+        const fakeTxClient = {
+          readingProgress: {
+            update: mockUpdate,
+          },
+          book: {
+            update: vi.fn().mockResolvedValue({ ...fakeBook, progress: 75 }),
+          },
+        } as unknown as PrismaClient;
+        return callback(fakeTxClient);
+      });
 
-    it.skip("should reject progress below previous entry's progress", async () => {});
+      await caller.updateReadingProgressInstance({
+        progressId: fakeReadingProgress.id,
+        newProgress: 75,
+      });
 
-    it.skip("should reject progress above next entry's progress", async () => {});
+      expect(mockUpdate).toHaveBeenCalledWith({
+        where: { id: fakeReadingProgress.id },
+        data: { progress: 75, comments: undefined },
+      });
+    });
 
-    it.skip("should throw NOT_FOUND when progress entry doesn't exist", async () => {});
+    it("should update comments without changing progress", async () => {
+      const { mockDb, caller } = createMockCaller(readingProgressRouter);
 
-    it.skip("should throw FORBIDDEN when user doesn't own the book", async () => {});
+      const fakeBook = createFakeBook({ progress: 50 });
+      const fakeReadingProgress = createFakeReadingProgressWithBook({
+        progress: 50,
+        bookId: fakeBook.id,
+        book: fakeBook,
+      });
+      const updatedReadingProgress = {
+        ...fakeReadingProgress,
+        comments: "Updated comment",
+      };
+
+      vi.mocked(mockDb.readingProgress.findUnique).mockResolvedValue(
+        fakeReadingProgress,
+      );
+      vi.mocked(mockDb.readingProgress.findFirst).mockResolvedValue(null);
+
+      const mockUpdate = vi.fn().mockResolvedValue(updatedReadingProgress);
+      vi.mocked(mockDb.$transaction).mockImplementation(async (callback) => {
+        const fakeTxClient = {
+          readingProgress: {
+            update: mockUpdate,
+          },
+          book: {
+            update: vi.fn().mockResolvedValue(fakeBook),
+          },
+        } as unknown as PrismaClient;
+        return callback(fakeTxClient);
+      });
+
+      await caller.updateReadingProgressInstance({
+        progressId: fakeReadingProgress.id,
+        newProgress: 50,
+        comments: "Updated comment",
+      });
+
+      expect(mockUpdate).toHaveBeenCalledWith({
+        where: { id: fakeReadingProgress.id },
+        data: { progress: 50, comments: "Updated comment" },
+      });
+    });
+
+    it("should update book progress when editing the most recent entry", async () => {
+      const { mockDb, caller } = createMockCaller(readingProgressRouter);
+
+      const fakeBook = createFakeBook({ progress: 50 });
+      const fakeReadingProgress = createFakeReadingProgressWithBook({
+        progress: 50,
+        bookId: fakeBook.id,
+        book: fakeBook,
+      });
+
+      vi.mocked(mockDb.readingProgress.findUnique).mockResolvedValue(
+        fakeReadingProgress,
+      );
+      // No next entry means this is the most recent
+      vi.mocked(mockDb.readingProgress.findFirst).mockResolvedValue(null);
+
+      const mockBookUpdate = vi
+        .fn()
+        .mockResolvedValue({ ...fakeBook, progress: 75 });
+      vi.mocked(mockDb.$transaction).mockImplementation(async (callback) => {
+        const fakeTxClient = {
+          readingProgress: {
+            update: vi
+              .fn()
+              .mockResolvedValue({ ...fakeReadingProgress, progress: 75 }),
+          },
+          book: {
+            update: mockBookUpdate,
+          },
+        } as unknown as PrismaClient;
+        return callback(fakeTxClient);
+      });
+
+      await caller.updateReadingProgressInstance({
+        progressId: fakeReadingProgress.id,
+        newProgress: 75,
+      });
+
+      expect(mockBookUpdate).toHaveBeenCalledWith({
+        where: { id: fakeBook.id },
+        data: { progress: 75 },
+      });
+    });
+
+    it("should not update book progress when editing an older entry", async () => {
+      const { mockDb, caller } = createMockCaller(readingProgressRouter);
+
+      const fakeBook = createFakeBook({ progress: 75 });
+      const olderReadingProgress = createFakeReadingProgressWithBook({
+        progress: 50,
+        createdAt: subDays(new Date(), 1),
+        bookId: fakeBook.id,
+        book: fakeBook,
+      });
+      const newerReadingProgress = createFakeReadingProgress({
+        progress: 75,
+        createdAt: new Date(),
+        bookId: fakeBook.id,
+      });
+
+      vi.mocked(mockDb.readingProgress.findUnique).mockResolvedValue(
+        olderReadingProgress,
+      );
+      vi.mocked(mockDb.readingProgress.findFirst)
+        .mockResolvedValueOnce(null) // No previous entry
+        .mockResolvedValueOnce(newerReadingProgress); // Has next entry
+
+      const mockBookUpdate = vi.fn();
+      vi.mocked(mockDb.$transaction).mockImplementation(async (callback) => {
+        const fakeTxClient = {
+          readingProgress: {
+            update: vi
+              .fn()
+              .mockResolvedValue({ ...olderReadingProgress, progress: 60 }),
+          },
+          book: {
+            update: mockBookUpdate,
+          },
+        } as unknown as PrismaClient;
+        return callback(fakeTxClient);
+      });
+
+      await caller.updateReadingProgressInstance({
+        progressId: olderReadingProgress.id,
+        newProgress: 60,
+      });
+
+      expect(mockBookUpdate).not.toHaveBeenCalled();
+    });
+
+    it("should reject progress below previous entry's progress", async () => {
+      const { mockDb, caller, mockLogger } = createMockCaller(
+        readingProgressRouter,
+      );
+
+      const fakeBook = createFakeBook({ progress: 75 });
+      const previousReadingProgress = createFakeReadingProgress({
+        progress: 50,
+        createdAt: subDays(new Date(), 1),
+        bookId: fakeBook.id,
+      });
+      const currentReadingProgress = createFakeReadingProgressWithBook({
+        progress: 75,
+        createdAt: new Date(),
+        bookId: fakeBook.id,
+        book: fakeBook,
+      });
+
+      vi.mocked(mockDb.readingProgress.findUnique).mockResolvedValue(
+        currentReadingProgress,
+      );
+      vi.mocked(mockDb.readingProgress.findFirst)
+        .mockResolvedValueOnce(previousReadingProgress) // Previous entry
+        .mockResolvedValueOnce(null); // No next entry
+
+      await expect(
+        caller.updateReadingProgressInstance({
+          progressId: currentReadingProgress.id,
+          newProgress: 40, // Below previous entry's 50
+        }),
+      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+
+      expect(mockLogger.warn).toHaveBeenCalled();
+    });
+
+    it("should reject progress above next entry's progress", async () => {
+      const { mockDb, caller, mockLogger } = createMockCaller(
+        readingProgressRouter,
+      );
+
+      const fakeBook = createFakeBook({ progress: 75 });
+      const currentReadingProgress = createFakeReadingProgressWithBook({
+        progress: 50,
+        createdAt: subDays(new Date(), 1),
+        bookId: fakeBook.id,
+        book: fakeBook,
+      });
+      const nextReadingProgress = createFakeReadingProgress({
+        progress: 75,
+        createdAt: new Date(),
+        bookId: fakeBook.id,
+      });
+
+      vi.mocked(mockDb.readingProgress.findUnique).mockResolvedValue(
+        currentReadingProgress,
+      );
+      vi.mocked(mockDb.readingProgress.findFirst)
+        .mockResolvedValueOnce(null) // No previous entry
+        .mockResolvedValueOnce(nextReadingProgress); // Has next entry
+
+      await expect(
+        caller.updateReadingProgressInstance({
+          progressId: currentReadingProgress.id,
+          newProgress: 80, // Above next entry's 75
+        }),
+      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+
+      expect(mockLogger.warn).toHaveBeenCalled();
+    });
+
+    it("should throw NOT_FOUND when progress entry doesn't exist", async () => {
+      const { mockDb, caller, mockLogger } = createMockCaller(
+        readingProgressRouter,
+      );
+
+      vi.mocked(mockDb.readingProgress.findUnique).mockResolvedValue(null);
+
+      await expect(
+        caller.updateReadingProgressInstance({
+          progressId: "nonexistent-id",
+          newProgress: 50,
+        }),
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+
+      expect(mockLogger.warn).toHaveBeenCalled();
+    });
+
+    it("should throw FORBIDDEN when user doesn't own the book", async () => {
+      const { mockDb, caller, mockLogger } = createMockCaller(
+        readingProgressRouter,
+      );
+
+      const fakeBook = createFakeBook({ userId: "other-user" });
+      const fakeReadingProgress = createFakeReadingProgressWithBook({
+        bookId: fakeBook.id,
+        book: fakeBook,
+      });
+
+      vi.mocked(mockDb.readingProgress.findUnique).mockResolvedValue(
+        fakeReadingProgress,
+      );
+
+      await expect(
+        caller.updateReadingProgressInstance({
+          progressId: fakeReadingProgress.id,
+          newProgress: 50,
+        }),
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+
+      expect(mockLogger.warn).toHaveBeenCalled();
+    });
   });
 
   describe("Edge Cases", () => {

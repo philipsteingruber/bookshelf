@@ -718,14 +718,11 @@ describe("bookRouter", () => {
       vi.mocked(mockDb.book.findUnique).mockResolvedValue(fakeBook);
       vi.mocked(mockDb.book.update).mockResolvedValue(updatedBook);
 
-      // Simulate two concurrent status update calls
       const [result1, result2] = await Promise.all([
         caller.updateReadingStatus({ bookId: fakeBook.id, newStatus: "READ" }),
         caller.updateReadingStatus({ bookId: fakeBook.id, newStatus: "READ" }),
       ]);
 
-      // Both calls should complete (router doesn't enforce locking at this level)
-      // In production, database-level constraints and transactions handle true concurrency
       expect(result1.status).toEqual("READ");
       expect(result2.status).toEqual("READ");
       expect(mockDb.book.update).toHaveBeenCalledTimes(2);
