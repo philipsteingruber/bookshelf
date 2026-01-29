@@ -147,7 +147,7 @@ const ReadingProgressHistory = ({
           </TableHeader>
           <TableBody>
             {historyForBook.toReversed().map((entry) => (
-              <TableRow key={entry.id} className="relative">
+              <TableRow key={entry.id}>
                 <TableCell>{formatRelativeDate(entry.createdAt)}</TableCell>
                 <TableCell className="text-center font-semibold">
                   {entry.progress}
@@ -165,7 +165,6 @@ const ReadingProgressHistory = ({
                   <Button
                     variant={"destructive"}
                     size={"icon"}
-                    className="absolute top-0 right-0"
                     onClick={() => {
                       setEntryToDelete(entry.id);
                       setIsDeleteReadingProgressDialogOpen(true);
