@@ -41,7 +41,7 @@ export const ReadingProgressEstimateCard = ({
           <p className="text-muted-foreground text-sm">Average Pace</p>
           <p className="text-lg font-semibold">
             {averagePace > 0
-              ? `${averagePace}% (${calculatePagesFromProgress(averagePace, pageCount)} pages) per day`
+              ? `${averagePace.toFixed(1)}% (${calculatePagesFromProgress(averagePace, pageCount)} pages) per day`
               : "Not enough data"}
           </p>
         </div>
