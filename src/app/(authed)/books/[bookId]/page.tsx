@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState } from "react";
+import { use } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -13,36 +13,29 @@ import BookDetailsCover from "@/components/books/book-details/book-details-cover
 import { ReadingProgressEstimateCard } from "@/components/books/book-details/reading-progress-estimate-card";
 import ReadingProgressHistory from "@/components/books/book-details/reading-progress-history";
 import ReadingProgressHistoryGraph from "@/components/books/book-details/reading-progress-history-graph";
+import ReadingStatusDialog from "@/components/books/book-details/reading-status-dialog";
 import UpdateReadingProgressCard from "@/components/books/book-details/update-reading-progress-card";
 import ErrorState from "@/components/error-state";
 import LoadingState from "@/components/loading-state";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
-  DialogClose,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Separator } from "@/components/ui/separator";
 import { Spinner } from "@/components/ui/spinner";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import type { ReadStatus } from "@/generated/prisma/enums";
 import { useBook } from "@/hooks/use-book";
 import { useDialogState } from "@/hooks/use-dialog-state";
 import { useReadingHistory } from "@/hooks/use-reading-history";
-import { getStatusButtonStyle, parseReadStatus } from "@/lib/book-utils";
 import {
   aggregateByDay,
   calculateAveragePace,
@@ -83,9 +76,6 @@ const Page = ({
     aggregatedData[aggregatedData.length - 1]?.createdAt ?? new Date(),
   );
 
-  const [pageCountLabelContent, setPageCountLabelContent] =
-    useState<string>("");
-
   const router = useRouter();
 
   const { mutate: deleteBook, isPending: isDeleting } =
@@ -101,22 +91,6 @@ const Page = ({
       },
     });
 
-  const { mutate: updateStatus, isPending: isUpdatingStatus } =
-    trpc.book.updateReadingStatus.useMutation({
-      onSuccess: (data) => {
-        toast.success("Status updated successfully", {
-          description: `${data.updatedBook.title} - ${data.updatedBook.author}`,
-        });
-        setIsReadingStatusDialogOpen(false);
-        trpcUtils.book.getBook.invalidate(parseInt(bookId));
-        trpcUtils.book.getBooks.invalidate();
-      },
-    });
-  const { mutate: updatePageCount, isPending: isUpdatingPageCount } =
-    trpc.book.updatePageCount.useMutation({
-      onSuccess: () => trpcUtils.book.getBook.invalidate(parseInt(bookId)),
-    });
-
   const {
     isOpen: isDeleteDialogOpen,
     handleOpenChange: handleOpenDeleteDialogChange,
@@ -124,25 +98,6 @@ const Page = ({
   } = useDialogState({
     preventClose: isDeleting,
   });
-  const {
-    isOpen: isReadingStatusDialogOpen,
-    handleOpenChange: handleOpenReadingStatusDialogChange,
-    setIsOpen: setIsReadingStatusDialogOpen,
-  } = useDialogState({ preventClose: isUpdatingStatus });
-
-  const statusOptions: ReadStatus[] = [
-    "TO_READ",
-    "READ_NEXT",
-    "READING",
-    "READ",
-    "DNF",
-  ];
-
-  const trpcUtils = trpc.useUtils();
-
-  const [selectedStatus, setSelectedStatus] = useState<ReadStatus | undefined>(
-    book?.status,
-  );
 
   const { isSignedIn, isLoaded } = useAuth();
 
@@ -170,105 +125,7 @@ const Page = ({
         <div className="flex w-full flex-col items-center gap-y-4 lg:w-3/4 lg:flex-row lg:items-start lg:gap-x-4">
           <div className="flex flex-col gap-y-4">
             <BookDetailsCover book={book} />
-            <Dialog
-              open={isReadingStatusDialogOpen}
-              onOpenChange={(open) => {
-                handleOpenReadingStatusDialogChange(open);
-                if (!open) {
-                  setSelectedStatus(book.status);
-                  setPageCountLabelContent("");
-                }
-              }}
-            >
-              <DialogTrigger asChild>
-                <Button
-                  className={cn(
-                    getStatusButtonStyle(book.status),
-                    "h-8 w-full cursor-pointer rounded-md",
-                  )}
-                >
-                  {parseReadStatus(book.status)}
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogTitle className="flex flex-col items-center justify-center">
-                  Change Reading Status
-                  <Separator className="my-6" />
-                </DialogTitle>
-                <RadioGroup
-                  defaultValue={book.status}
-                  onValueChange={(val) => setSelectedStatus(val as ReadStatus)}
-                >
-                  {statusOptions.map((status, index) => (
-                    <div className="flex items-center gap-x-2" key={status}>
-                      <RadioGroupItem
-                        value={status}
-                        id={"r" + index}
-                        className="cursor-pointer"
-                      />
-                      <Label htmlFor={"r" + index} className="cursor-pointer">
-                        {parseReadStatus(status)}
-                      </Label>
-                    </div>
-                  ))}
-                </RadioGroup>
-                {(selectedStatus === "READ" || selectedStatus == "READING") && (
-                  <div className="flex flex-col">
-                    <Separator className="my-4" />
-                    <div className="mb-2 flex gap-x-2">
-                      <Label htmlFor="pageCount">Page Count</Label>
-                      <Input
-                        id="pageCount"
-                        value={pageCountLabelContent}
-                        onChange={(e) =>
-                          setPageCountLabelContent(e.target.value)
-                        }
-                        className="max-w-1/2"
-                        placeholder={
-                          book.pageCount.toString() || pageCountLabelContent
-                        }
-                      />
-                    </div>
-                  </div>
-                )}
-                <DialogFooter>
-                  <DialogClose asChild>
-                    <Button variant={"outline"}>Cancel</Button>
-                  </DialogClose>
-                  <Button
-                    className="w-1/4 cursor-pointer"
-                    onClick={() => {
-                      if (pageCountLabelContent) {
-                        updatePageCount({
-                          bookId: parseInt(bookId, 10),
-                          newPageCount: parseInt(pageCountLabelContent),
-                        });
-                      }
-                      updateStatus({
-                        bookId: parseInt(bookId, 10),
-                        newStatus: selectedStatus as ReadStatus,
-                      });
-                    }}
-                    disabled={
-                      isUpdatingPageCount ||
-                      isUpdatingStatus ||
-                      !selectedStatus ||
-                      ((selectedStatus === "READ" ||
-                        selectedStatus === "READING") &&
-                        !book.pageCount &&
-                        (!pageCountLabelContent ||
-                          parseInt(pageCountLabelContent) <= 0))
-                    }
-                  >
-                    {isUpdatingStatus || isUpdatingPageCount ? (
-                      <Spinner />
-                    ) : (
-                      "Submit"
-                    )}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+            <ReadingStatusDialog book={book} />
           </div>
           <div className="flex w-full flex-col gap-y-2 lg:w-3/4">
             {book.series && book.seriesIndex && (

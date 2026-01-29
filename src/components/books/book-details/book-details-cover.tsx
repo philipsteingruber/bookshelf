@@ -12,7 +12,10 @@ interface BookDetailsCoverProps {
   className?: string;
 }
 
-const BookDetailsCover = ({ book, className }: BookDetailsCoverProps) => {
+const BookDetailsCover = ({
+  book,
+  className,
+}: BookDetailsCoverProps): React.ReactElement => {
   const coverUrl = book?.coverUrl || BOOK_COVER_PLACEHOLDER_URL;
   const { imageError, handleImageError } = useImageError(book.coverUrl ?? null);
 
