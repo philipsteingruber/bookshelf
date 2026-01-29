@@ -1,7 +1,6 @@
 "use client";
 
 import { use, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -10,7 +9,7 @@ import type { TRPCError } from "@trpc/server";
 import { PenIcon, TrashIcon } from "lucide-react";
 import { toast } from "sonner";
 
-import BookCoverFallback from "@/components/books/book-cover-fallback";
+import BookDetailsCover from "@/components/books/book-details/book-details-cover";
 import { ReadingProgressEstimateCard } from "@/components/books/book-details/reading-progress-estimate-card";
 import ReadingProgressHistory from "@/components/books/book-details/reading-progress-history";
 import ReadingProgressHistoryGraph from "@/components/books/book-details/reading-progress-history-graph";
@@ -42,7 +41,6 @@ import {
 import type { ReadStatus } from "@/generated/prisma/enums";
 import { useBook } from "@/hooks/use-book";
 import { useDialogState } from "@/hooks/use-dialog-state";
-import { useImageError } from "@/hooks/use-imageerror";
 import { useReadingHistory } from "@/hooks/use-reading-history";
 import { getStatusButtonStyle, parseReadStatus } from "@/lib/book-utils";
 import {
@@ -52,7 +50,6 @@ import {
   type ChartDataPoint,
   estimateCompletion,
 } from "@/lib/chart-utils";
-import { BOOK_COVER_PLACEHOLDER_URL } from "@/lib/constants";
 import { handleTRPCError } from "@/lib/error-handler";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/trpc/client";
@@ -86,9 +83,6 @@ const Page = ({
     aggregatedData[aggregatedData.length - 1]?.createdAt ?? new Date(),
   );
 
-  const { imageError, handleImageError } = useImageError(
-    book?.coverUrl ?? null,
-  );
   const [pageCountLabelContent, setPageCountLabelContent] =
     useState<string>("");
 
@@ -136,7 +130,6 @@ const Page = ({
     setIsOpen: setIsReadingStatusDialogOpen,
   } = useDialogState({ preventClose: isUpdatingStatus });
 
-  const coverUrl = book?.coverUrl || BOOK_COVER_PLACEHOLDER_URL;
   const statusOptions: ReadStatus[] = [
     "TO_READ",
     "READ_NEXT",
@@ -176,25 +169,7 @@ const Page = ({
       <div className="flex h-full w-full flex-col justify-center px-4 lg:flex-row lg:px-8">
         <div className="flex w-full flex-col items-center gap-y-4 lg:w-3/4 lg:flex-row lg:items-start lg:gap-x-4">
           <div className="flex flex-col gap-y-4">
-            <Link href={coverUrl} target="_blank" prefetch={false}>
-              <div className="relative h-[450px] w-[300px] overflow-hidden rounded-md bg-linear-to-br from-gray-100 to-gray-200 lg:h-[500px] lg:w-[333px] xl:h-[600px] xl:w-[400px]">
-                {imageError ? (
-                  <BookCoverFallback size="lg" book={book} />
-                ) : (
-                  <Image
-                    src={coverUrl}
-                    alt={`${book.title} cover`}
-                    width={400}
-                    height={600}
-                    unoptimized
-                    className="rounded-md"
-                    placeholder="blur"
-                    blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjYwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImciIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPjxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNmMWY1ZjkiLz48c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNlMmU4ZjAiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjYwMCIgZmlsbD0idXJsKCNnKSIvPjwvc3ZnPg=="
-                    onError={handleImageError}
-                  />
-                )}
-              </div>
-            </Link>
+            <BookDetailsCover book={book} />
             <Dialog
               open={isReadingStatusDialogOpen}
               onOpenChange={(open) => {
