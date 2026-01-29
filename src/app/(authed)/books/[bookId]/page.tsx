@@ -130,7 +130,7 @@ const Page = ({
     trpc.book.updateReadingStatus.useMutation({
       onSuccess: (data) => {
         toast.success("Status updated successfully", {
-          description: `${data.title} - ${data.author}`,
+          description: `${data.updatedBook.title} - ${data.updatedBook.author}`,
         });
         setIsReadingStatusDialogOpen(false);
         trpcUtils.book.getBook.invalidate(parseInt(bookId));
