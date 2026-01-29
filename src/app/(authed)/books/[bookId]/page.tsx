@@ -6,10 +6,10 @@ import { useRouter } from "next/navigation";
 
 import { RedirectToSignIn, useAuth } from "@clerk/nextjs";
 import type { TRPCError } from "@trpc/server";
-import { PenIcon, TrashIcon } from "lucide-react";
-import { toast } from "sonner";
+import { PenIcon } from "lucide-react";
 
 import BookDetailsCover from "@/components/books/book-details/book-details-cover";
+import DeleteBookDialog from "@/components/books/book-details/delete-book-dialog";
 import { ReadingProgressEstimateCard } from "@/components/books/book-details/reading-progress-estimate-card";
 import ReadingProgressHistory from "@/components/books/book-details/reading-progress-history";
 import ReadingProgressHistoryGraph from "@/components/books/book-details/reading-progress-history-graph";
@@ -18,23 +18,13 @@ import UpdateReadingProgressCard from "@/components/books/book-details/update-re
 import ErrorState from "@/components/error-state";
 import LoadingState from "@/components/loading-state";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
-import { Spinner } from "@/components/ui/spinner";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useBook } from "@/hooks/use-book";
-import { useDialogState } from "@/hooks/use-dialog-state";
 import { useReadingHistory } from "@/hooks/use-reading-history";
 import {
   aggregateByDay,
@@ -43,9 +33,7 @@ import {
   type ChartDataPoint,
   estimateCompletion,
 } from "@/lib/chart-utils";
-import { handleTRPCError } from "@/lib/error-handler";
 import { cn } from "@/lib/utils";
-import { trpc } from "@/trpc/client";
 
 const Page = ({
   params,
@@ -77,27 +65,6 @@ const Page = ({
   );
 
   const router = useRouter();
-
-  const { mutate: deleteBook, isPending: isDeleting } =
-    trpc.book.deleteBook.useMutation({
-      onSuccess: () => {
-        toast.success(`Deleted ${book ? book.title : "book"} from BookShelf`, {
-          duration: 5000,
-        });
-        router.replace("/dashboard");
-      },
-      onError: (error) => {
-        handleTRPCError(error);
-      },
-    });
-
-  const {
-    isOpen: isDeleteDialogOpen,
-    handleOpenChange: handleOpenDeleteDialogChange,
-    setIsOpen: setIsDeleteDialogOpen,
-  } = useDialogState({
-    preventClose: isDeleting,
-  });
 
   const { isSignedIn, isLoaded } = useAuth();
 
@@ -157,47 +124,7 @@ const Page = ({
                   </TooltipTrigger>
                   <TooltipContent>Edit book details</TooltipContent>
                 </Tooltip>
-                <Dialog
-                  open={isDeleteDialogOpen}
-                  onOpenChange={handleOpenDeleteDialogChange}
-                >
-                  <Tooltip>
-                    <DialogTrigger asChild>
-                      <TooltipTrigger asChild>
-                        <Button className="bg-destructive/90 text-foreground hover:bg-destructive/70 hover:text-muted-foreground transition-colors">
-                          <TrashIcon />
-                        </Button>
-                      </TooltipTrigger>
-                    </DialogTrigger>
-                    <TooltipContent>
-                      <p>{`Delete '${book.title}' from BookShelf`}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>{`Delete '${book.title}'?`}</DialogTitle>
-                      <DialogDescription>{`This will permanently delete '${book.title}' and all its reading progress from your BookShelf. This cannot be undone.`}</DialogDescription>
-                    </DialogHeader>
-                    <div className="flex w-full flex-col gap-y-4 lg:flex-row lg:gap-x-4">
-                      <Button
-                        onClick={() => setIsDeleteDialogOpen(false)}
-                        variant={"outline"}
-                        disabled={isDeleting}
-                        className="flex-1"
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        onClick={() => deleteBook(book.id)}
-                        variant={"destructive"}
-                        disabled={isDeleting}
-                        className="flex-1"
-                      >
-                        {isDeleting ? <Spinner /> : "Confirm"}
-                      </Button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
+                <DeleteBookDialog book={book} />
               </div>
             </div>
             <span className="font-serif text-xl italic">{book.author}</span>
