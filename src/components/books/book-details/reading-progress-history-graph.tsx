@@ -13,7 +13,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import type { ReadingProgressWithProgressSinceLast } from "@/hooks/use-reading-history";
+import type { ReadingProgressWithProgressSinceLast } from "@/hooks/reading/use-reading-history";
 import {
   aggregateByDay,
   calculateTrendline,

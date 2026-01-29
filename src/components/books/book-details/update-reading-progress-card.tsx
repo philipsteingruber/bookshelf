@@ -16,7 +16,7 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import type { Book } from "@/generated/prisma/client";
-import { useProgressValidation } from "@/hooks/use-progress-validation";
+import { useProgressValidation } from "@/hooks/book";
 import { trpc } from "@/trpc/client";
 
 const UpdateReadingProgressCard = ({

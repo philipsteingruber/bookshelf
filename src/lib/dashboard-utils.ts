@@ -1,4 +1,4 @@
-import type { BreakPoint } from "@/hooks/use-breakpoint";
+import type { BreakPoint } from "@/hooks/ui/use-breakpoint";
 
 export const getDashboardMaxReadingBooksCount = (
   breakPoint: BreakPoint,

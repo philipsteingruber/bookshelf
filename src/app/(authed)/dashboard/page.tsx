@@ -24,11 +24,9 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ReadStatus } from "@/generated/prisma/enums";
-import { useBooks } from "@/hooks/use-books";
-import { useBreakPoint } from "@/hooks/use-breakpoint";
-import { useDialogState } from "@/hooks/use-dialog-state";
-import { useReadingGoals } from "@/hooks/use-reading-goals";
-import { useReadingStats } from "@/hooks/use-reading-stats";
+import { useBooks } from "@/hooks/book";
+import { useReadingGoals, useReadingStats } from "@/hooks/reading";
+import { useBreakPoint, useDialogState } from "@/hooks/ui";
 import {
   getDashboardMaxReadingBooksCount,
   getDashboardMaxReadNextBooksCount,

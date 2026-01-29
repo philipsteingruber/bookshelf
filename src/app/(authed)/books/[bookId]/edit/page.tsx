@@ -8,7 +8,7 @@ import type { TRPCError } from "@trpc/server";
 import { EditBookForm } from "@/components/books/edit-form/edit-form";
 import ErrorState from "@/components/error-state";
 import LoadingState from "@/components/loading-state";
-import { useBook } from "@/hooks/use-book";
+import { useBook } from "@/hooks/book";
 
 const Page = ({
   params,

@@ -16,8 +16,8 @@ import UpdateReadingProgressCard from "@/components/books/book-details/update-re
 import ErrorState from "@/components/error-state";
 import LoadingState from "@/components/loading-state";
 import { Progress } from "@/components/ui/progress";
-import { useBook } from "@/hooks/use-book";
-import { useReadingHistory } from "@/hooks/use-reading-history";
+import { useBook } from "@/hooks/book";
+import { useReadingHistory } from "@/hooks/reading";
 import {
   aggregateByDay,
   calculateAveragePace,

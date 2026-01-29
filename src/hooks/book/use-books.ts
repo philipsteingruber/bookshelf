@@ -8,7 +8,7 @@ import { ReadStatus } from "@/generated/prisma/enums";
 import { trpc } from "@/trpc/client";
 import type { AppRouter } from "@/trpc/routers/_app";
 
-import type { BookFilters } from "./../trpc/routers/book";
+import type { BookFilters } from "../../trpc/routers/book";
 
 interface UseBooksReturn {
   books: Book[];

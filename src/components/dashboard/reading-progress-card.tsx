@@ -7,8 +7,7 @@ import { PenIcon } from "lucide-react";
 
 import BookCoverFallback from "@/components/books/book-cover-fallback";
 import type { Book } from "@/generated/prisma/client";
-import { useDialogState } from "@/hooks/use-dialog-state";
-import { useImageError } from "@/hooks/use-imageerror";
+import { useDialogState, useImageError } from "@/hooks/ui";
 import { BOOK_COVER_PLACEHOLDER_URL } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/trpc/client";

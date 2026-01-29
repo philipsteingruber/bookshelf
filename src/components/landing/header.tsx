@@ -7,7 +7,7 @@ import { BookIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { useBreakPoint } from "@/hooks/use-breakpoint";
+import { useBreakPoint } from "@/hooks/ui";
 
 const LandingHeader = (): React.ReactElement => {
   const breakpoint = useBreakPoint();

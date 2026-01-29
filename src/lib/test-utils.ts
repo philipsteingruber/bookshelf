@@ -9,7 +9,7 @@ import type {
   ReadingProgress,
   User,
 } from "@/generated/prisma/client";
-import type { ReadingProgressWithProgressSinceLast } from "@/hooks/use-reading-history";
+import type { ReadingProgressWithProgressSinceLast } from "@/hooks/reading/use-reading-history";
 import { type ChartDataPoint, formatRelativeDate } from "@/lib/chart-utils";
 import { READING_GOAL_DEFAULT_THRESHOLD } from "@/lib/constants";
 import type { ReadingProgressWithBook } from "@/lib/reading-stats-utils";

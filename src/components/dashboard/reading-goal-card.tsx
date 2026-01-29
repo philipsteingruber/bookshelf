@@ -23,7 +23,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useDialogState } from "@/hooks/use-dialog-state";
+import { useDialogState } from "@/hooks/ui";
 import { handleTRPCError } from "@/lib/error-handler";
 import { cn } from "@/lib/utils";
 

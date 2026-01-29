@@ -4,7 +4,7 @@ import Link from "next/link";
 
 import { BookIcon, FlameIcon, PlusIcon } from "lucide-react";
 
-import { useReadingStats } from "@/hooks/use-reading-stats";
+import { useReadingStats } from "@/hooks/reading";
 import { cn } from "@/lib/utils";
 
 import { Button } from "../ui/button";

@@ -20,7 +20,7 @@ import { Separator } from "@/components/ui/separator";
 import { Spinner } from "@/components/ui/spinner";
 import type { Book } from "@/generated/prisma/client";
 import type { ReadStatus } from "@/generated/prisma/enums";
-import { useDialogState } from "@/hooks/use-dialog-state";
+import { useDialogState } from "@/hooks/ui";
 import { getStatusButtonStyle, parseReadStatus } from "@/lib/book-utils";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/trpc/client";

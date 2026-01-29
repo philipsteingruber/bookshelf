@@ -25,7 +25,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { useMounted } from "@/hooks/use-mounted";
+import { useMounted } from "@/hooks/ui";
 import { cn } from "@/lib/utils";
 
 import ThemeToggle from "../theme-toggle";

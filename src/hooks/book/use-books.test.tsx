@@ -2,7 +2,7 @@ import { renderHook } from "@testing-library/react";
 import { subYears } from "date-fns";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { useBooks } from "@/hooks/use-books";
+import { useBooks } from "@/hooks/book";
 import { createFakeBook, createMockUseQueryReturn } from "@/lib/test-utils";
 import { trpc } from "@/trpc/client";
 

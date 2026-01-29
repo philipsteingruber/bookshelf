@@ -7,7 +7,7 @@ import {
   startOfDay,
 } from "date-fns";
 
-import type { ReadingProgressWithProgressSinceLast } from "@/hooks/use-reading-history";
+import type { ReadingProgressWithProgressSinceLast } from "@/hooks/reading/use-reading-history";
 
 /**
  * Formats a date as a relative string for chart display

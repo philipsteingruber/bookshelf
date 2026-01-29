@@ -5,7 +5,7 @@ import Link from "next/link";
 
 import BookCoverFallback from "@/components/books/book-cover-fallback";
 import type { Book } from "@/generated/prisma/client";
-import { useImageError } from "@/hooks/use-imageerror";
+import { useImageError } from "@/hooks/ui";
 import { BOOK_COVER_PLACEHOLDER_URL } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/trpc/client";

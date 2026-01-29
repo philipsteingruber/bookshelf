@@ -21,7 +21,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import type { Book } from "@/generated/prisma/client";
-import { useDialogState } from "@/hooks/use-dialog-state";
+import { useDialogState } from "@/hooks/ui";
 import { handleTRPCError } from "@/lib/error-handler";
 import { trpc } from "@/trpc/client";
 

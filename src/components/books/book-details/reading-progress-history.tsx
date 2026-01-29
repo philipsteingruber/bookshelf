@@ -25,8 +25,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { Book } from "@/generated/prisma/client";
-import { useDialogState } from "@/hooks/use-dialog-state";
-import type { ReadingProgressWithProgressSinceLast } from "@/hooks/use-reading-history";
+import type { ReadingProgressWithProgressSinceLast } from "@/hooks/reading/use-reading-history";
+import { useDialogState } from "@/hooks/ui";
 import { calculatePagesFromProgress } from "@/lib/book-utils";
 import { aggregateByDay, formatRelativeDate } from "@/lib/chart-utils";
 import { handleTRPCError } from "@/lib/error-handler";

@@ -1,7 +1,7 @@
 import { renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { useBook } from "@/hooks/use-book";
+import { useBook } from "@/hooks/book";
 import { createFakeBook, createMockUseQueryReturn } from "@/lib/test-utils";
 import { trpc } from "@/trpc/client";
 

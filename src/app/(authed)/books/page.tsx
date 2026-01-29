@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/select";
 import type { ReadStatus } from "@/generated/prisma/enums";
 import type { BookScalarFieldEnum } from "@/generated/prisma/internal/prismaNamespace";
-import { useBooks } from "@/hooks/use-books";
+import { useBooks } from "@/hooks/book";
 import { DEFAULT_FILTER, DEFAULT_SORTING } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
