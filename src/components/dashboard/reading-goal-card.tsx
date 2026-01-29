@@ -57,7 +57,6 @@ const ReadingGoalCard = ({
   const [newThresholdValue, setNewThresholdValue] = useState<number>(threshold);
   const {
     isOpen: isThresholdDialogOpen,
-    setIsOpen: setIsThresholdDialogOpen,
     handleOpenChange: handleDialogOpenChange,
   } = useDialogState({
     preventClose: isSettingThreshold,
