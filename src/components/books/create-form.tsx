@@ -1,15 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ChevronDown } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import z from "zod";
+import type z from "zod";
 
-import CoverDropzone from "@/components/books/form-sections/cover-dropzone";
+import CoverDropzone from "@/components/books/create-form/form-sections/cover-dropzone";
+import GoodreadsImportPanel from "@/components/books/create-form/goodreads-import-panel";
 import { useUploadThing } from "@/components/uploadthing";
 import { handleTRPCError, handleUploadError } from "@/lib/error-handler";
 import type { ScrapeData } from "@/lib/goodreads-scraper";
@@ -25,25 +25,17 @@ import {
   CardHeader,
   CardTitle,
 } from "../ui/card";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "../ui/collapsible";
 import { Field } from "../ui/field";
-import { Input } from "../ui/input";
-import { Label } from "../ui/label";
 import { Separator } from "../ui/separator";
 import { Spinner } from "../ui/spinner";
 
-import { BasicInfoSection } from "./form-sections/basic-info-section";
-import { OptionalInfoSection } from "./form-sections/optional-info-section";
+import { BasicInfoSection } from "./create-form/form-sections/basic-info-section";
+import { OptionalInfoSection } from "./create-form/form-sections/optional-info-section";
 
 const CreateBookForm = (): React.ReactElement => {
-  const [isImportPanelOpen, setIsImportPanelOpen] = useState<boolean>(false);
-  const [inputUrl, setInputUrl] = useState<string>("");
-  const [urlError, setUrlError] = useState<string | null>(null);
   const [pendingCoverFile, setPendingCoverFile] = useState<File | null>(null);
+  const [isImportingFromGoodReads, setIsImportingFromGoodReads] =
+    useState<boolean>(false);
 
   const { startUpload, isUploading } = useUploadThing("imageUploader", {
     onUploadError: (error) => {
@@ -65,16 +57,6 @@ const CreateBookForm = (): React.ReactElement => {
       coverUrl: "",
     },
   });
-  const validateUrl = (url: string): void => {
-    const result = z.url().safeParse(url);
-    if (!result.success && inputUrl) {
-      setUrlError("Please enter a valid URL");
-    } else if (!url.includes("goodreads.com") && inputUrl) {
-      setUrlError("URL must be from goodreads.com");
-    } else {
-      setUrlError(null);
-    }
-  };
 
   const router = useRouter();
 
@@ -114,19 +96,6 @@ const CreateBookForm = (): React.ReactElement => {
       },
     });
 
-  const { mutate: importFromGoodReads, isPending: isImportingFromGoodReads } =
-    trpc.goodReads.scrape.useMutation({
-      onSuccess: (data) => {
-        handleGoodReadsImport(data);
-        setInputUrl("");
-        setIsImportPanelOpen(false);
-        toast.success("Successfully imported from GoodReads!");
-      },
-      onError: (error) => {
-        handleTRPCError(error);
-      },
-    });
-
   const onSubmit = async (
     data: z.infer<typeof createFormSchema>,
   ): Promise<void> => {
@@ -146,21 +115,7 @@ const CreateBookForm = (): React.ReactElement => {
     createBook({ ...data, coverUrl });
   };
 
-  const importUrlRef = useRef<HTMLInputElement>(null);
   const titleRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (isImportPanelOpen) {
-      const timer = setTimeout(() => {
-        importUrlRef.current?.focus();
-      }, 50);
-      return () => {
-        clearTimeout(timer);
-      };
-    } else {
-      titleRef.current?.focus();
-    }
-  }, [isImportPanelOpen]);
 
   return (
     <Card className="w-full md:w-2/3 xl:w-1/2">
@@ -170,72 +125,12 @@ const CreateBookForm = (): React.ReactElement => {
           Fill in the form below, and click the Upload button to upload a cover
           image.
         </CardDescription>
-        <Collapsible
-          open={isImportPanelOpen}
-          onOpenChange={setIsImportPanelOpen}
-          className="mt-6 mb-2 flex w-full flex-col items-center justify-center text-center md:w-2/3 xl:w-1/2"
-        >
-          <div className="flex items-center justify-between gap-x-4">
-            <CollapsibleTrigger asChild>
-              <div className="flex cursor-pointer items-center justify-between gap-x-4">
-                <span
-                  className={
-                    isImportPanelOpen
-                      ? "text-muted-foreground transition-colors"
-                      : ""
-                  }
-                >
-                  Want to get started with data from GoodReads?
-                </span>
-                <Button>
-                  <ChevronDown
-                    className={
-                      isImportPanelOpen
-                        ? "rotate-180 transition-transform"
-                        : "transition-transform"
-                    }
-                  />
-                </Button>
-              </div>
-            </CollapsibleTrigger>
-          </div>
-          <CollapsibleContent className="my-2 w-full rounded-md border p-2">
-            <div className="flex flex-col items-center justify-center gap-y-2 sm:flex-row sm:items-start sm:gap-x-4">
-              <div className="flex flex-col items-center gap-y-2">
-                <Label htmlFor="importUrl">GoodReads URL</Label>
-                <Input
-                  id="importUrl"
-                  ref={importUrlRef}
-                  className="w-64"
-                  disabled={isImportingFromGoodReads}
-                  value={inputUrl}
-                  onChange={(evt) => {
-                    validateUrl(evt.target.value);
-                    setInputUrl(evt.target.value);
-                  }}
-                  onBlur={(evt) => {
-                    validateUrl(evt.target.value);
-                  }}
-                  onKeyDown={(evt) => {
-                    if (evt.key === "Enter" && !urlError && inputUrl) {
-                      importFromGoodReads(inputUrl);
-                    }
-                  }}
-                />
-                {urlError && (
-                  <span className="text-xs text-red-500">{urlError}</span>
-                )}
-              </div>
-              <Button
-                className="mt-[22px]"
-                disabled={isImportingFromGoodReads || !!urlError || !inputUrl}
-                onClick={() => importFromGoodReads(inputUrl)}
-              >
-                {isImportingFromGoodReads ? <Spinner /> : "Import"}
-              </Button>
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
+        <GoodreadsImportPanel
+          onImportSuccess={handleGoodReadsImport}
+          onPanelClose={() => titleRef.current?.focus()}
+          onLoadingChange={setIsImportingFromGoodReads}
+          className="md:w-2/3 xl:w-1/2"
+        />
       </CardHeader>
       <CardContent>
         <form id="create-book-form" onSubmit={form.handleSubmit(onSubmit)}>

@@ -8,9 +8,9 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import type z from "zod";
 
-import { BasicInfoSection } from "@/components/books/form-sections/basic-info-section";
-import CoverDropzone from "@/components/books/form-sections/cover-dropzone";
-import { OptionalInfoSection } from "@/components/books/form-sections/optional-info-section";
+import { BasicInfoSection } from "@/components/books/create-form/form-sections/basic-info-section";
+import CoverDropzone from "@/components/books/create-form/form-sections/cover-dropzone";
+import { OptionalInfoSection } from "@/components/books/create-form/form-sections/optional-info-section";
 import { Button } from "@/components/ui/button";
 import {
   Card,
