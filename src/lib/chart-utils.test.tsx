@@ -2,6 +2,7 @@ import {
   addDays,
   addMonths,
   addWeeks,
+  startOfDay,
   subDays,
   subHours,
   subMonths,
@@ -12,6 +13,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   aggregateByDay,
   calculateTrendline,
+  ensureZeroBaseline,
   estimateCompletion,
   formatEstimatedDate,
   formatFullTimestamp,
@@ -331,6 +333,48 @@ describe("chartUtils", () => {
 
     it("should format month and day correctly", () => {
       expect(formatEstimatedDate(new Date("2026-01-15"))).toEqual("January 15");
+    });
+  });
+
+  describe("ensureZeroBaseline", () => {
+    it("should return empty array when given empty input", () => {
+      const result = ensureZeroBaseline([]);
+
+      expect(result).toEqual([]);
+    });
+
+    it("should return unchanged array when first entry is already at 0%", () => {
+      const firstReadingProgress =
+        createFakeReadingProgressWithProgressSinceLast({ progress: 0 });
+      const secondReadingProgress =
+        createFakeReadingProgressWithProgressSinceLast({ progress: 5 });
+
+      const result = ensureZeroBaseline([
+        firstReadingProgress,
+        secondReadingProgress,
+      ]);
+
+      expect(result).toEqual([firstReadingProgress, secondReadingProgress]);
+    });
+
+    it("should prepend synthetic 0% entry when first entry is above 0%", () => {
+      const firstReadingProgress =
+        createFakeReadingProgressWithProgressSinceLast({ progress: 5 });
+
+      const result = ensureZeroBaseline([firstReadingProgress]);
+
+      expect(result.length).toEqual(2);
+      expect(result[0].progress).toEqual(0);
+      expect(result[1].progress).toEqual(firstReadingProgress.progress);
+    });
+
+    it("should set synthetic entry date to start of first entry's day", () => {
+      const firstReadingProgress =
+        createFakeReadingProgressWithProgressSinceLast({ progress: 5 });
+
+      const result = ensureZeroBaseline([firstReadingProgress]);
+
+      expect(result[0].createdAt).toEqual(startOfDay(result[1].createdAt));
     });
   });
 });

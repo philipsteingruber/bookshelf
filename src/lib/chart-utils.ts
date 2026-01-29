@@ -228,3 +228,30 @@ export const calculateAveragePace = (
 
   return lastEntry.progress / daysElapsed;
 };
+
+/**
+ * Ensures chart data starts at 0% by prepending a synthetic baseline entry
+ * if the first aggregated entry isn't already at 0%.
+ * This provides accurate visual representation of the full reading journey.
+ */
+export function ensureZeroBaseline(
+  data: ReadingProgressWithProgressSinceLast[],
+): ReadingProgressWithProgressSinceLast[] {
+  if (data.length === 0 || data[0].progress === 0) {
+    return data;
+  }
+
+  const firstEntry = data[0];
+  const syntheticEntry: ReadingProgressWithProgressSinceLast = {
+    id: `synthetic-baseline-${firstEntry.bookId}`,
+    bookId: firstEntry.bookId,
+    userId: firstEntry.userId,
+    progress: 0,
+    comments: null,
+    createdAt: startOfDay(firstEntry.createdAt),
+    updatedAt: startOfDay(firstEntry.createdAt),
+    progressSinceLast: 0,
+  };
+
+  return [syntheticEntry, ...data];
+}

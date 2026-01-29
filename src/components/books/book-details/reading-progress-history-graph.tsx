@@ -18,6 +18,7 @@ import {
   aggregateByDay,
   calculateTrendline,
   type ChartDataPoint,
+  ensureZeroBaseline,
   formatRelativeDate,
 } from "@/lib/chart-utils";
 import { cn } from "@/lib/utils";
@@ -40,10 +41,12 @@ const ReadingProgressHistoryGraph = ({
   readingHistory: ReadingProgressWithProgressSinceLast[];
   className?: string;
 }): React.ReactElement => {
-  // Aggregate by day
+  // Aggregate by day (used for trendline calculation - real data only)
   const aggregatedData = aggregateByDay(readingHistory);
+  // Add synthetic 0% baseline for display (visual anchor only)
+  const displayData = ensureZeroBaseline(aggregatedData);
 
-  // Check minimum data
+  // Check minimum data (use real data count, not including synthetic entry)
   if (aggregatedData.length < 3) {
     return (
       <div className="border-primary flex h-[368px] w-full max-w-4xl items-center justify-center rounded-lg border-2">
@@ -61,8 +64,8 @@ const ReadingProgressHistoryGraph = ({
     );
   }
 
-  // Prepare chart data points
-  const chartDataPoints: ChartDataPoint[] = aggregatedData.map((entry) => ({
+  // Prepare chart data points for display (includes synthetic 0% baseline)
+  const chartDataPoints: ChartDataPoint[] = displayData.map((entry) => ({
     date: entry.createdAt,
     displayDate: formatRelativeDate(entry.createdAt),
     progress: entry.progress,
@@ -72,10 +75,25 @@ const ReadingProgressHistoryGraph = ({
     originalEntry: entry,
   }));
 
-  // Calculate trendline
-  const { trendlineData } = calculateTrendline(chartDataPoints);
+  // Prepare data points for trendline (real data only, excludes synthetic baseline)
+  const trendlineSourcePoints: ChartDataPoint[] = aggregatedData.map(
+    (entry) => ({
+      date: entry.createdAt,
+      displayDate: formatRelativeDate(entry.createdAt),
+      progress: entry.progress,
+      progressSinceLast: entry.progressSinceLast,
+      comments: entry.comments,
+      fullDate: entry.createdAt.toLocaleString(),
+      originalEntry: entry,
+    }),
+  );
+
+  // Calculate trendline from real data only
+  const { trendlineData } = calculateTrendline(trendlineSourcePoints);
 
   // Merge actual progress data with trendline data
+  // Account for synthetic baseline offset (trendline is calculated from real data only)
+  const syntheticOffset = displayData.length - aggregatedData.length;
   const chartData: {
     date: string;
     progress?: number;
@@ -85,14 +103,19 @@ const ReadingProgressHistoryGraph = ({
   }[] = chartDataPoints.map((point, index) => ({
     date: point.displayDate,
     progress: point.progress,
-    trend: trendlineData[index]?.trend,
+    // Synthetic baseline (index 0 when offset=1) has no trendline value
+    trend:
+      index >= syntheticOffset
+        ? trendlineData[index - syntheticOffset]?.trend
+        : undefined,
     progressSinceLast: point.progressSinceLast,
     entry: point.originalEntry,
   }));
 
   // Add extended trendline points if they exist
-  if (trendlineData.length > chartDataPoints.length) {
-    for (let i = chartDataPoints.length; i < trendlineData.length; i++) {
+  const realDataPointsCount = chartDataPoints.length - syntheticOffset;
+  if (trendlineData.length > realDataPointsCount) {
+    for (let i = realDataPointsCount; i < trendlineData.length; i++) {
       chartData.push({
         date: trendlineData[i].displayDate,
         progress: undefined,
