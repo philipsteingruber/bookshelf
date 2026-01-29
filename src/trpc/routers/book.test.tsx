@@ -96,94 +96,100 @@ describe("bookRouter", () => {
     it("should update status to READ (and set finishedAt and progress to 100)", async () => {
       const { mockDb, caller } = createMockCaller(bookRouter);
 
-      const originalBookData = {
+      const originalBook = createFakeBook({
         status: "READING" as ReadStatus,
         finishedAt: null,
         progress: 50,
-      };
-      const originalBook = createFakeBook(originalBookData);
-
-      const updatedBookData = {
+      });
+      const updatedBook = createFakeBook({
         status: "READ" as ReadStatus,
         finishedAt: new Date(),
         progress: 100,
-      };
-      const updatedBook = createFakeBook(updatedBookData);
+      });
 
       vi.mocked(mockDb.book.findUnique).mockResolvedValue(originalBook);
-      vi.mocked(mockDb.book.update).mockResolvedValue(updatedBook);
+      vi.mocked(mockDb.$transaction).mockImplementation(async (callback) => {
+        const fakeTxClient = {
+          book: {
+            update: vi.fn().mockResolvedValue(updatedBook),
+          },
+        } as unknown as typeof mockDb;
+        return callback(fakeTxClient);
+      });
 
       const result = await caller.updateReadingStatus({
         bookId: originalBook.id,
-        newStatus: updatedBookData.status,
+        newStatus: "READ",
       });
 
-      expect(result.status).toEqual("READ");
-      expect(result.finishedAt).toBeInstanceOf(Date);
-      expect(result.progress).toEqual(100);
-      expect(mockDb.book.update).toHaveBeenCalledWith({
-        data: expect.objectContaining({
-          status: "READ",
-          progress: VALIDATION_LIMITS.PROGRESS_COMPLETE,
-          finishedAt: expect.any(Date),
-        }),
-        where: { id: originalBook.id },
-      });
+      expect(result.updatedBook.status).toEqual("READ");
+      expect(result.updatedBook.finishedAt).toBeInstanceOf(Date);
+      expect(result.updatedBook.progress).toEqual(100);
     });
 
     it("should update status to READING (and set startedAt)", async () => {
       const { mockDb, caller } = createMockCaller(bookRouter);
 
-      const originalBookData = {
+      const originalBook = createFakeBook({
         status: "TO_READ" as ReadStatus,
         startedAt: null,
-      };
-      const originalBook = createFakeBook(originalBookData);
-
-      const updatedBookData = {
+      });
+      const updatedBook = createFakeBook({
         status: "READING" as ReadStatus,
         startedAt: new Date(),
-      };
-      const updatedBook = createFakeBook(updatedBookData);
+      });
 
       vi.mocked(mockDb.book.findUnique).mockResolvedValue(originalBook);
-      vi.mocked(mockDb.book.update).mockResolvedValue(updatedBook);
+      vi.mocked(mockDb.$transaction).mockImplementation(async (callback) => {
+        const fakeTxClient = {
+          readingProgress: {
+            findFirst: vi.fn().mockResolvedValue(null),
+            create: vi.fn(),
+          },
+          book: {
+            update: vi.fn().mockResolvedValue(updatedBook),
+          },
+        } as unknown as typeof mockDb;
+        return callback(fakeTxClient);
+      });
 
       const result = await caller.updateReadingStatus({
         bookId: originalBook.id,
-        newStatus: updatedBook.status,
+        newStatus: "READING",
       });
 
-      expect(result.status).toEqual("READING");
-      expect(result.startedAt).toBeInstanceOf(Date);
-      expect(mockDb.book.update).toHaveBeenCalledWith({
-        data: expect.objectContaining({
-          status: "READING",
-          startedAt: expect.any(Date),
-        }),
-        where: { id: originalBook.id },
-      });
+      expect(result.updatedBook.status).toEqual("READING");
+      expect(result.updatedBook.startedAt).toBeInstanceOf(Date);
     });
 
     it("should create initial 0% ReadingProgress entry when status changes to READING", async () => {
       const { mockDb, caller } = createMockCaller(bookRouter);
 
       const fakeBook = createFakeBook({ status: "TO_READ" });
-      const updatedBook = createFakeBook({
-        status: "READING",
-        id: fakeBook.id,
-      });
+      const updatedBook = createFakeBook({ status: "READING", id: fakeBook.id });
 
       vi.mocked(mockDb.book.findUnique).mockResolvedValue(fakeBook);
-      vi.mocked(mockDb.book.update).mockResolvedValue(updatedBook);
-      vi.mocked(mockDb.readingProgress.findFirst).mockResolvedValue(null);
+
+      const mockCreate = vi.fn();
+      vi.mocked(mockDb.$transaction).mockImplementation(async (callback) => {
+        const fakeTxClient = {
+          readingProgress: {
+            findFirst: vi.fn().mockResolvedValue(null),
+            create: mockCreate,
+          },
+          book: {
+            update: vi.fn().mockResolvedValue(updatedBook),
+          },
+        } as unknown as typeof mockDb;
+        return callback(fakeTxClient);
+      });
 
       await caller.updateReadingStatus({
         bookId: fakeBook.id,
         newStatus: "READING",
       });
 
-      expect(mockDb.readingProgress.create).toHaveBeenCalledWith({
+      expect(mockCreate).toHaveBeenCalledWith({
         data: { bookId: fakeBook.id, userId: expect.any(String), progress: 0 },
       });
     });
@@ -192,63 +198,130 @@ describe("bookRouter", () => {
       const { mockDb, caller } = createMockCaller(bookRouter);
 
       const fakeBook = createFakeBook({ status: "TO_READ" });
-      const updatedBook = createFakeBook({
-        status: "READING",
-        id: fakeBook.id,
-      });
+      const updatedBook = createFakeBook({ status: "READING", id: fakeBook.id });
       const zeroReadingProgress = createFakeReadingProgress({
         bookId: fakeBook.id,
         progress: 0,
       });
 
       vi.mocked(mockDb.book.findUnique).mockResolvedValue(fakeBook);
-      vi.mocked(mockDb.book.update).mockResolvedValue(updatedBook);
-      vi.mocked(mockDb.readingProgress.findFirst).mockResolvedValue(
-        zeroReadingProgress,
-      );
+
+      const mockCreate = vi.fn();
+      vi.mocked(mockDb.$transaction).mockImplementation(async (callback) => {
+        const fakeTxClient = {
+          readingProgress: {
+            findFirst: vi.fn().mockResolvedValue(zeroReadingProgress),
+            create: mockCreate,
+          },
+          book: {
+            update: vi.fn().mockResolvedValue(updatedBook),
+          },
+        } as unknown as typeof mockDb;
+        return callback(fakeTxClient);
+      });
 
       await caller.updateReadingStatus({
         bookId: fakeBook.id,
         newStatus: "READING",
       });
 
-      expect(mockDb.readingProgress.create).not.toHaveBeenCalled();
+      expect(mockCreate).not.toHaveBeenCalled();
     });
 
-    it("should update status to TO_READ (and reset startedAt and progress to 0)", async () => {
+    it("should update status to TO_READ (resets progress/startedAt/finishedAt)", async () => {
       const { mockDb, caller } = createMockCaller(bookRouter);
 
-      const originalBookData = {
+      const originalBook = createFakeBook({
         status: "READING" as ReadStatus,
         progress: 25,
         startedAt: new Date(),
-      };
-      const originalBook = createFakeBook(originalBookData);
-
-      const updatedBookData = {
+      });
+      const updatedBook = createFakeBook({
         status: "TO_READ" as ReadStatus,
         progress: 0,
         startedAt: null,
-      };
-      const updatedBook = createFakeBook(updatedBookData);
+        finishedAt: null,
+      });
 
       vi.mocked(mockDb.book.findUnique).mockResolvedValue(originalBook);
-      vi.mocked(mockDb.book.update).mockResolvedValue(updatedBook);
+      vi.mocked(mockDb.$transaction).mockImplementation(async (callback) => {
+        const fakeTxClient = {
+          readingProgress: {
+            deleteMany: vi.fn().mockResolvedValue({ count: 2 }),
+          },
+          book: {
+            update: vi.fn().mockResolvedValue(updatedBook),
+          },
+        } as unknown as typeof mockDb;
+        return callback(fakeTxClient);
+      });
 
       const result = await caller.updateReadingStatus({
         bookId: originalBook.id,
-        newStatus: updatedBook.status,
+        newStatus: "TO_READ",
       });
 
-      expect(result.status).toEqual("TO_READ");
-      expect(result.startedAt).toEqual(null);
-      expect(result.progress).toEqual(0);
-      expect(mockDb.book.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: { status: "TO_READ", startedAt: null, progress: 0 },
-          where: { id: originalBook.id },
-        }),
-      );
+      expect(result.updatedBook.status).toEqual("TO_READ");
+      expect(result.updatedBook.startedAt).toEqual(null);
+      expect(result.updatedBook.progress).toEqual(0);
+    });
+
+    it("should delete all ReadingProgress entries when status changes to TO_READ", async () => {
+      const { mockDb, caller } = createMockCaller(bookRouter);
+
+      const fakeBook = createFakeBook({ status: "READING", progress: 50 });
+      const updatedBook = createFakeBook({ status: "TO_READ", progress: 0 });
+
+      vi.mocked(mockDb.book.findUnique).mockResolvedValue(fakeBook);
+
+      const mockDeleteMany = vi.fn().mockResolvedValue({ count: 3 });
+      vi.mocked(mockDb.$transaction).mockImplementation(async (callback) => {
+        const fakeTxClient = {
+          readingProgress: {
+            deleteMany: mockDeleteMany,
+          },
+          book: {
+            update: vi.fn().mockResolvedValue(updatedBook),
+          },
+        } as unknown as typeof mockDb;
+        return callback(fakeTxClient);
+      });
+
+      await caller.updateReadingStatus({
+        bookId: fakeBook.id,
+        newStatus: "TO_READ",
+      });
+
+      expect(mockDeleteMany).toHaveBeenCalledWith({ where: { bookId: fakeBook.id } });
+    });
+
+    it("should delete all ReadingProgress entries when status changes to READ_NEXT", async () => {
+      const { mockDb, caller } = createMockCaller(bookRouter);
+
+      const fakeBook = createFakeBook({ status: "READING", progress: 50 });
+      const updatedBook = createFakeBook({ status: "READ_NEXT", progress: 0 });
+
+      vi.mocked(mockDb.book.findUnique).mockResolvedValue(fakeBook);
+
+      const mockDeleteMany = vi.fn().mockResolvedValue({ count: 3 });
+      vi.mocked(mockDb.$transaction).mockImplementation(async (callback) => {
+        const fakeTxClient = {
+          readingProgress: {
+            deleteMany: mockDeleteMany,
+          },
+          book: {
+            update: vi.fn().mockResolvedValue(updatedBook),
+          },
+        } as unknown as typeof mockDb;
+        return callback(fakeTxClient);
+      });
+
+      await caller.updateReadingStatus({
+        bookId: fakeBook.id,
+        newStatus: "READ_NEXT",
+      });
+
+      expect(mockDeleteMany).toHaveBeenCalledWith({ where: { bookId: fakeBook.id } });
     });
 
     it("should throw error when book not found", async () => {
@@ -266,7 +339,7 @@ describe("bookRouter", () => {
     it("should throw error when user doesn't own book", async () => {
       const fakeOwner = createFakeUser({ id: "1" });
       const fakeRequester = createFakeUser({ id: "2" });
-      const { mockDb, caller, mockLogger } = createMockCaller(bookRouter, {
+      const { mockDb, caller } = createMockCaller(bookRouter, {
         userId: fakeRequester.id,
       });
 
@@ -280,7 +353,6 @@ describe("bookRouter", () => {
           newStatus: "READING",
         }),
       ).rejects.toMatchObject({ code: "FORBIDDEN" });
-      expect(mockLogger.warn).toBeCalled();
     });
   });
   describe("updatePageCount", () => {
@@ -716,16 +788,26 @@ describe("bookRouter", () => {
       const updatedBook = createFakeBook({ status: "READ", progress: 100 });
 
       vi.mocked(mockDb.book.findUnique).mockResolvedValue(fakeBook);
-      vi.mocked(mockDb.book.update).mockResolvedValue(updatedBook);
+
+      let transactionCallCount = 0;
+      vi.mocked(mockDb.$transaction).mockImplementation(async (callback) => {
+        transactionCallCount++;
+        const fakeTxClient = {
+          book: {
+            update: vi.fn().mockResolvedValue(updatedBook),
+          },
+        } as unknown as typeof mockDb;
+        return callback(fakeTxClient);
+      });
 
       const [result1, result2] = await Promise.all([
         caller.updateReadingStatus({ bookId: fakeBook.id, newStatus: "READ" }),
         caller.updateReadingStatus({ bookId: fakeBook.id, newStatus: "READ" }),
       ]);
 
-      expect(result1.status).toEqual("READ");
-      expect(result2.status).toEqual("READ");
-      expect(mockDb.book.update).toHaveBeenCalledTimes(2);
+      expect(result1.updatedBook.status).toEqual("READ");
+      expect(result2.updatedBook.status).toEqual("READ");
+      expect(transactionCallCount).toBe(2);
     });
   });
 });

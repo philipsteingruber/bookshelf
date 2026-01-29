@@ -248,10 +248,9 @@ export const bookRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      ctx.logger.info(
-        { bookId: input.bookId, newStatus: input.newStatus },
-        "Updating reading status",
-      );
+      const { bookId, newStatus } = input;
+
+      ctx.logger.debug({ bookId, newStatus }, "Updating reading status");
 
       const fetchBookTimer = performanceLogger(
         "DB: Fetch book for status update",
@@ -261,107 +260,88 @@ export const bookRouter = createTRPCRouter({
 
       fetchBookTimer.start();
       const book = await ctx.db.book.findUnique({
-        where: { id: input.bookId },
+        where: { id: bookId },
       });
-      fetchBookTimer.end({ bookId: input.bookId });
+      fetchBookTimer.end({ bookId });
 
       if (!book) {
-        ctx.logger.warn(
-          { bookId: input.bookId },
-          "No book found for status update",
-        );
+        ctx.logger.warn({ bookId }, "Book not found for status update");
         throw new TRPCError({ code: "NOT_FOUND" });
       }
-
       if (book.userId !== ctx.currentUser.id) {
         ctx.logger.warn(
           {
-            bookId: book.id,
+            bookId,
             bookOwnerId: book.userId,
             attemptedBy: ctx.currentUser.id,
           },
-          "Permission denied: Attempted to access another user's book",
+          "Permission denied: Attempted to update another user's book status",
         );
         throw new TRPCError({ code: "FORBIDDEN" });
       }
 
-      // Prepare update data with status and progress in one operation
       const updateData: {
         status: ReadStatus;
         progress?: number;
         startedAt?: Date | null;
         finishedAt?: Date | null;
-      } = {
-        status: input.newStatus,
-      };
+      } = { status: newStatus };
 
-      // Set progress/timestamps based on status
-      if (input.newStatus === "READ") {
-        updateData.progress = VALIDATION_LIMITS.PROGRESS_COMPLETE;
+      if (newStatus === "READ") {
         updateData.finishedAt = new Date();
-      } else if (
-        input.newStatus === "TO_READ" ||
-        input.newStatus === "READ_NEXT"
-      ) {
-        updateData.progress = VALIDATION_LIMITS.PROGRESS_NOT_STARTED;
+        updateData.progress = 100;
+      } else if (newStatus === "TO_READ" || newStatus === "READ_NEXT") {
+        updateData.progress = 0;
         updateData.startedAt = null;
-      } else if (input.newStatus === "READING") {
+        updateData.finishedAt = null;
+      } else if (newStatus === "READING") {
         updateData.startedAt = new Date();
-
-        const createInitialReadingProgressTimer = performanceLogger(
-          "DB: Check/Create initial ReadingProgress instance for book set as READING",
-          500,
-          ctx.logger,
-        );
-        createInitialReadingProgressTimer.start();
-        const existingInitialEntry = await ctx.db.readingProgress.findFirst({
-          where: {
-            bookId: input.bookId,
-            userId: ctx.currentUser.id,
-            progress: 0,
-          },
-        });
-        if (!existingInitialEntry) {
-          await ctx.db.readingProgress.create({
-            data: {
-              bookId: input.bookId,
-              userId: ctx.currentUser.id,
-              progress: 0,
-            },
-          });
-        }
-        createInitialReadingProgressTimer.end({ bookId: input.bookId });
       }
 
-      const updateBookStatusTimer = performanceLogger(
-        "DB: Update book status/progress",
-        500,
+      const transactionTimer = performanceLogger(
+        "DB: Update reading status transaction",
+        1000,
         ctx.logger,
       );
 
-      updateBookStatusTimer.start();
-      const updatedBook = await ctx.db.book.update({
-        data: updateData,
-        where: { id: input.bookId },
+      transactionTimer.start();
+      const updatedBook = await ctx.db.$transaction(async (tx) => {
+        if (newStatus === "TO_READ" || newStatus === "READ_NEXT") {
+          const deleted = await tx.readingProgress.deleteMany({
+            where: { bookId },
+          });
+          ctx.logger.debug(
+            { bookId, deletedCount: deleted.count },
+            "Deleted reading progress entries",
+          );
+        } else if (newStatus === "READING") {
+          const existing = await tx.readingProgress.findFirst({
+            where: { bookId, progress: 0 },
+          });
+          if (!existing) {
+            await tx.readingProgress.create({
+              data: { bookId, userId: ctx.currentUser.id, progress: 0 },
+            });
+            ctx.logger.debug({ bookId }, "Created initial 0% reading progress");
+          }
+        }
+
+        return tx.book.update({ where: { id: bookId }, data: updateData });
       });
-      updateBookStatusTimer.end({ bookId: input.bookId });
+      transactionTimer.end({ bookId });
 
       ctx.logger.info(
         {
-          bookId: updatedBook.id,
+          bookId,
           oldStatus: book.status,
           newStatus: updatedBook.status,
           oldProgress: book.progress,
           newProgress: updatedBook.progress,
-          oldStartedAt: book.startedAt,
-          newStartedAt: updatedBook.startedAt,
-          oldFinishedAt: book.finishedAt,
-          newFinishedAt: updatedBook.finishedAt,
         },
-        "Book status (and progress/timestamps if relevant) updated",
+        "Reading status updated",
       );
 
-      return updatedBook;
+      return { updatedBook };
     }),
   updatePageCount: authedProcedure
     .input(z.object({ bookId: z.number(), newPageCount: z.int().positive() }))
