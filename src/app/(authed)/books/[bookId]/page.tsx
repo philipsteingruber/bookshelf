@@ -41,6 +41,7 @@ import {
 } from "@/components/ui/tooltip";
 import type { ReadStatus } from "@/generated/prisma/enums";
 import { useBook } from "@/hooks/use-book";
+import { useImageError } from "@/hooks/use-imageerror";
 import { useReadingHistory } from "@/hooks/use-reading-history";
 import { getStatusButtonStyle, parseReadStatus } from "@/lib/book-utils";
 import {
@@ -84,7 +85,9 @@ const Page = ({
     aggregatedData[aggregatedData.length - 1]?.createdAt ?? new Date(),
   );
 
-  const [imageError, setImageError] = useState(false);
+  const { imageError, handleImageError } = useImageError(
+    book?.coverUrl ?? null,
+  );
   const [pageCountLabelContent, setPageCountLabelContent] =
     useState<string>("");
 
@@ -182,7 +185,7 @@ const Page = ({
                     className="rounded-md"
                     placeholder="blur"
                     blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjYwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImciIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPjxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNmMWY1ZjkiLz48c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNlMmU4ZjAiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjYwMCIgZmlsbD0idXJsKCNnKSIvPjwvc3ZnPg=="
-                    onError={() => setImageError(true)}
+                    onError={handleImageError}
                   />
                 )}
               </div>
