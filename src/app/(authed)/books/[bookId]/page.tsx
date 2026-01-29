@@ -41,6 +41,7 @@ import {
 } from "@/components/ui/tooltip";
 import type { ReadStatus } from "@/generated/prisma/enums";
 import { useBook } from "@/hooks/use-book";
+import { useDialogState } from "@/hooks/use-dialog-state";
 import { useImageError } from "@/hooks/use-imageerror";
 import { useReadingHistory } from "@/hooks/use-reading-history";
 import { getStatusButtonStyle, parseReadStatus } from "@/lib/book-utils";
@@ -92,7 +93,7 @@ const Page = ({
     useState<string>("");
 
   const router = useRouter();
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
+
   const { mutate: deleteBook, isPending: isDeleting } =
     trpc.book.deleteBook.useMutation({
       onSuccess: () => {
@@ -105,30 +106,6 @@ const Page = ({
         handleTRPCError(error);
       },
     });
-
-  const handleOpenDeleteDialogChange = (open: boolean): void => {
-    if (isDeleting) {
-      return;
-    }
-    setIsDeleteDialogOpen(open);
-  };
-
-  const coverUrl = book?.coverUrl || BOOK_COVER_PLACEHOLDER_URL;
-  const statusOptions: ReadStatus[] = [
-    "TO_READ",
-    "READ_NEXT",
-    "READING",
-    "READ",
-    "DNF",
-  ];
-
-  const trpcUtils = trpc.useUtils();
-
-  const [selectedStatus, setSelectedStatus] = useState<ReadStatus | undefined>(
-    book?.status,
-  );
-  const [isReadingStatusDialogOpen, setIsReadingStatusDialogOpen] =
-    useState<boolean>(false);
 
   const { mutate: updateStatus, isPending: isUpdatingStatus } =
     trpc.book.updateReadingStatus.useMutation({
@@ -145,6 +122,34 @@ const Page = ({
     trpc.book.updatePageCount.useMutation({
       onSuccess: () => trpcUtils.book.getBook.invalidate(parseInt(bookId)),
     });
+
+  const {
+    isOpen: isDeleteDialogOpen,
+    handleOpenChange: handleOpenDeleteDialogChange,
+    setIsOpen: setIsDeleteDialogOpen,
+  } = useDialogState({
+    preventClose: isDeleting,
+  });
+  const {
+    isOpen: isReadingStatusDialogOpen,
+    handleOpenChange: handleOpenReadingStatusDialogChange,
+    setIsOpen: setIsReadingStatusDialogOpen,
+  } = useDialogState({ preventClose: isUpdatingStatus });
+
+  const coverUrl = book?.coverUrl || BOOK_COVER_PLACEHOLDER_URL;
+  const statusOptions: ReadStatus[] = [
+    "TO_READ",
+    "READ_NEXT",
+    "READING",
+    "READ",
+    "DNF",
+  ];
+
+  const trpcUtils = trpc.useUtils();
+
+  const [selectedStatus, setSelectedStatus] = useState<ReadStatus | undefined>(
+    book?.status,
+  );
 
   const { isSignedIn, isLoaded } = useAuth();
 
@@ -193,7 +198,7 @@ const Page = ({
             <Dialog
               open={isReadingStatusDialogOpen}
               onOpenChange={(open) => {
-                setIsReadingStatusDialogOpen(open);
+                handleOpenReadingStatusDialogChange(open);
                 if (!open) {
                   setSelectedStatus(book.status);
                   setPageCountLabelContent("");

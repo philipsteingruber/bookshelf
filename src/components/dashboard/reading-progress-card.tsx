@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -8,6 +7,7 @@ import { PenIcon } from "lucide-react";
 
 import BookCoverFallback from "@/components/books/book-cover-fallback";
 import type { Book } from "@/generated/prisma/client";
+import { useDialogState } from "@/hooks/use-dialog-state";
 import { useImageError } from "@/hooks/use-imageerror";
 import { BOOK_COVER_PLACEHOLDER_URL } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -33,8 +33,10 @@ const ReadingProgressCard = ({
 }): React.ReactElement => {
   const { imageError, handleImageError } = useImageError(book.coverUrl);
   const coverUrl = book.coverUrl || BOOK_COVER_PLACEHOLDER_URL;
-  const [readingProgressDialogOpen, setReadingProgressDialogOpen] =
-    useState<boolean>(false);
+  const {
+    isOpen: readingProgressDialogOpen,
+    setIsOpen: setReadingProgressDialogOpen,
+  } = useDialogState();
 
   const utils = trpc.useUtils();
   const handleMouseEnter = (): void => {

@@ -1,7 +1,5 @@
 "use client";
 
-import { useState } from "react";
-
 import { RedirectToSignIn, useAuth } from "@clerk/nextjs";
 import { startOfDay, subWeeks } from "date-fns";
 import {
@@ -28,6 +26,7 @@ import {
 import { ReadStatus } from "@/generated/prisma/enums";
 import { useBooks } from "@/hooks/use-books";
 import { useBreakPoint } from "@/hooks/use-breakpoint";
+import { useDialogState } from "@/hooks/use-dialog-state";
 import { useReadingGoals } from "@/hooks/use-reading-goals";
 import { useReadingStats } from "@/hooks/use-reading-stats";
 import {
@@ -104,7 +103,10 @@ const Page = (): React.ReactElement => {
     recentlyReadBooksToShowCount,
   );
 
-  const [goalDialogOpen, setGoalDialogOpen] = useState<boolean>(false);
+  const {
+    isOpen: isReadingGoalDialogOpen,
+    setIsOpen: setIsReadingGoalDialogOpen,
+  } = useDialogState();
 
   const { isSignedIn } = useAuth();
 
@@ -245,14 +247,14 @@ const Page = (): React.ReactElement => {
           threshold={pageCountThreshold}
           setThreshold={setThreshold}
           isSettingThreshold={isSettingThreshold}
-          onEditClick={() => setGoalDialogOpen(true)}
+          onEditClick={() => setIsReadingGoalDialogOpen(true)}
           paceMessage={paceMessage}
           progressPercentage={progressPercentage}
           expectedAtThisPoint={expectedAtThisPoint}
         />
         <SetGoalDialog
-          open={goalDialogOpen}
-          onOpenChange={setGoalDialogOpen}
+          open={isReadingGoalDialogOpen}
+          onOpenChange={setIsReadingGoalDialogOpen}
           currentGoal={currentGoal}
           onSave={setGoal}
           isSaving={isSettingGoal}

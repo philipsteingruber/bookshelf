@@ -25,6 +25,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { Book } from "@/generated/prisma/client";
+import { useDialogState } from "@/hooks/use-dialog-state";
 import type { ReadingProgressWithProgressSinceLast } from "@/hooks/use-reading-history";
 import { calculatePagesFromProgress } from "@/lib/book-utils";
 import { aggregateByDay, formatRelativeDate } from "@/lib/chart-utils";
@@ -53,16 +54,6 @@ const ReadingProgressHistory = ({
         : entry.progress - aggregatedHistory[index - 1].progress,
   }));
 
-  const [
-    isDeleteReadingProgressDialogOpen,
-    setIsDeleteReadingProgressDialogOpen,
-  ] = useState<boolean>(false);
-  const handleDeleteReadingProgressDialogOpenChange = (open: boolean): void => {
-    if (isDeleting) {
-      return;
-    }
-    setIsDeleteReadingProgressDialogOpen(open);
-  };
   const [entryToDelete, setEntryToDelete] = useState<string | null>(null);
 
   const trpcUtils = trpc.useUtils();
@@ -78,6 +69,14 @@ const ReadingProgressHistory = ({
         handleTRPCError(error);
       },
     });
+
+  const {
+    setIsOpen: setIsDeleteReadingProgressDialogOpen,
+    isOpen: isDeleteReadingProgressDialogOpen,
+    handleOpenChange: handleDeleteReadingProgressDialogOpenChange,
+  } = useDialogState({
+    preventClose: isDeleting,
+  });
 
   return (
     <Card

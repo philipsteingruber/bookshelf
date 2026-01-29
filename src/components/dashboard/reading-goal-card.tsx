@@ -23,6 +23,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useDialogState } from "@/hooks/use-dialog-state";
 import { handleTRPCError } from "@/lib/error-handler";
 import { cn } from "@/lib/utils";
 
@@ -54,18 +55,14 @@ const ReadingGoalCard = ({
   className,
 }: ReadingGoalCardProps): React.ReactElement => {
   const [newThresholdValue, setNewThresholdValue] = useState<number>(threshold);
-  const [isThresholdDialogOpen, setIsThresholdDialogOpen] =
-    useState<boolean>(false);
-
-  const handleDialogOpenChange = (open: boolean): void => {
-    if (open === false && isSettingThreshold) {
-      return;
-    }
-    if (open === false) {
-      setNewThresholdValue(threshold);
-    }
-    setIsThresholdDialogOpen(open);
-  };
+  const {
+    isOpen: isThresholdDialogOpen,
+    setIsOpen: setIsThresholdDialogOpen,
+    handleOpenChange: handleDialogOpenChange,
+  } = useDialogState({
+    preventClose: isSettingThreshold,
+    onClose: () => setNewThresholdValue(threshold),
+  });
 
   return (
     <Card className={cn("h-40 w-full", className)}>
