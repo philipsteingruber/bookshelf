@@ -7,32 +7,13 @@ import type {
   BookOrderByWithRelationInput,
   BookWhereInput,
 } from "@/generated/prisma/internal/prismaNamespace";
-import { BookScalarFieldEnum } from "@/generated/prisma/internal/prismaNamespace";
 import { createAuthorSort, createTitleSort } from "@/lib/book-utils";
 import { VALIDATION_LIMITS } from "@/lib/constants";
 import { performanceLogger } from "@/lib/logger";
-import { createFormSchema } from "@/lib/schemas/book";
+import { bookFiltersSchema, createFormSchema } from "@/lib/schemas/book";
 import { extractFileKeyFromUrl } from "@/lib/uploadthing-utils";
 
 import { authedProcedure, createTRPCRouter } from "../init";
-
-const readStatusEnum = z.enum([
-  "READ",
-  "READING",
-  "TO_READ",
-  "DNF",
-  "READ_NEXT",
-]);
-const bookFiltersSchema = z
-  .object({
-    status: readStatusEnum.optional(),
-    rating: z.number().min(1).max(5).optional(),
-    search: z.string().optional(), // Search in title/author
-    sortBy: z.enum(Object.values(BookScalarFieldEnum)).optional(),
-    sortDirection: z.enum(["asc", "desc"]).optional(),
-    limit: z.number().min(1).max(VALIDATION_LIMITS.BOOKS_QUERY_MAX).optional(),
-  })
-  .optional();
 
 export type BookFilters = z.infer<typeof bookFiltersSchema>;
 

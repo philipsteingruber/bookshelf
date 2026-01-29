@@ -4,7 +4,7 @@ import { useEffect } from "react";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
-import z from "zod";
+import type z from "zod";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -18,6 +18,7 @@ import {
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
+import { setGoalSchema } from "@/lib/schemas/reading-goal";
 
 interface SetGoalDialogProps {
   open: boolean;
@@ -26,14 +27,6 @@ interface SetGoalDialogProps {
   onSave: (newGoal: number) => Promise<void>;
   isSaving: boolean;
 }
-
-const setGoalSchema = z.object({
-  goal: z
-    .number()
-    .int({ message: "Goal must be a whole number" })
-    .positive({ message: "Goal must be at least 1" })
-    .max(1000, { message: "Goal cannot exceed 1000" }),
-});
 
 type SetGoalFormValues = z.infer<typeof setGoalSchema>;
 
