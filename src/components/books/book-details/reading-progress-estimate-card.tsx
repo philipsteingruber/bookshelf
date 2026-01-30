@@ -1,8 +1,8 @@
 import { addDays } from "date-fns";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { calculatePagesFromProgress } from "@/lib/book-utils";
-import { formatEstimatedDate } from "@/lib/chart-utils";
+import { calculatePagesFromProgress } from "@/lib/book";
+import { formatEstimatedDate } from "@/lib/reading";
 
 interface ReadingProgressEstimateCardProps {
   currentProgress: number;

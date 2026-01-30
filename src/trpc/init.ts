@@ -5,7 +5,7 @@ import { auth } from "@clerk/nextjs/server";
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 
-import { createLoggerWithContext, performanceLogger } from "@/lib/logger";
+import { createLoggerWithContext, performanceLogger } from "@/lib/common";
 import prisma from "@/lib/prisma";
 
 export const createTRPCContext = cache(async () => {

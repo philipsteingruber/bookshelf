@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/tooltip";
 import type { Book } from "@/generated/prisma/client";
 import { useDialogState } from "@/hooks/ui";
-import { handleTRPCError } from "@/lib/error-handler";
+import { handleTRPCError } from "@/lib/common";
 import { trpc } from "@/trpc/client";
 
 interface DeleteBookDialogProps {

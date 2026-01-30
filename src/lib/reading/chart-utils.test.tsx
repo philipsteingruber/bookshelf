@@ -18,7 +18,7 @@ import {
   formatEstimatedDate,
   formatFullTimestamp,
   formatRelativeDate,
-} from "@/lib/chart-utils";
+} from "@/lib/reading";
 import {
   createFakeChartDataPoint,
   createFakeReadingProgressWithProgressSinceLast,

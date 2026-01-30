@@ -1,16 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type {
-  BooksFinishedByYear,
-  CheckGoalCelebrationParams,
-  GoalHistoryEntry,
-  ReadingGoalHistoryEntry,
-} from "@/lib/reading-goal-utils";
 import {
+  type BooksFinishedByYear,
   buildGoalHistory,
   calculateReadingGoalStats,
   checkGoalCelebration,
-} from "@/lib/reading-goal-utils";
+  type CheckGoalCelebrationParams,
+  type GoalHistoryEntry,
+  type ReadingGoalHistoryEntry,
+} from "@/lib/reading";
 import { createMockStorage } from "@/lib/test-utils";
 
 const mockDate = new Date("2026-01-15T12:00:00");

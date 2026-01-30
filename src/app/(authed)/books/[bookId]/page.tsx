@@ -24,7 +24,7 @@ import {
   calculateTrendline,
   type ChartDataPoint,
   estimateCompletion,
-} from "@/lib/chart-utils";
+} from "@/lib/reading";
 import { cn } from "@/lib/utils";
 
 const Page = ({

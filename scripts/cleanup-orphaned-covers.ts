@@ -2,8 +2,8 @@ import "dotenv/config";
 
 import { UTApi } from "uploadthing/server";
 
+import { extractFileKeyFromUrl } from "@/lib/common";
 import prisma from "@/lib/prisma";
-import { extractFileKeyFromUrl } from "@/lib/uploadthing-utils";
 
 const utApi = new UTApi();
 

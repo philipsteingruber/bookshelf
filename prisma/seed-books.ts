@@ -2,7 +2,7 @@ import { subDays } from "date-fns";
 import { config } from "dotenv";
 
 import type { ReadStatus } from "@/generated/prisma/enums";
-import { createAuthorSort, createTitleSort } from "@/lib/book-utils";
+import { createAuthorSort, createTitleSort } from "@/lib/book";
 import prisma from "@/lib/prisma";
 
 config();

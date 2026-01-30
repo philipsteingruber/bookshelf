@@ -24,7 +24,7 @@ import { Separator } from "@/components/ui/separator";
 import { Spinner } from "@/components/ui/spinner";
 import { useUploadThing } from "@/components/uploadthing";
 import type { Book } from "@/generated/prisma/client";
-import { handleTRPCError, handleUploadError } from "@/lib/error-handler";
+import { handleTRPCError, handleUploadError } from "@/lib/common";
 import { createFormSchema } from "@/lib/schemas/book";
 import { trpc } from "@/trpc/client";
 

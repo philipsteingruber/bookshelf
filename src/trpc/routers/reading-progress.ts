@@ -2,7 +2,7 @@ import { TRPCError } from "@trpc/server";
 import z from "zod";
 
 import type { Book, ReadingProgress } from "@/generated/prisma/client";
-import { performanceLogger } from "@/lib/logger";
+import { performanceLogger } from "@/lib/common";
 
 import { authedProcedure, createTRPCRouter } from "../init";
 

@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 
 import type { Book } from "@/generated/prisma/client";
-import { validateProgress } from "@/lib/progress-validation-utils";
+import { validateProgress } from "@/lib/reading";
 
 export const useProgressValidation = (
   book: Book,

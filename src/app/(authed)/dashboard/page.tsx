@@ -31,7 +31,7 @@ import {
   getDashboardMaxReadingBooksCount,
   getDashboardMaxReadNextBooksCount,
   getDashboardRecentlyReadBooksCount,
-} from "@/lib/dashboard-utils";
+} from "@/lib/reading";
 
 const Page = (): React.ReactElement => {
   const {

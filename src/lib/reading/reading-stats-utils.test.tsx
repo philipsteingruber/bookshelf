@@ -2,6 +2,11 @@ import { startOfDay, subDays, subYears } from "date-fns";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { READING_GOAL_DEFAULT_THRESHOLD } from "@/lib/constants";
+import {
+  createFakeBook,
+  createFakeReadingProgress,
+  createFakeReadingProgressWithBook,
+} from "@/lib/test-utils";
 
 import type {
   DailyStats,
@@ -19,11 +24,6 @@ import {
   calculateYearlyStats,
   transformProgressHistory,
 } from "./reading-stats-utils";
-import {
-  createFakeBook,
-  createFakeReadingProgress,
-  createFakeReadingProgressWithBook,
-} from "./test-utils";
 
 const mockDate = new Date("2026-01-15T12:00:00");
 

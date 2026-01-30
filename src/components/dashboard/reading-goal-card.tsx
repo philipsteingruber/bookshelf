@@ -24,7 +24,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useDialogState } from "@/hooks/ui";
-import { handleTRPCError } from "@/lib/error-handler";
+import { handleTRPCError } from "@/lib/common";
 import { cn } from "@/lib/utils";
 
 interface ReadingGoalCardProps {

@@ -2,10 +2,10 @@ import type { TRPCClientErrorLike } from "@trpc/client";
 import { toast } from "sonner";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { createMockTRPCError } from "@/lib/test-utils";
 import type { AppRouter } from "@/trpc/routers/_app";
 
 import { handleTRPCError, handleUploadError } from "./error-handler";
-import { createMockTRPCError } from "./test-utils";
 
 // Mock sonner toast
 vi.mock("sonner", () => ({

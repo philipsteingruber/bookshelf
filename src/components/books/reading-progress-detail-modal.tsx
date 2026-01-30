@@ -6,7 +6,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import type { ReadingProgressWithProgressSinceLast } from "@/hooks/reading/use-reading-history";
-import { formatFullTimestamp } from "@/lib/chart-utils";
+import { formatFullTimestamp } from "@/lib/reading";
 
 interface ReadingProgressDetailModalProps {
   entry: ReadingProgressWithProgressSinceLast | null;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { validateProgress } from "@/lib/progress-validation-utils";
+import { validateProgress } from "@/lib/reading";
 
 describe("validateProgress", () => {
   describe("percentage mode", () => {

@@ -9,9 +9,9 @@ import { READING_GOAL_DEFAULT_THRESHOLD } from "@/lib/constants";
 import {
   buildGoalHistory,
   calculateReadingGoalStats,
+  calculateYearlyStats,
   checkGoalCelebration,
-} from "@/lib/reading-goal-utils";
-import { calculateYearlyStats } from "@/lib/reading-stats-utils";
+} from "@/lib/reading";
 import { trpc } from "@/trpc/client";
 
 interface UseReadingGoalsReturn {

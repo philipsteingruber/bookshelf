@@ -2,7 +2,7 @@ import { subDays } from "date-fns";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { ReadStatus } from "@/generated/prisma/enums";
-import { createAuthorSort, createTitleSort } from "@/lib/book-utils";
+import { createAuthorSort, createTitleSort } from "@/lib/book";
 import { VALIDATION_LIMITS } from "@/lib/constants";
 import {
   createFakeBook,

@@ -1,6 +1,6 @@
 import "dotenv/config";
 
-import { createAuthorSort, createTitleSort } from "@/lib/book-utils";
+import { createAuthorSort, createTitleSort } from "@/lib/book";
 import prisma from "@/lib/prisma";
 
 async function backfillSortFields(): Promise<void> {

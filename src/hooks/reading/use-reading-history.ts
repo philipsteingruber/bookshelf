@@ -5,7 +5,7 @@ import type { TRPCClientErrorLike } from "@trpc/client";
 import {
   type ReadingProgressWithProgressSinceLast,
   transformProgressHistory,
-} from "@/lib/reading-stats-utils";
+} from "@/lib/reading";
 import { trpc } from "@/trpc/client";
 import type { AppRouter } from "@/trpc/routers/_app";
 

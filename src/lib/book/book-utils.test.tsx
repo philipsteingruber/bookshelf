@@ -6,7 +6,7 @@ import {
   createTitleSort,
   getStatusButtonStyle,
   parseReadStatus,
-} from "@/lib/book-utils";
+} from "@/lib/book";
 
 describe("bookUtils", () => {
   describe("parseReadStatus", () => {

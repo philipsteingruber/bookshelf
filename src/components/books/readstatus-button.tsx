@@ -1,5 +1,5 @@
 import type { Book } from "@/generated/prisma/client";
-import { getStatusButtonStyle, parseReadStatus } from "@/lib/book-utils";
+import { getStatusButtonStyle, parseReadStatus } from "@/lib/book";
 import { cn } from "@/lib/utils";
 
 import { Button } from "../ui/button";

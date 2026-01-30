@@ -7,7 +7,7 @@ import {
 } from "date-fns";
 
 import type { Book, ReadingProgress } from "@/generated/prisma/client";
-import { calculatePagesFromProgress } from "@/lib/book-utils";
+import { calculatePagesFromProgress } from "@/lib/book";
 
 export type ReadingProgressWithBook = ReadingProgress & {
   book: Pick<Book, "pageCount" | "id" | "title">;

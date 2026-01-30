@@ -7,11 +7,10 @@ import type {
   BookOrderByWithRelationInput,
   BookWhereInput,
 } from "@/generated/prisma/internal/prismaNamespace";
-import { createAuthorSort, createTitleSort } from "@/lib/book-utils";
+import { createAuthorSort, createTitleSort } from "@/lib/book";
+import { extractFileKeyFromUrl, performanceLogger } from "@/lib/common";
 import { VALIDATION_LIMITS } from "@/lib/constants";
-import { performanceLogger } from "@/lib/logger";
 import { bookFiltersSchema, createFormSchema } from "@/lib/schemas/book";
-import { extractFileKeyFromUrl } from "@/lib/uploadthing-utils";
 
 import { authedProcedure, createTRPCRouter } from "../init";
 

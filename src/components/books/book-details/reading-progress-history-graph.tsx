@@ -20,7 +20,7 @@ import {
   type ChartDataPoint,
   ensureZeroBaseline,
   formatRelativeDate,
-} from "@/lib/chart-utils";
+} from "@/lib/reading";
 import { cn } from "@/lib/utils";
 
 const chartConfig = {

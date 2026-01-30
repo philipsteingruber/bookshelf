@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 
 import { clerkMiddleware } from "@clerk/nextjs/server";
 
-import { logger } from "@/lib/logger";
+import { logger } from "@/lib/common";
 
 export default clerkMiddleware(async (auth, request: NextRequest) => {
   const requestId = crypto.randomUUID();
