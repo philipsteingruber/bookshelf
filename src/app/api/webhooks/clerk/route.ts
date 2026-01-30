@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 import { verifyWebhook } from "@clerk/nextjs/webhooks";
 
 import { env } from "@/env";
-import { logger, performanceLogger } from "@/lib/common";
+import { logger, performanceLogger } from "@/lib/common/logger";
 import prisma from "@/lib/prisma";
 
 export async function POST(req: NextRequest): Promise<Response> {

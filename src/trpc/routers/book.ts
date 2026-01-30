@@ -8,7 +8,8 @@ import type {
   BookWhereInput,
 } from "@/generated/prisma/internal/prismaNamespace";
 import { createAuthorSort, createTitleSort } from "@/lib/book";
-import { extractFileKeyFromUrl, performanceLogger } from "@/lib/common";
+import { extractFileKeyFromUrl } from "@/lib/common";
+import { performanceLogger } from "@/lib/common/logger";
 import { VALIDATION_LIMITS } from "@/lib/constants";
 import { createFormSchema } from "@/lib/schemas/book";
 import { bookFiltersSchema } from "@/lib/schemas/book-filters";

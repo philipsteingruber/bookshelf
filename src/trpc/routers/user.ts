@@ -1,6 +1,6 @@
 import z from "zod";
 
-import { performanceLogger } from "@/lib/common";
+import { performanceLogger } from "@/lib/common/logger";
 
 import { authedProcedure, createTRPCRouter } from "../init";
 

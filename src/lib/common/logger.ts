@@ -1,3 +1,5 @@
+import "server-only";
+
 import type { Logger } from "pino";
 import pino from "pino";
 

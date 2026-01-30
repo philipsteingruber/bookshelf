@@ -1,3 +1,5 @@
+import "server-only";
+
 import { decode } from "he";
 import { ScrapeConfig, ScrapflyClient } from "scrapfly-sdk";
 import z from "zod";

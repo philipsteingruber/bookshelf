@@ -1,9 +1,9 @@
-import type { NextRequest} from "next/server";
+import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
 import { clerkMiddleware } from "@clerk/nextjs/server";
 
-import { logger } from "@/lib/common";
+import { logger } from "@/lib/common/logger";
 
 export default clerkMiddleware(async (auth, request: NextRequest) => {
   const requestId = crypto.randomUUID();

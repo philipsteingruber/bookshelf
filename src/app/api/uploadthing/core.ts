@@ -2,7 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { createUploadthing, type FileRouter } from "uploadthing/next";
 import { UploadThingError } from "uploadthing/server";
 
-import { logger } from "@/lib/common";
+import { logger } from "@/lib/common/logger";
 
 const f = createUploadthing();
 

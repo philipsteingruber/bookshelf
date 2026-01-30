@@ -2,6 +2,8 @@ import "@testing-library/jest-dom/vitest";
 
 import { vi } from "vitest";
 
+vi.mock("server-only", () => ({}));
+
 // Mock the t3-env module to avoid "server-side environment variable on client" errors
 vi.mock("@/env", () => ({
   env: {
