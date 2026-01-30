@@ -8,14 +8,16 @@ import {
 
 import type { Book, ReadingProgress } from "@/generated/prisma/client";
 import { calculatePagesFromProgress } from "@/lib/book";
-
-export type ReadingProgressWithBook = ReadingProgress & {
-  book: Pick<Book, "pageCount" | "id" | "title">;
-};
-
-export type ReadingProgressWithProgressSinceLast = ReadingProgress & {
-  progressSinceLast: number;
-};
+import type {
+  DailyStats,
+  OverallStats,
+  ReadingProgressWithBook,
+  ReadingProgressWithProgressSinceLast,
+  ReadingStats,
+  StreakDetails,
+  WeeklyStats,
+  YearlyStats,
+} from "@/lib/types/reading";
 
 /**
  * Transforms a chronologically-ordered array of reading progress entries
@@ -39,35 +41,6 @@ export function transformProgressHistory(
   });
 
   return transformed;
-}
-export interface DailyStats {
-  pagesToday: number;
-  averagePagesPerDay: number;
-}
-export interface WeeklyStats {
-  pagesThisWeek: number;
-  pagesLastWeek: number;
-}
-export interface YearlyStats {
-  booksFinishedByYear: { year: number; count: number }[];
-}
-export interface OverallStats {
-  activeDays: number;
-  totalPagesRead: number;
-  averagePagesPerWeek: number;
-  weeksActive: number;
-}
-export interface StreakDetails {
-  currentStreak: number;
-  longestStreak: number;
-  isActiveToday: boolean;
-  streakStart: Date | null;
-}
-export interface ReadingStats {
-  daily: DailyStats;
-  weekly: WeeklyStats;
-  overall: OverallStats;
-  streak: StreakDetails;
 }
 
 const groupByDay = (

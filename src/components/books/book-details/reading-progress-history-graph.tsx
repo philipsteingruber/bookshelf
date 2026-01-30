@@ -13,14 +13,14 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import type { ReadingProgressWithProgressSinceLast } from "@/hooks/reading/use-reading-history";
+import type { ChartDataPoint } from "@/lib/reading";
 import {
   aggregateByDay,
   calculateTrendline,
-  type ChartDataPoint,
   ensureZeroBaseline,
   formatRelativeDate,
 } from "@/lib/reading";
+import type { ReadingProgressWithProgressSinceLast } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const chartConfig = {

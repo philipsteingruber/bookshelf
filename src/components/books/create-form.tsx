@@ -12,8 +12,8 @@ import CoverDropzone from "@/components/books/create-form/form-sections/cover-dr
 import GoodreadsImportPanel from "@/components/books/create-form/goodreads-import-panel";
 import { useUploadThing } from "@/components/uploadthing";
 import { handleTRPCError, handleUploadError } from "@/lib/common";
-import type { ScrapeData } from "@/lib/goodreads-scraper";
 import { createFormSchema } from "@/lib/schemas/book";
+import type { ScrapeData } from "@/lib/types";
 import { trpc } from "@/trpc/client";
 
 import { Button } from "../ui/button";

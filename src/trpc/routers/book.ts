@@ -10,11 +10,10 @@ import type {
 import { createAuthorSort, createTitleSort } from "@/lib/book";
 import { extractFileKeyFromUrl, performanceLogger } from "@/lib/common";
 import { VALIDATION_LIMITS } from "@/lib/constants";
-import { bookFiltersSchema, createFormSchema } from "@/lib/schemas/book";
+import { createFormSchema } from "@/lib/schemas/book";
+import { bookFiltersSchema } from "@/lib/schemas/book-filters";
 
 import { authedProcedure, createTRPCRouter } from "../init";
-
-export type BookFilters = z.infer<typeof bookFiltersSchema>;
 
 export const bookRouter = createTRPCRouter({
   getBooks: authedProcedure

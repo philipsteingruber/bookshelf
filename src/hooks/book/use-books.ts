@@ -5,10 +5,9 @@ import { useDebounce } from "use-debounce";
 
 import type { Book } from "@/generated/prisma/client";
 import { ReadStatus } from "@/generated/prisma/enums";
+import type { BookFilters } from "@/lib/types";
 import { trpc } from "@/trpc/client";
 import type { AppRouter } from "@/trpc/routers/_app";
-
-import type { BookFilters } from "../../trpc/routers/book";
 
 interface UseBooksReturn {
   books: Book[];

@@ -3,15 +3,7 @@ import { ScrapeConfig, ScrapflyClient } from "scrapfly-sdk";
 import z from "zod";
 
 import { env } from "@/env";
-
-export type SeriesInfo = { series: string; seriesIndex: number };
-export type ScrapeData = {
-  title: string;
-  author: string;
-  publishedYear: number;
-  seriesInfo?: SeriesInfo;
-  summary?: string;
-};
+import type { ScrapeData, SeriesInfo } from "@/lib/types";
 
 export const scrape = async (url: string): Promise<ScrapeData> => {
   const validate = z
@@ -81,7 +73,7 @@ export const scrape = async (url: string): Promise<ScrapeData> => {
   }
 
   // Series / Published Year
-  let seriesInfo: { series: string; seriesIndex: number } | undefined;
+  let seriesInfo: SeriesInfo | undefined;
   let publishedYear: number | undefined;
 
   const response = await fetch(url);

@@ -25,11 +25,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { Book } from "@/generated/prisma/client";
-import type { ReadingProgressWithProgressSinceLast } from "@/hooks/reading/use-reading-history";
 import { useDialogState } from "@/hooks/ui";
 import { calculatePagesFromProgress } from "@/lib/book";
 import { handleTRPCError } from "@/lib/common";
 import { aggregateByDay, formatRelativeDate } from "@/lib/reading";
+import type { ReadingProgressWithProgressSinceLast } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/trpc/client";
 

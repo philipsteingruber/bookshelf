@@ -10,12 +10,11 @@ import type {
   User,
 } from "@/generated/prisma/client";
 import { READING_GOAL_DEFAULT_THRESHOLD } from "@/lib/constants";
-import {
-  type ChartDataPoint,
-  formatRelativeDate,
-  type ReadingProgressWithBook,
-  type ReadingProgressWithProgressSinceLast,
-} from "@/lib/reading";
+import { type ChartDataPoint, formatRelativeDate } from "@/lib/reading";
+import type {
+  ReadingProgressWithBook,
+  ReadingProgressWithProgressSinceLast,
+} from "@/lib/types";
 
 // Extract the auth type from Clerk's auth() function
 export type AuthType = Awaited<ReturnType<typeof auth>>;

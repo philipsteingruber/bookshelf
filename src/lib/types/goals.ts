@@ -1,0 +1,30 @@
+export interface ReadingGoalStats {
+  currentGoal: number;
+  booksReadThisYear: number;
+  progressPercentage: number;
+  booksRemaining: number;
+  isOnTrack: boolean;
+  paceMessage: string;
+  expectedAtThisPoint: number;
+}
+
+export interface GoalHistoryEntry {
+  year: number;
+  goal: number;
+  actual: number;
+}
+
+export interface BooksFinishedByYear {
+  year: number;
+  count: number;
+}
+
+export interface ReadingGoalHistoryEntry {
+  year: number;
+  goal: number;
+}
+
+export interface BuildGoalHistoryOptions {
+  readingGoalHistory: ReadingGoalHistoryEntry[] | null;
+  booksFinishedByYear: BooksFinishedByYear[];
+}

@@ -2,15 +2,10 @@ import { useMemo } from "react";
 
 import type { TRPCClientErrorLike } from "@trpc/client";
 
-import {
-  type ReadingProgressWithProgressSinceLast,
-  transformProgressHistory,
-} from "@/lib/reading";
+import { transformProgressHistory } from "@/lib/reading";
+import type { ReadingProgressWithProgressSinceLast } from "@/lib/types";
 import { trpc } from "@/trpc/client";
 import type { AppRouter } from "@/trpc/routers/_app";
-
-// Re-export for backward compatibility
-export type { ReadingProgressWithProgressSinceLast };
 
 interface UseReadingHistoryReturn {
   result: ReadingProgressWithProgressSinceLast[];

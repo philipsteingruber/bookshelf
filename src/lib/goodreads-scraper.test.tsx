@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { SeriesInfo } from "./goodreads-scraper";
+import type { SeriesInfo } from "@/lib/types";
+
 import { scrape } from "./goodreads-scraper";
 
 describe("goodreadsScraper", () => {

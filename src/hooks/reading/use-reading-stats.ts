@@ -2,7 +2,8 @@ import { useMemo } from "react";
 
 import type { TRPCClientErrorLike } from "@trpc/client";
 
-import { calculateReadingStats, type ReadingStats } from "@/lib/reading";
+import { calculateReadingStats } from "@/lib/reading";
+import type { ReadingStats } from "@/lib/types";
 import { trpc } from "@/trpc/client";
 import type { AppRouter } from "@/trpc/routers/_app";
 

@@ -7,14 +7,14 @@ import {
   createFakeReadingProgress,
   createFakeReadingProgressWithBook,
 } from "@/lib/test-utils";
-
 import type {
   DailyStats,
   OverallStats,
   ReadingStats,
   StreakDetails,
   WeeklyStats,
-} from "./reading-stats-utils";
+} from "@/lib/types";
+
 import {
   calculateDailyStats,
   calculateOverallStats,

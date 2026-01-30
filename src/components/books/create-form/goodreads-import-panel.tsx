@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
 import { handleTRPCError } from "@/lib/common";
-import type { ScrapeData } from "@/lib/goodreads-scraper";
+import type { ScrapeData } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/trpc/client";
 
