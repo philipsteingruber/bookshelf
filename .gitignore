@@ -51,3 +51,6 @@ NUL
 .husky/logs/
 /src/generated/
 /checklists/
+
+# Sentry Config File
+.env.sentry-build-plugin
