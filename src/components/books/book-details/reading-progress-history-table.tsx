@@ -28,7 +28,7 @@ import type { Book } from "@/generated/prisma/client";
 import { useDialogState } from "@/hooks/ui";
 import { calculatePagesFromProgress } from "@/lib/book";
 import { handleTRPCError } from "@/lib/common";
-import { aggregateByDay, formatRelativeDate } from "@/lib/reading";
+import { aggregateByDay, formatRelativeDatePrecise } from "@/lib/reading";
 import type { ReadingProgressWithProgressSinceLast } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/trpc/client";
@@ -148,7 +148,7 @@ const ReadingProgressHistory = ({
             {historyForBook.toReversed().map((entry) => (
               <TableRow key={entry.id}>
                 <TableCell className="py-0.5">
-                  {formatRelativeDate(entry.createdAt)}
+                  {formatRelativeDatePrecise(entry.createdAt)}
                 </TableCell>
                 <TableCell className="py-0.5 text-center font-semibold">
                   {entry.progress}

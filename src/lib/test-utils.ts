@@ -10,7 +10,7 @@ import type {
   User,
 } from "@/generated/prisma/client";
 import { READING_GOAL_DEFAULT_THRESHOLD } from "@/lib/constants";
-import { type ChartDataPoint, formatRelativeDate } from "@/lib/reading";
+import { type ChartDataPoint, formatRelativeDateCompact } from "@/lib/reading";
 import type {
   ReadingProgressWithBook,
   ReadingProgressWithProgressSinceLast,
@@ -205,7 +205,7 @@ export function createFakeChartDataPoint(
   const date = overrides.date ?? new Date();
   return {
     date,
-    displayDate: formatRelativeDate(date),
+    displayDate: formatRelativeDateCompact(date),
     progress: 10,
     progressSinceLast: 10,
     comments: null,

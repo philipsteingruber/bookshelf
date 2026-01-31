@@ -18,7 +18,8 @@ import {
   aggregateByDay,
   calculateTrendline,
   ensureZeroBaseline,
-  formatRelativeDate,
+  formatRelativeDateCompact,
+  formatRelativeDatePrecise,
 } from "@/lib/reading";
 import type { ReadingProgressWithProgressSinceLast } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -67,7 +68,7 @@ const ReadingProgressHistoryGraph = ({
   // Prepare chart data points for display (includes synthetic 0% baseline)
   const chartDataPoints: ChartDataPoint[] = displayData.map((entry) => ({
     date: entry.createdAt,
-    displayDate: formatRelativeDate(entry.createdAt),
+    displayDate: formatRelativeDateCompact(entry.createdAt),
     progress: entry.progress,
     progressSinceLast: entry.progressSinceLast,
     comments: entry.comments,
@@ -79,7 +80,7 @@ const ReadingProgressHistoryGraph = ({
   const trendlineSourcePoints: ChartDataPoint[] = aggregatedData.map(
     (entry) => ({
       date: entry.createdAt,
-      displayDate: formatRelativeDate(entry.createdAt),
+      displayDate: formatRelativeDateCompact(entry.createdAt),
       progress: entry.progress,
       progressSinceLast: entry.progressSinceLast,
       comments: entry.comments,
@@ -96,12 +97,14 @@ const ReadingProgressHistoryGraph = ({
   const syntheticOffset = displayData.length - aggregatedData.length;
   const chartData: {
     date: string;
+    tooltipDate: string;
     progress?: number;
     trend?: number;
     progressSinceLast: number;
     entry: ReadingProgressWithProgressSinceLast | null;
   }[] = chartDataPoints.map((point, index) => ({
     date: point.displayDate,
+    tooltipDate: formatRelativeDatePrecise(point.date),
     progress: point.progress,
     // Synthetic baseline (index 0 when offset=1) has no trendline value
     trend:
@@ -118,6 +121,7 @@ const ReadingProgressHistoryGraph = ({
     for (let i = realDataPointsCount; i < trendlineData.length; i++) {
       chartData.push({
         date: trendlineData[i].displayDate,
+        tooltipDate: trendlineData[i].displayDate,
         progress: undefined,
         trend: trendlineData[i].trend,
         progressSinceLast: 0,
@@ -154,6 +158,7 @@ const ReadingProgressHistoryGraph = ({
           <ChartTooltip
             content={
               <ChartTooltipContent
+                labelKey="tooltipDate"
                 formatter={(value, name) => {
                   if (name === "progress") {
                     return [

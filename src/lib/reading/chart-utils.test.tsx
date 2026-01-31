@@ -17,7 +17,7 @@ import {
   estimateCompletion,
   formatEstimatedDate,
   formatFullTimestamp,
-  formatRelativeDate,
+  formatRelativeDateCompact,
 } from "@/lib/reading";
 import {
   createFakeChartDataPoint,
@@ -274,39 +274,47 @@ describe("chartUtils", () => {
     });
   });
 
-  describe("formatRelativeDate", () => {
+  describe("formatRelativeDateCompact", () => {
     it("should return 'Today' for current date", () => {
-      expect(formatRelativeDate(new Date())).toEqual("Today");
+      expect(formatRelativeDateCompact(new Date())).toEqual("Today");
     });
 
     it("should return 'Yesterday' for previous day", () => {
-      expect(formatRelativeDate(subDays(new Date(), 1))).toEqual("Yesterday");
-    });
-
-    it("should return '#d ago' for previous week", () => {
-      expect(formatRelativeDate(subDays(new Date(), 5))).toEqual("5d ago");
-    });
-
-    it("should return formatted date for older dates", () => {
-      expect(formatRelativeDate(subMonths(new Date("2025-08-05"), 2))).toEqual(
-        "Jun 5",
+      expect(formatRelativeDateCompact(subDays(new Date(), 1))).toEqual(
+        "Yesterday",
       );
     });
 
+    it("should return '#d ago' for previous week", () => {
+      expect(formatRelativeDateCompact(subDays(new Date(), 5))).toEqual(
+        "5d ago",
+      );
+    });
+
+    it("should return formatted date for older dates", () => {
+      expect(
+        formatRelativeDateCompact(subMonths(new Date("2025-08-05"), 2)),
+      ).toEqual("Jun 5");
+    });
+
     it("should return 'Tomorrow' for next day", () => {
-      expect(formatRelativeDate(addDays(new Date(), 1))).toEqual("Tomorrow");
+      expect(formatRelativeDateCompact(addDays(new Date(), 1))).toEqual(
+        "Tomorrow",
+      );
     });
 
     it("should return '+#d' for dates within next week", () => {
-      expect(formatRelativeDate(addDays(new Date(), 5))).toEqual("+5d");
+      expect(formatRelativeDateCompact(addDays(new Date(), 5))).toEqual("+5d");
     });
 
     it("should return '+#w' for dates within next month", () => {
-      expect(formatRelativeDate(addWeeks(new Date(), 2))).toEqual("+2w");
+      expect(formatRelativeDateCompact(addWeeks(new Date(), 2))).toEqual("+2w");
     });
 
     it("should return formatted date for future dates beyond a month", () => {
-      expect(formatRelativeDate(addMonths(new Date(), 2))).toEqual("Mar 15");
+      expect(formatRelativeDateCompact(addMonths(new Date(), 2))).toEqual(
+        "Mar 15",
+      );
     });
   });
 
