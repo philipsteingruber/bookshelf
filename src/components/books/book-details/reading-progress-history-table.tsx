@@ -139,7 +139,7 @@ const ReadingProgressHistory = ({
               <TableHead className="font-semibold">Date</TableHead>
               <TableHead className="font-semibold">Total Progress</TableHead>
               <TableHead className="font-semibold">Progress (%)</TableHead>
-              <TableHead className="hidden font-semibold md:block">
+              <TableHead className="hidden font-semibold md:table-cell">
                 Progress (pages)
               </TableHead>
             </TableRow>
@@ -147,20 +147,22 @@ const ReadingProgressHistory = ({
           <TableBody>
             {historyForBook.toReversed().map((entry) => (
               <TableRow key={entry.id}>
-                <TableCell>{formatRelativeDate(entry.createdAt)}</TableCell>
-                <TableCell className="text-center font-semibold">
+                <TableCell className="py-0.5">
+                  {formatRelativeDate(entry.createdAt)}
+                </TableCell>
+                <TableCell className="py-0.5 text-center font-semibold">
                   {entry.progress}
                 </TableCell>
-                <TableCell className="text-center">
+                <TableCell className="py-0.5 text-center">
                   {entry.progressSinceLast}
                 </TableCell>
-                <TableCell className="hidden text-center md:block">
+                <TableCell className="hidden py-0.5 text-center md:table-cell">
                   {calculatePagesFromProgress(
                     entry.progressSinceLast,
                     book.pageCount,
                   )}
                 </TableCell>
-                <TableCell>
+                <TableCell className="py-0.5">
                   <Button
                     variant={"destructive"}
                     size={"icon"}
