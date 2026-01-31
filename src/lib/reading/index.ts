@@ -7,7 +7,8 @@ export {
   estimateCompletion,
   formatEstimatedDate,
   formatFullTimestamp,
-  formatRelativeDate,
+  formatRelativeDateCompact,
+  formatRelativeDatePrecise,
 } from "./chart-utils";
 export {
   getDashboardMaxReadingBooksCount,

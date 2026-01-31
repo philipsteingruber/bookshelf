@@ -10,14 +10,15 @@ import {
 import type { ReadingProgressWithProgressSinceLast } from "@/lib/types";
 
 /**
- * Formats a date as a relative string for chart display
+ * Formats a date as a compact relative string for chart X-axis labels
+ * Uses week grouping after 7 days to reduce label clutter
  * - "Today" / "Yesterday" for very recent
  * - "3d ago" for last week
  * - "2w ago" for last month
  * - "Jan 5" for older dates
- * - "Tomorrow" / "+2d" / "Jan 5" for future dates
+ * - "Tomorrow" / "+2d" / "+2w" / "Jan 5" for future dates
  */
-export const formatRelativeDate = (date: Date): string => {
+export const formatRelativeDateCompact = (date: Date): string => {
   if (isToday(date)) return "Today";
   if (isYesterday(date)) return "Yesterday";
 
@@ -36,6 +37,35 @@ export const formatRelativeDate = (date: Date): string => {
 
   if (daysDiff < 7) return `${daysDiff}d ago`;
   if (daysDiff < 30) return `${Math.floor(daysDiff / 7)}w ago`;
+
+  return format(date, "MMM d");
+};
+
+/**
+ * Formats a date as a precise relative string for table displays
+ * Switches to absolute dates after 7 days to avoid ambiguity
+ * - "Today" / "Yesterday" for very recent
+ * - "2d ago" through "6d ago" for days 2-6
+ * - "Jan 24" for 7+ days ago
+ * - "Tomorrow" / "+2d" through "+6d" / "Jan 30" for future dates
+ */
+export const formatRelativeDatePrecise = (date: Date): string => {
+  if (isToday(date)) return "Today";
+  if (isYesterday(date)) return "Yesterday";
+
+  const today = startOfDay(new Date());
+  const targetDay = startOfDay(date);
+  const daysDiff = differenceInDays(today, targetDay);
+
+  // Handle future dates
+  if (daysDiff < 0) {
+    const futureDays = Math.abs(daysDiff);
+    if (futureDays === 1) return "Tomorrow";
+    if (futureDays < 7) return `+${futureDays}d`;
+    return format(date, "MMM d");
+  }
+
+  if (daysDiff < 7) return `${daysDiff}d ago`;
 
   return format(date, "MMM d");
 };
@@ -167,7 +197,7 @@ export const calculateTrendline = (
       projectedDate.setDate(projectedDate.getDate() + dayOffset);
 
       trendlineData.push({
-        displayDate: formatRelativeDate(projectedDate),
+        displayDate: formatRelativeDateCompact(projectedDate),
         trend: Math.min(100, projectedTrend),
       });
 
