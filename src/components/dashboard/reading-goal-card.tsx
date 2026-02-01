@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 import { AlertCircle, EditIcon, TargetIcon, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
@@ -147,12 +148,18 @@ const ReadingGoalCard = ({
             </Tooltip>
           </div>
           <div className="flex items-center justify-center gap-x-2">
-            <span className="text-sm font-semibold whitespace-nowrap lg:whitespace-normal">
-              Current goal: {goal}
-            </span>
-            <Button variant={"ghost"} size={"icon"} onClick={onEditClick}>
-              <EditIcon />
-            </Button>
+            <div className="flex items-center justify-center">
+              <span className="text-sm font-semibold whitespace-nowrap lg:whitespace-normal">
+                Current goal: {goal}
+              </span>
+              <Button variant={"ghost"} size={"icon"} onClick={onEditClick}>
+                <EditIcon />
+              </Button>
+              |
+            </div>
+            <Link className="text-sm font-semibold underline" href={"/history"}>
+              History
+            </Link>
           </div>
         </div>
         <TargetIcon className="hidden lg:ml-2 lg:flex" />

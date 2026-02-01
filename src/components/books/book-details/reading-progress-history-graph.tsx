@@ -13,7 +13,6 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import type { ChartDataPoint } from "@/lib/reading";
 import {
   aggregateByDay,
   calculateTrendline,
@@ -21,7 +20,10 @@ import {
   formatRelativeDateCompact,
   formatRelativeDatePrecise,
 } from "@/lib/reading";
-import type { ReadingProgressWithProgressSinceLast } from "@/lib/types";
+import type {
+  ChartDataPoint,
+  ReadingProgressWithProgressSinceLast,
+} from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const chartConfig = {
