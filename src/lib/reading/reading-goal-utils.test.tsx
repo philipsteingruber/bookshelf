@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { CheckGoalCelebrationParams } from "@/lib/reading";
 import {
   buildGoalHistory,
   calculateReadingGoalStats,
   checkGoalCelebration,
 } from "@/lib/reading";
+import type { CheckGoalCelebrationParams } from "@/lib/reading/reading-goal-utils";
 import { createMockStorage } from "@/lib/test-utils";
 import type {
   BooksFinishedByYear,

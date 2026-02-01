@@ -3,6 +3,7 @@ import { getDayOfYear, getDaysInYear } from "date-fns";
 import type {
   BooksFinishedByYear,
   BuildGoalHistoryOptions,
+  EnrichedGoalHistoryEntry,
   GoalHistoryEntry,
   ReadingGoalStats,
 } from "@/lib/types/goals";
@@ -145,3 +146,26 @@ export function checkGoalCelebration({
 
   return { shouldCelebrate: false, celebratedGoal: null };
 }
+
+export const enrichGoalHistory = (
+  goalHistory: GoalHistoryEntry[],
+): EnrichedGoalHistoryEntry[] => {
+  // Probably not necessary, might be good to keep to make the edge case explicit?
+  if (goalHistory.length === 0) {
+    return [];
+  }
+
+  const reversed = goalHistory.toReversed();
+  const result = reversed.map((entry, index) => {
+    return {
+      ...entry,
+      progressPercentage:
+        entry.goal === 0 ? null : Math.round((entry.actual / entry.goal) * 100), // progressPercentage = null => No goal set, percentage not computable
+      difference: entry.actual - entry.goal,
+      differenceFromPrevious:
+        index === 0 ? null : entry.actual - reversed[index - 1].actual,
+    };
+  });
+
+  return result.toReversed();
+};

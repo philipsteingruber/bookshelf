@@ -10,8 +10,9 @@ import type {
   User,
 } from "@/generated/prisma/client";
 import { READING_GOAL_DEFAULT_THRESHOLD } from "@/lib/constants";
-import { type ChartDataPoint, formatRelativeDateCompact } from "@/lib/reading";
+import { formatRelativeDateCompact } from "@/lib/reading";
 import type {
+  ChartDataPoint,
   ReadingProgressWithBook,
   ReadingProgressWithProgressSinceLast,
 } from "@/lib/types";

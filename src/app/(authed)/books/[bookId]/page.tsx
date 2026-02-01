@@ -22,9 +22,9 @@ import {
   aggregateByDay,
   calculateAveragePace,
   calculateTrendline,
-  type ChartDataPoint,
   estimateCompletion,
 } from "@/lib/reading";
+import type { ChartDataPoint } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const Page = ({
