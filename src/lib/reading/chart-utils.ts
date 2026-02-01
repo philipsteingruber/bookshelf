@@ -7,7 +7,10 @@ import {
   startOfDay,
 } from "date-fns";
 
-import type { ReadingProgressWithProgressSinceLast } from "@/lib/types";
+import type {
+  ChartDataPoint,
+  ReadingProgressWithProgressSinceLast,
+} from "@/lib/types";
 
 /**
  * Formats a date as a compact relative string for chart X-axis labels
@@ -110,19 +113,6 @@ export const aggregateByDay = (
     (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
   );
 };
-
-/**
- * Chart data point structure with all necessary display information
- */
-export interface ChartDataPoint {
-  date: Date;
-  displayDate: string;
-  progress: number;
-  progressSinceLast: number;
-  comments: string | null;
-  fullDate: string;
-  originalEntry: ReadingProgressWithProgressSinceLast;
-}
 
 /**
  * Calculates linear regression trendline for reading progress

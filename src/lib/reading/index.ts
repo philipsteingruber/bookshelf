@@ -1,4 +1,3 @@
-export type { ChartDataPoint } from "./chart-utils";
 export {
   aggregateByDay,
   calculateAveragePace,
@@ -15,16 +14,12 @@ export {
   getDashboardMaxReadNextBooksCount,
   getDashboardRecentlyReadBooksCount,
 } from "./dashboard-utils";
-export type { ValidateProgressParams } from "./progress-validation-utils";
 export { validateProgress } from "./progress-validation-utils";
-export type {
-  CheckGoalCelebrationParams,
-  CheckGoalCelebrationResult,
-} from "./reading-goal-utils";
 export {
   buildGoalHistory,
   calculateReadingGoalStats,
   checkGoalCelebration,
+  enrichGoalHistory,
 } from "./reading-goal-utils";
 export {
   calculateDailyStats,
