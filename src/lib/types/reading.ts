@@ -37,3 +37,12 @@ export interface ReadingStats {
   overall: OverallStats;
   streak: StreakDetails;
 }
+export interface ChartDataPoint {
+  date: Date;
+  displayDate: string;
+  progress: number;
+  progressSinceLast: number;
+  comments: string | null;
+  fullDate: string;
+  originalEntry: ReadingProgressWithProgressSinceLast;
+}

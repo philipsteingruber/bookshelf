@@ -12,7 +12,7 @@ import {
   UserButton,
 } from "@clerk/nextjs";
 import type { LucideIcon } from "lucide-react";
-import { BookIcon, BookOpenIcon, LibraryIcon, ScrollIcon } from "lucide-react";
+import { BookIcon, BookOpenIcon, HistoryIcon, LibraryIcon } from "lucide-react";
 
 import {
   Sidebar,
@@ -41,7 +41,7 @@ type SidebarItem = {
 const sidebarItems: SidebarItem[] = [
   { title: "Dashboard", href: "/dashboard", icon: BookIcon },
   { title: "Library", href: "/books", icon: LibraryIcon },
-  { title: "Journal", href: "/journal", icon: ScrollIcon },
+  { title: "History", href: "/history", icon: HistoryIcon },
 ];
 
 export const AppSidebar = (): React.ReactElement => {
