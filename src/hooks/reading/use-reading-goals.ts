@@ -11,7 +11,9 @@ import {
   calculateReadingGoalStats,
   calculateYearlyStats,
   checkGoalCelebration,
+  enrichGoalHistory,
 } from "@/lib/reading";
+import type { EnrichedGoalHistoryEntry } from "@/lib/types";
 import { trpc } from "@/trpc/client";
 
 interface UseReadingGoalsReturn {
@@ -25,11 +27,7 @@ interface UseReadingGoalsReturn {
   pageCountThreshold: number;
   expectedAtThisPoint: number;
 
-  goalHistory: {
-    year: number;
-    goal: number;
-    actual: number;
-  }[];
+  goalHistory: EnrichedGoalHistoryEntry[];
 
   setGoal: (newGoal: number) => Promise<void>;
   isSettingGoal: boolean;
@@ -96,6 +94,11 @@ export const useReadingGoals = (books: Book[]): UseReadingGoalsReturn => {
     [readingGoalHistory, booksFinishedByYear],
   );
 
+  const enrichedGoalHistory = useMemo(
+    () => enrichGoalHistory(goalHistory),
+    [goalHistory],
+  );
+
   const {
     currentGoal,
     isOnTrack,
@@ -140,7 +143,7 @@ export const useReadingGoals = (books: Book[]): UseReadingGoalsReturn => {
     paceMessage,
     pageCountThreshold: defaultReadingThreshold,
 
-    goalHistory,
+    goalHistory: enrichedGoalHistory,
 
     setGoal: setReadingGoal,
     isSettingGoal,
