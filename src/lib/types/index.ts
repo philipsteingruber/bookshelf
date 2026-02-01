@@ -2,11 +2,13 @@ export type { BookFilters, ScrapeData, SeriesInfo } from "./book";
 export type {
   BooksFinishedByYear,
   BuildGoalHistoryOptions,
+  EnrichedGoalHistoryEntry,
   GoalHistoryEntry,
   ReadingGoalHistoryEntry,
   ReadingGoalStats,
 } from "./goals";
 export type {
+  ChartDataPoint,
   DailyStats,
   OverallStats,
   ReadingProgressWithBook,

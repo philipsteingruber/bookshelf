@@ -23,6 +23,11 @@ export interface ReadingGoalHistoryEntry {
   year: number;
   goal: number;
 }
+export interface EnrichedGoalHistoryEntry extends GoalHistoryEntry {
+  progressPercentage: number | null;
+  difference: number;
+  differenceFromPrevious: number | null;
+}
 
 export interface BuildGoalHistoryOptions {
   readingGoalHistory: ReadingGoalHistoryEntry[] | null;
