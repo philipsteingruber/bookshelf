@@ -4,11 +4,13 @@ import {
   buildGoalHistory,
   calculateReadingGoalStats,
   checkGoalCelebration,
+  enrichGoalHistory,
 } from "@/lib/reading";
 import type { CheckGoalCelebrationParams } from "@/lib/reading/reading-goal-utils";
 import { createMockStorage } from "@/lib/test-utils";
 import type {
   BooksFinishedByYear,
+  EnrichedGoalHistoryEntry,
   GoalHistoryEntry,
   ReadingGoalHistoryEntry,
 } from "@/lib/types";
@@ -465,6 +467,98 @@ describe("readingGoalUtils", () => {
         `goal-celebration-${currentYear}`,
         "10",
       );
+    });
+  });
+  describe("enrichGoalHistory", () => {
+    it("should return empty array when given empty input", () => {
+      const result = enrichGoalHistory([]);
+      expect(result).toEqual([]);
+    });
+
+    it("should calculate progressPercentage as rounded percentage (actual/goal * 100)", () => {
+      const input: GoalHistoryEntry[] = [
+        { year: currentYear, goal: 3, actual: 2 },
+      ];
+
+      const result = enrichGoalHistory(input);
+
+      expect(result[0].progressPercentage).toEqual(67);
+    });
+
+    it("should return null for progressPercentage when goal is 0", () => {
+      const input: GoalHistoryEntry[] = [
+        { year: currentYear, goal: 0, actual: 5 },
+      ];
+
+      const result = enrichGoalHistory(input);
+
+      expect(result[0].progressPercentage).toBeNull();
+    });
+
+    it("should calculate difference as actual - goal", () => {
+      const input: GoalHistoryEntry[] = [
+        { year: currentYear, goal: 10, actual: 12 },
+      ];
+
+      const result = enrichGoalHistory(input);
+
+      expect(result[0].difference).toEqual(2);
+    });
+
+    it("should return null for differenceFromPrevious for the oldest year", () => {
+      const input: GoalHistoryEntry[] = [
+        { year: currentYear, goal: 10, actual: 5 },
+        { year: currentYear - 1, goal: 10, actual: 8 },
+      ];
+
+      const result = enrichGoalHistory(input);
+
+      const oldestEntry = result.find((e) => e.year === currentYear - 1);
+      expect(oldestEntry?.differenceFromPrevious).toBeNull();
+    });
+
+    it("should calculate differenceFromPrevious as current actual minus previous year's actual", () => {
+      const input: GoalHistoryEntry[] = [
+        { year: currentYear, goal: 10, actual: 12 },
+        { year: currentYear - 1, goal: 10, actual: 8 },
+      ];
+
+      const result = enrichGoalHistory(input);
+
+      const newestEntry = result.find((e) => e.year === currentYear);
+      expect(newestEntry?.differenceFromPrevious).toEqual(4);
+    });
+
+    it("should preserve input order (newest-first in, newest-first out)", () => {
+      const input: GoalHistoryEntry[] = [
+        { year: currentYear, goal: 10, actual: 5 },
+        { year: currentYear - 1, goal: 10, actual: 8 },
+        { year: currentYear - 2, goal: 10, actual: 3 },
+      ];
+
+      const result = enrichGoalHistory(input);
+
+      expect(result[0].year).toEqual(currentYear);
+      expect(result[1].year).toEqual(currentYear - 1);
+      expect(result[2].year).toEqual(currentYear - 2);
+    });
+
+    it("should handle single entry correctly (oldest year case)", () => {
+      const input: GoalHistoryEntry[] = [
+        { year: currentYear, goal: 10, actual: 7 },
+      ];
+
+      const result = enrichGoalHistory(input);
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toEqual({
+        year: currentYear,
+        goal: 10,
+        actual: 7,
+        progressPercentage: 70,
+        difference: -3,
+        differenceFromPrevious: null,
+      } satisfies EnrichedGoalHistoryEntry);
     });
   });
 });
