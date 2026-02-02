@@ -5,6 +5,7 @@ import { useDebounce } from "use-debounce";
 
 import type { Book } from "@/generated/prisma/client";
 import { ReadStatus } from "@/generated/prisma/enums";
+import { DEBOUNCE_INTERVAL } from "@/lib/constants";
 import type { BookFilters } from "@/lib/types";
 import { trpc } from "@/trpc/client";
 import type { AppRouter } from "@/trpc/routers/_app";
@@ -51,7 +52,7 @@ export const useBooks = (
 
   const hasFilters = !!(status || rating || search);
 
-  const [debouncedSearch] = useDebounce(search, 300);
+  const [debouncedSearch] = useDebounce(search, DEBOUNCE_INTERVAL);
 
   const { data, isLoading, isError, error } = trpc.book.getBooks.useQuery(
     {

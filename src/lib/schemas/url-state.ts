@@ -1,6 +1,11 @@
 import { parseAsString, parseAsStringLiteral } from "nuqs";
 
-import { READ_STATUS_OPTIONS, sortGroups } from "@/lib/constants";
+import {
+  DEFAULT_FILTER,
+  DEFAULT_SORTING,
+  READ_STATUS_OPTIONS,
+  sortGroups,
+} from "@/lib/constants";
 import type { SortOptions } from "@/lib/types";
 
 const sortOptionValues = sortGroups.flatMap((group) =>
@@ -10,9 +15,9 @@ const sortOptionValues = sortGroups.flatMap((group) =>
 const statusFilterValues = ["ALL_BOOKS", ...READ_STATUS_OPTIONS] as const;
 
 export const sortParser =
-  parseAsStringLiteral(sortOptionValues).withDefault("RECENTLY_UPDATED");
+  parseAsStringLiteral(sortOptionValues).withDefault(DEFAULT_SORTING);
 export const statusParser =
-  parseAsStringLiteral(statusFilterValues).withDefault("ALL_BOOKS");
+  parseAsStringLiteral(statusFilterValues).withDefault(DEFAULT_FILTER);
 export const searchParser = parseAsString.withDefault("");
 
 export const librarySearchParams = {
