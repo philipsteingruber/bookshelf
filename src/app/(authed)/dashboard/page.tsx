@@ -167,6 +167,7 @@ const Page = (): React.ReactElement => {
             text="Currently Reading"
             count={readingBooksCount}
             visibleCount={readingBooksToShowCount}
+            href="/books?status=READING"
           />
           <div className="flex h-full flex-wrap justify-center gap-4 lg:justify-start xl:flex-nowrap xl:justify-start xl:gap-x-4 xl:overflow-x-auto">
             {readingBooksToShow.map((book) =>
@@ -195,6 +196,7 @@ const Page = (): React.ReactElement => {
               text="Up Next"
               count={readNextBooksCount}
               visibleCount={readNextBooksToShowCount}
+              href="/books?status=READ_NEXT"
             />
             <div className="flex flex-wrap justify-center gap-4 md:flex-nowrap md:justify-start md:gap-x-4">
               {readNextBooksToShow.map((book) => (
@@ -215,6 +217,7 @@ const Page = (): React.ReactElement => {
               text="Recently Finished"
               count={recentlyReadBooks.length}
               visibleCount={recentlyReadBooksToShowCount}
+              href="/books?status=READ"
             />
             <div className="flex h-full w-full flex-wrap justify-center gap-4 md:flex-nowrap md:justify-start md:gap-x-4">
               {recentlyReadBooksToShow.map((book) => {
