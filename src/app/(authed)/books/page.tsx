@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { type ChangeEvent } from "react";
 
 import { RedirectToSignIn, useAuth } from "@clerk/nextjs";
 import {
@@ -13,7 +13,7 @@ import {
   LibraryIcon,
   SearchIcon,
 } from "lucide-react";
-import type { ChangeEvent } from "react";
+import { throttle, useQueryStates } from "nuqs";
 
 import BookCard from "@/components/books/book-card";
 import LoadingState from "@/components/loading-state";
@@ -30,7 +30,13 @@ import {
 import type { ReadStatus } from "@/generated/prisma/enums";
 import type { BookScalarFieldEnum } from "@/generated/prisma/internal/prismaNamespace";
 import { useBooks } from "@/hooks/book";
-import { DEFAULT_FILTER, DEFAULT_SORTING, sortGroups } from "@/lib/constants";
+import {
+  DEBOUNCE_INTERVAL,
+  DEFAULT_FILTER,
+  DEFAULT_SORTING,
+  sortGroups,
+} from "@/lib/constants";
+import { librarySearchParams } from "@/lib/schemas/url-state";
 import type { SortItem, SortOptions, StatusFilterOption } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -98,32 +104,29 @@ const parseSelectedFilter = (
 };
 
 const Page = (): React.ReactElement => {
-  const [selectedSorting, setSelectedSorting] =
-    useState<SortOptions>("RECENTLY_UPDATED");
-  const [selectedFilter, setSelectedFilter] = useState<
-    ReadStatus | "ALL_BOOKS"
-  >("ALL_BOOKS");
-  const [inputSearch, setInputSearch] = useState<string>("");
+  const [params, setParams] = useQueryStates(librarySearchParams, {
+    shallow: false,
+    history: "push",
+    limitUrlUpdates: throttle(DEBOUNCE_INTERVAL),
+  });
+
   const handleSearchChange = (e: ChangeEvent<HTMLInputElement>): void => {
-    setInputSearch(e.target.value);
+    setParams({ q: e.target.value });
   };
 
   const handleClearFilters = (): void => {
-    setInputSearch("");
-    setSelectedFilter(DEFAULT_FILTER);
-    setSelectedSorting(DEFAULT_SORTING);
+    setParams(null);
   };
 
-  const { isSignedIn } = useAuth();
-
-  const { sortBy, sortDirection } = parseSelectedSort(selectedSorting);
+  const { sortBy, sortDirection } = parseSelectedSort(params.sort);
   const { books, isPending, isError, error } = useBooks({
     sortBy,
     sortDirection,
-    search: inputSearch,
-    status: parseSelectedFilter(selectedFilter),
+    search: params.q,
+    status: parseSelectedFilter(params.status),
   });
 
+  const { isSignedIn } = useAuth();
   if (!isSignedIn) {
     return <RedirectToSignIn />;
   }
@@ -139,12 +142,12 @@ const Page = (): React.ReactElement => {
   return (
     <div className="flex w-full flex-col items-center px-2 sm:px-0">
       <LibraryFilterPicker
-        selectedSorting={selectedSorting}
-        onSortingChange={setSelectedSorting}
-        inputSearch={inputSearch}
+        selectedSorting={params.sort}
+        onSortingChange={(newSort) => setParams({ sort: newSort })}
+        inputSearch={params.q}
         onSearchChange={handleSearchChange}
-        selectedFilter={selectedFilter}
-        onFilterChange={setSelectedFilter}
+        selectedFilter={params.status}
+        onFilterChange={(newFilter) => setParams({ status: newFilter })}
         onClearFilters={handleClearFilters}
         className="w-full md:w-5/6"
       />
