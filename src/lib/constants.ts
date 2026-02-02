@@ -1,4 +1,14 @@
+import {
+  ArrowDownAZIcon,
+  ArrowUpAZIcon,
+  CalendarPlusIcon,
+  FileTextIcon,
+  TrendingDown,
+  TrendingUp,
+} from "lucide-react";
+
 import type { ReadStatus } from "@/generated/prisma/enums";
+import type { SortItem } from "@/lib/types";
 
 export const BOOK_COVER_PLACEHOLDER_URL = "/book-placeholder.png";
 
@@ -44,3 +54,39 @@ export const READING_GOAL_DEFAULT_THRESHOLD = 200 as const;
 
 export const DEFAULT_SORTING = "RECENTLY_ADDED";
 export const DEFAULT_FILTER = "ALL_BOOKS";
+
+export const sortGroups: { text: string; items: SortItem[] }[] = [
+  {
+    text: "BY DATE",
+    items: [
+      {
+        text: "Recently Updated",
+        Icon: CalendarPlusIcon,
+        value: "RECENTLY_UPDATED",
+      },
+      {
+        text: "Recently Added",
+        Icon: CalendarPlusIcon,
+        value: "RECENTLY_ADDED",
+      },
+    ],
+  },
+  {
+    text: "BY TITLE & AUTHOR",
+    items: [
+      { text: "Title A-Z", Icon: ArrowDownAZIcon, value: "TITLE_AZ" },
+      { text: "Title Z-A", Icon: ArrowUpAZIcon, value: "TITLE_ZA" },
+      { text: "Author A-Z", Icon: ArrowDownAZIcon, value: "AUTHOR_AZ" },
+      { text: "Author Z-A", Icon: ArrowUpAZIcon, value: "AUTHOR_ZA" },
+    ],
+  },
+  {
+    text: "BY RATING & LENGTH",
+    items: [
+      { text: "Highest Rated", Icon: TrendingUp, value: "HIGHEST_RATED" },
+      { text: "Lowest Rated", Icon: TrendingDown, value: "LOWEST_RATED" },
+      { text: "Shortest First", Icon: FileTextIcon, value: "SHORTEST_FIRST" },
+      { text: "Longest First", Icon: FileTextIcon, value: "LONGEST_FIRST" },
+    ],
+  },
+] as const;

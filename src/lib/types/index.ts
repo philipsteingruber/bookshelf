@@ -18,3 +18,4 @@ export type {
   WeeklyStats,
   YearlyStats,
 } from "./reading";
+export type { SortItem, SortOptions, StatusFilterOption } from "./sorting";

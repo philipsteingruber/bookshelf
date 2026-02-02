@@ -3,22 +3,15 @@
 import { useState } from "react";
 
 import { RedirectToSignIn, useAuth } from "@clerk/nextjs";
-import type { LucideIcon } from "lucide-react";
 import {
-  ArrowDownAZIcon,
-  ArrowUpAZIcon,
   ArrowUpDown,
   BookCheckIcon,
   BookmarkIcon,
   BookOpenIcon,
-  CalendarPlusIcon,
   ClockIcon,
-  FileTextIcon,
   FilterIcon,
   LibraryIcon,
   SearchIcon,
-  TrendingDown,
-  TrendingUp,
 } from "lucide-react";
 import type { ChangeEvent } from "react";
 
@@ -37,52 +30,26 @@ import {
 import type { ReadStatus } from "@/generated/prisma/enums";
 import type { BookScalarFieldEnum } from "@/generated/prisma/internal/prismaNamespace";
 import { useBooks } from "@/hooks/book";
-import { DEFAULT_FILTER, DEFAULT_SORTING } from "@/lib/constants";
+import { DEFAULT_FILTER, DEFAULT_SORTING, sortGroups } from "@/lib/constants";
+import type { SortItem, SortOptions, StatusFilterOption } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-type SortItem = { Icon: LucideIcon; text: string; value: string };
-const sortGroups: { text: string; items: SortItem[] }[] = [
-  {
-    text: "BY DATE",
-    items: [
-      {
-        text: "Recently Updated",
-        Icon: CalendarPlusIcon,
-        value: "RECENTLY_UPDATED",
-      },
-      {
-        text: "Recently Added",
-        Icon: CalendarPlusIcon,
-        value: "RECENTLY_ADDED",
-      },
-    ],
-  },
-  {
-    text: "BY TITLE & AUTHOR",
-    items: [
-      { text: "Title A-Z", Icon: ArrowDownAZIcon, value: "TITLE_AZ" },
-      { text: "Title Z-A", Icon: ArrowUpAZIcon, value: "TITLE_ZA" },
-      { text: "Author A-Z", Icon: ArrowDownAZIcon, value: "AUTHOR_AZ" },
-      { text: "Author Z-A", Icon: ArrowUpAZIcon, value: "AUTHOR_ZA" },
-    ],
-  },
-  {
-    text: "BY RATING & LENGTH",
-    items: [
-      { text: "Highest Rated", Icon: TrendingUp, value: "HIGHEST_RATED" },
-      { text: "Lowest Rated", Icon: TrendingDown, value: "LOWEST_RATED" },
-      { text: "Shortest First", Icon: FileTextIcon, value: "SHORTEST_FIRST" },
-      { text: "Longest First", Icon: FileTextIcon, value: "LONGEST_FIRST" },
-    ],
-  },
-] as const;
-type SortOptions = (typeof sortGroups)[number]["items"][number]["value"];
+const SORT_CONFIG: Record<
+  SortOptions,
+  { sortBy: BookScalarFieldEnum; sortDirection: "asc" | "desc" }
+> = {
+  RECENTLY_UPDATED: { sortBy: "updatedAt", sortDirection: "desc" },
+  RECENTLY_ADDED: { sortBy: "createdAt", sortDirection: "desc" },
+  TITLE_AZ: { sortBy: "title", sortDirection: "asc" },
+  TITLE_ZA: { sortBy: "title", sortDirection: "desc" },
+  AUTHOR_AZ: { sortBy: "author", sortDirection: "asc" },
+  AUTHOR_ZA: { sortBy: "author", sortDirection: "desc" },
+  HIGHEST_RATED: { sortBy: "rating", sortDirection: "desc" },
+  LOWEST_RATED: { sortBy: "rating", sortDirection: "asc" },
+  SHORTEST_FIRST: { sortBy: "pageCount", sortDirection: "asc" },
+  LONGEST_FIRST: { sortBy: "pageCount", sortDirection: "desc" },
+} as const;
 
-type StatusFilterOption = {
-  Icon: LucideIcon;
-  text: string;
-  value: ReadStatus | "ALL_BOOKS";
-};
 const statusFilterOptions: StatusFilterOption[] = [
   {
     Icon: LibraryIcon,
@@ -110,22 +77,6 @@ const statusFilterOptions: StatusFilterOption[] = [
     value: "READ",
   },
 ];
-
-const SORT_CONFIG: Record<
-  SortOptions,
-  { sortBy: BookScalarFieldEnum; sortDirection: "asc" | "desc" }
-> = {
-  RECENTLY_UPDATED: { sortBy: "updatedAt", sortDirection: "desc" },
-  RECENTLY_ADDED: { sortBy: "createdAt", sortDirection: "desc" },
-  TITLE_AZ: { sortBy: "title", sortDirection: "asc" },
-  TITLE_ZA: { sortBy: "title", sortDirection: "desc" },
-  AUTHOR_AZ: { sortBy: "author", sortDirection: "asc" },
-  AUTHOR_ZA: { sortBy: "author", sortDirection: "desc" },
-  HIGHEST_RATED: { sortBy: "rating", sortDirection: "desc" },
-  LOWEST_RATED: { sortBy: "rating", sortDirection: "asc" },
-  SHORTEST_FIRST: { sortBy: "pageCount", sortDirection: "asc" },
-  LONGEST_FIRST: { sortBy: "pageCount", sortDirection: "desc" },
-} as const;
 
 const parseSelectedSort = (
   value: string,
