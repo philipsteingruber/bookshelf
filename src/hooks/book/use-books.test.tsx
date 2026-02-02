@@ -3,6 +3,7 @@ import { subYears } from "date-fns";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useBooks } from "@/hooks/book";
+import { DEBOUNCE_INTERVAL } from "@/lib/constants";
 import { createFakeBook, createMockUseQueryReturn } from "@/lib/test-utils";
 import { trpc } from "@/trpc/client";
 
@@ -44,12 +45,12 @@ describe("useBooks", () => {
   });
 
   describe("Search and filtering", () => {
-    it("should debounce search term (300ms delay)", async () => {
+    it("should debounce search term", async () => {
       const { useDebounce } = await import("use-debounce");
 
       renderHook(() => useBooks({ search: "test query" }));
 
-      expect(useDebounce).toHaveBeenCalledWith("test query", 300);
+      expect(useDebounce).toHaveBeenCalledWith("test query", DEBOUNCE_INTERVAL);
     });
 
     it("should filter books by status correctly", () => {
