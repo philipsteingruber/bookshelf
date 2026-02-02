@@ -6,7 +6,7 @@ import LibraryPage from "@/components/books/library-page";
 
 const Page = (): React.ReactElement => {
   return (
-    <Suspense>
+    <Suspense fallback={null}>
       <LibraryPage />
     </Suspense>
   );
