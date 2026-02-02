@@ -3,6 +3,7 @@ import "@/app/globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
 import { ThemeProvider } from "next-themes";
+import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { Toaster } from "sonner";
 
 import { SidebarProvider } from "@/components/ui/sidebar";
@@ -32,7 +33,7 @@ const Layout = ({
           >
             <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
               <SidebarProvider className="h-full w-full">
-                {children}
+                <NuqsAdapter>{children}</NuqsAdapter>
               </SidebarProvider>
             </ThemeProvider>
             <Toaster />
