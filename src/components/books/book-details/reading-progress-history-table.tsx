@@ -46,13 +46,15 @@ const ReadingProgressHistory = ({
 
   // Recalculate progressSinceLast based on aggregated data
   // (the original values were calculated before aggregation, so they're incorrect)
-  const historyForBook = aggregatedHistory.map((entry, index) => ({
-    ...entry,
-    progressSinceLast:
-      index === 0
-        ? entry.progress
-        : entry.progress - aggregatedHistory[index - 1].progress,
-  }));
+  const historyForBook = aggregatedHistory
+    .map((entry, index) => ({
+      ...entry,
+      progressSinceLast:
+        index === 0
+          ? entry.progress
+          : entry.progress - aggregatedHistory[index - 1].progress,
+    }))
+    .filter((entry) => entry.progress !== 0);
 
   const [entryToDelete, setEntryToDelete] = useState<string | null>(null);
 
@@ -147,7 +149,7 @@ const ReadingProgressHistory = ({
           <TableBody>
             {historyForBook.toReversed().map((entry) => (
               <TableRow key={entry.id}>
-                <TableCell className="py-0.5">
+                <TableCell className="py-0.5 font-semibold">
                   {formatRelativeDatePrecise(entry.createdAt)}
                 </TableCell>
                 <TableCell className="py-0.5 text-center font-semibold">
