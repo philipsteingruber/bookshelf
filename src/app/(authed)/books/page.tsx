@@ -104,21 +104,18 @@ const parseSelectedFilter = (
 };
 
 const Page = (): React.ReactElement => {
+  // Custom hooks
+  const { isSignedIn } = useAuth();
   const [params, setParams] = useQueryStates(librarySearchParams, {
     shallow: false,
     history: "push",
     limitUrlUpdates: throttle(DEBOUNCE_INTERVAL),
   });
 
-  const handleSearchChange = (e: ChangeEvent<HTMLInputElement>): void => {
-    setParams({ q: e.target.value });
-  };
-
-  const handleClearFilters = (): void => {
-    setParams(null);
-  };
-
+  // Derived values
   const { sortBy, sortDirection } = parseSelectedSort(params.sort);
+
+  // Custom hooks (depends on derived values)
   const { books, isPending, isError, error } = useBooks({
     sortBy,
     sortDirection,
@@ -126,15 +123,21 @@ const Page = (): React.ReactElement => {
     status: parseSelectedFilter(params.status),
   });
 
-  const { isSignedIn } = useAuth();
+  // Callbacks
+  const handleSearchChange = (e: ChangeEvent<HTMLInputElement>): void => {
+    setParams({ q: e.target.value });
+  };
+  const handleClearFilters = (): void => {
+    setParams(null);
+  };
+
+  // Early returns
   if (!isSignedIn) {
     return <RedirectToSignIn />;
   }
-
   if (isError) {
     return <div>Error loading books: {error?.message}</div>;
   }
-
   if (!books || isPending) {
     return <LoadingState />;
   }
@@ -179,6 +182,13 @@ const LibraryFilterPicker = ({
   onClearFilters: () => void;
   className?: string;
 }): React.ReactElement => {
+  // Derived values
+  const hasActiveFilters =
+    inputSearch !== "" ||
+    selectedFilter !== DEFAULT_FILTER ||
+    selectedSorting !== DEFAULT_SORTING;
+
+  // Callbacks
   const getSelectedSort = (): SortItem | undefined => {
     return sortGroups
       .flatMap((group) => group.items)
@@ -187,10 +197,6 @@ const LibraryFilterPicker = ({
   const getSelectedFilter = (): StatusFilterOption | undefined => {
     return statusFilterOptions.find((item) => item.value === selectedFilter);
   };
-  const hasActiveFilters =
-    inputSearch !== "" ||
-    selectedFilter !== DEFAULT_FILTER ||
-    selectedSorting !== DEFAULT_SORTING;
 
   return (
     <Card
