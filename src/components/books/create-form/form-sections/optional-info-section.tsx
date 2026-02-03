@@ -106,7 +106,7 @@ export const OptionalInfoSection = ({
             <FieldLabel htmlFor={`${idPrefix}-book-form-seriesIndex`}>
               Series Index{" "}
               <span className="text-muted-foreground text-xs">
-                (First book is index 1)
+                (First book is index 1, decimals allowed for short stories etc)
               </span>
             </FieldLabel>
             <Input
@@ -117,6 +117,7 @@ export const OptionalInfoSection = ({
               placeholder="1"
               autoComplete="off"
               type="number"
+              step={0.1}
               onChange={(e) => {
                 const val = e.target.valueAsNumber;
                 field.onChange(isNaN(val) ? undefined : val);
