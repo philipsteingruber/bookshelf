@@ -12,6 +12,9 @@ import type { AppRouter } from "@/trpc/routers/_app";
 
 interface UseBooksReturn {
   books: Book[];
+  totalCount: number;
+  totalPages: number;
+  currentPage: number;
   isPending: boolean;
   isError: boolean;
   error: TRPCClientErrorLike<AppRouter> | null;
@@ -48,6 +51,7 @@ export const useBooks = (
     sortDirection = "asc",
     limit = 50,
     enabled = true,
+    page = 1,
   } = options || {};
 
   const hasFilters = !!(status || rating || search);
@@ -67,8 +71,9 @@ export const useBooks = (
             : sortBy,
       sortDirection,
       limit,
+      page,
     },
-    { enabled },
+    { enabled, placeholderData: (prev) => prev },
   );
 
   const books: Book[] = useMemo(() => data?.books || [], [data?.books]);
@@ -146,6 +151,8 @@ export const useBooks = (
 
   return {
     books,
+    totalCount: data?.totalCount ?? 0,
+    totalPages: data?.totalCount ? Math.ceil(data.totalCount / limit) : 0,
     isPending: isLoading,
     isError,
     error,
@@ -167,6 +174,7 @@ export const useBooks = (
     finishedThisYearBooks,
     finishedThisYearBooksCount,
     totalReadPageCount,
+    currentPage: page,
     findBookById,
     getBooksByAuthor,
   } satisfies UseBooksReturn;

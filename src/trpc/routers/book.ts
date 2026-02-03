@@ -60,6 +60,12 @@ export const bookRouter = createTRPCRouter({
       }
 
       const limit = filters?.limit || VALIDATION_LIMITS.BOOKS_QUERY_DEFAULT;
+      let skip: number;
+      if (filters?.page) {
+        skip = (filters.page - 1) * limit;
+      } else {
+        skip = 0;
+      }
 
       const findBooksTimer = performanceLogger(
         "DB: Fetching books",
@@ -71,12 +77,14 @@ export const bookRouter = createTRPCRouter({
       const books = await ctx.db.book.findMany({
         where,
         orderBy,
+        skip,
         take: limit,
       });
+      const totalCount = await ctx.db.book.count({ where });
       findBooksTimer.end({ ...filters, count: books.length });
 
       ctx.logger.debug({ count: books.length }, "Books query completed");
-      return { books };
+      return { books, totalCount };
     }),
   getBook: authedProcedure
     .input(z.number().min(0))
