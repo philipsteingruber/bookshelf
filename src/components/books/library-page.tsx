@@ -16,6 +16,8 @@ import {
 import { throttle, useQueryStates } from "nuqs";
 
 import BookCard from "@/components/books/book-card";
+import ErrorState from "@/components/error-state";
+import LibraryPagination from "@/components/library/library-pagination";
 import LoadingState from "@/components/loading-state";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -113,20 +115,40 @@ const LibraryPage = (): React.ReactElement => {
     limitUrlUpdates: throttle(DEBOUNCE_INTERVAL),
   });
 
+  const handlePageChange = ({
+    newPage,
+    prevNextClicked = false,
+  }: {
+    newPage: number;
+    prevNextClicked?: boolean;
+  }): void => {
+    setParams({ page: newPage });
+    if (!prevNextClicked) {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+  const handlePageSizeChange = (newPageSize: number): void => {
+    setParams({ pageSize: newPageSize, page: null });
+  };
+
   // Derived values
   const { sortBy, sortDirection } = parseSelectedSort(params.sort);
 
   // Custom hooks (depends on derived values)
-  const { books, isPending, isError, error } = useBooks({
-    sortBy,
-    sortDirection,
-    search: params.q,
-    status: parseSelectedFilter(params.status),
-  });
+  const { books, isPending, isError, error, totalPages, totalCount } = useBooks(
+    {
+      sortBy,
+      sortDirection,
+      search: params.q,
+      status: parseSelectedFilter(params.status),
+      page: params.page,
+      limit: params.pageSize,
+    },
+  );
 
   // Callbacks
   const handleSearchChange = (e: ChangeEvent<HTMLInputElement>): void => {
-    setParams({ q: e.target.value });
+    setParams({ q: e.target.value, page: null });
   };
   const handleClearFilters = (): void => {
     setParams(null);
@@ -139,20 +161,46 @@ const LibraryPage = (): React.ReactElement => {
   if (isError) {
     return <div>Error loading books: {error?.message}</div>;
   }
-  if (!books || isPending) {
+  if (isPending) {
     return <LoadingState />;
+  }
+  if (
+    !books &&
+    !isPending &&
+    (params.q || parseSelectedFilter(params.status))
+  ) {
+    return (
+      <ErrorState
+        code="NOT_FOUND"
+        message="No books match your selected filter/search terms"
+      />
+    );
+  }
+  if (!books && !isPending) {
+    return (
+      <ErrorState
+        code="NOT_FOUND"
+        message="No books in your library"
+        linkText="Click here to add your first book"
+        href="/books/create"
+      />
+    );
   }
 
   return (
     <Suspense>
-      <div className="flex w-full flex-col items-center px-2 sm:px-0">
+      <div className="flex w-full flex-col items-center gap-y-4 px-2 sm:px-0">
         <LibraryFilterPicker
           selectedSorting={params.sort}
-          onSortingChange={(newSort) => setParams({ sort: newSort })}
+          onSortingChange={(newSort) =>
+            setParams({ sort: newSort, page: null })
+          }
           inputSearch={params.q}
           onSearchChange={handleSearchChange}
           selectedFilter={params.status}
-          onFilterChange={(newFilter) => setParams({ status: newFilter })}
+          onFilterChange={(newFilter) =>
+            setParams({ status: newFilter, page: null })
+          }
           onClearFilters={handleClearFilters}
           className="w-full md:w-5/6"
         />
@@ -161,6 +209,14 @@ const LibraryPage = (): React.ReactElement => {
             <BookCard key={book.id} book={book} showStatusButton />
           ))}
         </div>
+        <span className="text-sm">{`Showing ${(params.page - 1) * params.pageSize + 1}-${Math.min(params.page * params.pageSize, totalCount)} of ${totalCount} books`}</span>
+        <LibraryPagination
+          currentPage={params.page}
+          currentPageSize={params.pageSize}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+          onPageSizeChange={handlePageSizeChange}
+        />
       </div>
     </Suspense>
   );

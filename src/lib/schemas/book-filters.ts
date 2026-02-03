@@ -20,5 +20,6 @@ export const bookFiltersSchema = z
     sortBy: z.enum(Object.values(BookScalarFieldEnum)).optional(),
     sortDirection: z.enum(["asc", "desc"]).optional(),
     limit: z.number().min(1).max(VALIDATION_LIMITS.BOOKS_QUERY_MAX).optional(),
+    page: z.number().int().min(1).optional(),
   })
   .optional();
