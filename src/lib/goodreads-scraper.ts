@@ -81,11 +81,11 @@ export const scrape = async (url: string): Promise<ScrapeData> => {
   const response = await fetch(url);
   const text = await response.text();
 
-  const seriesMatch = /Book (\d+) in the (.+?) series/.exec(text);
+  const seriesMatch = /Book ([\d\.]+) in the (.+?) series/.exec(text);
   if (seriesMatch?.[1] && seriesMatch?.[2]) {
     seriesInfo = {
       series: decode(seriesMatch[2]),
-      seriesIndex: parseInt(seriesMatch[1]),
+      seriesIndex: parseFloat(seriesMatch[1]),
     };
   }
 

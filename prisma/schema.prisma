@@ -74,7 +74,7 @@ model Book {
     isbn String?
 
     series      String?
-    seriesIndex Int?
+    seriesIndex Float?
 
     publishedYear Int?
 

@@ -61,3 +61,7 @@ export const calculatePagesFromProgress = (
 ): number => {
   return Math.round((progress / 100) * pageCount);
 };
+
+export const formatSeriesIndex = (seriesIndex: number): number => {
+  return Number.isInteger(seriesIndex) ? Math.round(seriesIndex) : seriesIndex;
+};

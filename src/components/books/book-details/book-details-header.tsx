@@ -13,6 +13,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import type { Book } from "@/generated/prisma/client";
+import { formatSeriesIndex } from "@/lib/book";
 
 const BookDetailsHeader = ({
   book,
@@ -26,7 +27,7 @@ const BookDetailsHeader = ({
   return (
     <div className={className}>
       {book.series && book.seriesIndex && (
-        <p className="font-serif text-sm font-light italic">{`${book.series} #${book.seriesIndex}`}</p>
+        <p className="font-serif text-sm font-light italic">{`${book.series} #${formatSeriesIndex(book.seriesIndex)}`}</p>
       )}
       <div className="flex w-full items-center justify-between gap-x-4">
         <Tooltip>
