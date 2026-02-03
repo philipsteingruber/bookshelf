@@ -32,7 +32,7 @@ export const VALIDATION_LIMITS = {
 
   // Query limits
   BOOKS_QUERY_MAX: 100,
-  BOOKS_QUERY_DEFAULT: 50,
+  BOOKS_QUERY_DEFAULT: 25,
 
   // Progress values
   PROGRESS_COMPLETE: 100,

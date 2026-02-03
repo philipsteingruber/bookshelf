@@ -465,6 +465,7 @@ describe("bookRouter", () => {
     const baseQuery = {
       orderBy: { title: "asc" },
       take: VALIDATION_LIMITS.BOOKS_QUERY_DEFAULT,
+      skip: 0,
     };
 
     beforeEach(() => vi.clearAllMocks());
@@ -552,6 +553,7 @@ describe("bookRouter", () => {
 
       expect(result.books).toEqual([fakeBook1, fakeBook2]);
       expect(mockDb.book.findMany).toHaveBeenCalledWith({
+        ...baseQuery,
         where: { userId: fakeBook1.userId },
         take: VALIDATION_LIMITS.BOOKS_QUERY_DEFAULT,
         orderBy: { title: "asc" },
@@ -573,6 +575,7 @@ describe("bookRouter", () => {
 
       expect(result.books).toEqual([fakeBook2, fakeBook1]);
       expect(mockDb.book.findMany).toHaveBeenCalledWith({
+        ...baseQuery,
         where: { userId: fakeBook1.userId },
         take: VALIDATION_LIMITS.BOOKS_QUERY_DEFAULT,
         orderBy: { title: "desc" },
@@ -594,6 +597,7 @@ describe("bookRouter", () => {
 
       expect(result.books).toEqual([fakeBook1, fakeBook2]);
       expect(mockDb.book.findMany).toHaveBeenCalledWith({
+        ...baseQuery,
         where: { userId: fakeBook1.userId },
         take: VALIDATION_LIMITS.BOOKS_QUERY_DEFAULT,
         orderBy: { createdAt: "asc" },
@@ -615,6 +619,7 @@ describe("bookRouter", () => {
 
       expect(result.books).toEqual([fakeBook2, fakeBook1]);
       expect(mockDb.book.findMany).toHaveBeenCalledWith({
+        ...baseQuery,
         where: { userId: fakeBook1.userId },
         take: VALIDATION_LIMITS.BOOKS_QUERY_DEFAULT,
         orderBy: { createdAt: "desc" },
@@ -633,6 +638,7 @@ describe("bookRouter", () => {
 
       expect(result.books).toEqual([fakeBook]);
       expect(mockDb.book.findMany).toHaveBeenCalledWith({
+        ...baseQuery,
         where: { userId: fakeBook.userId },
         take: limit,
         orderBy: { title: "asc" },
@@ -655,6 +661,7 @@ describe("bookRouter", () => {
 
       expect(result.books).toEqual([fakeBook2, fakeBook1]);
       expect(mockDb.book.findMany).toHaveBeenCalledWith({
+        ...baseQuery,
         where: {
           userId: fakeBook1.userId,
           OR: [
