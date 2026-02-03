@@ -12,7 +12,13 @@ import {
   UserButton,
 } from "@clerk/nextjs";
 import type { LucideIcon } from "lucide-react";
-import { BookIcon, BookOpenIcon, HistoryIcon, LibraryIcon } from "lucide-react";
+import {
+  BookIcon,
+  BookOpenIcon,
+  BookSearchIcon,
+  HistoryIcon,
+  LibraryIcon,
+} from "lucide-react";
 
 import {
   Sidebar,
@@ -40,7 +46,8 @@ type SidebarItem = {
 
 const sidebarItems: SidebarItem[] = [
   { title: "Dashboard", href: "/dashboard", icon: BookIcon },
-  { title: "Library", href: "/books", icon: LibraryIcon },
+  { title: "Library", href: "/books", icon: BookSearchIcon },
+  { title: "Series", href: "/series", icon: LibraryIcon },
   { title: "History", href: "/history", icon: HistoryIcon },
 ];
 

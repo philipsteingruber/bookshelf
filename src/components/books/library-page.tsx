@@ -54,6 +54,7 @@ const SORT_CONFIG: Record<
   LOWEST_RATED: { sortBy: "rating", sortDirection: "asc" },
   SHORTEST_FIRST: { sortBy: "pageCount", sortDirection: "asc" },
   LONGEST_FIRST: { sortBy: "pageCount", sortDirection: "desc" },
+  SERIES_ORDER: { sortBy: "series", sortDirection: "asc" },
 } as const;
 
 const statusFilterOptions: StatusFilterOption[] = [

@@ -156,11 +156,6 @@ const Page = (): React.ReactElement => {
 
   return (
     <div className="flex h-full w-full flex-col p-4 pl-4 md:pl-8">
-      {process.env.NODE_ENV === "development" && (
-        <span className="fixed top-0 left-0 z-50 bg-red-500 p-2 text-white">
-          {breakPoint} - {window.innerWidth}px
-        </span>
-      )}
       {readingBooksToShowCount > 0 && (
         <div className="mb-4 flex w-full flex-1 flex-col items-center gap-y-2 md:items-start xl:h-full xl:w-4/5">
           <StatusCategoryHeader

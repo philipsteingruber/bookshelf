@@ -3,9 +3,9 @@ import { UTApi } from "uploadthing/server";
 import z from "zod";
 
 import { ReadStatus } from "@/generated/prisma/enums";
-import type {
-  BookOrderByWithRelationInput,
-  BookWhereInput,
+import {
+  type BookOrderByWithRelationInput,
+  type BookWhereInput,
 } from "@/generated/prisma/internal/prismaNamespace";
 import { createAuthorSort, createTitleSort } from "@/lib/book";
 import { extractFileKeyFromUrl } from "@/lib/common";
@@ -41,9 +41,23 @@ export const bookRouter = createTRPCRouter({
         ];
       }
 
-      const orderBy: BookOrderByWithRelationInput = filters?.sortBy
-        ? { [filters.sortBy]: filters.sortDirection || "asc" }
-        : { title: "asc" };
+      const sortDirection = filters?.sortDirection || "asc";
+      let orderBy:
+        | BookOrderByWithRelationInput
+        | BookOrderByWithRelationInput[];
+      if (filters?.sortBy) {
+        if (filters.sortBy === "series") {
+          orderBy = [
+            { series: { sort: "asc", nulls: "last" } },
+            { seriesIndex: "asc" },
+            { titleSort: "asc" },
+          ];
+        } else {
+          orderBy = { [filters.sortBy]: sortDirection };
+        }
+      } else {
+        orderBy = { title: "asc" };
+      }
 
       const limit = filters?.limit || VALIDATION_LIMITS.BOOKS_QUERY_DEFAULT;
 
@@ -640,4 +654,27 @@ export const bookRouter = createTRPCRouter({
 
       return { book: updatedBook };
     }),
+  getSeriesList: authedProcedure.query(async ({ ctx }) => {
+    const seriesData = await ctx.db.book.groupBy({
+      by: ["series"],
+      where: { userId: ctx.currentUser.id, series: { not: null } },
+      _count: { series: true },
+      orderBy: { series: "asc" },
+    });
+
+    return {
+      seriesData: await Promise.all(
+        seriesData
+          .filter((s) => !!s.series)
+          .map(async (s) => ({
+            name: s.series as string,
+            bookCount: s._count.series,
+            books: await ctx.db.book.findMany({
+              where: { userId: ctx.currentUser.id, series: s.series },
+              take: 5,
+            }),
+          })),
+      ),
+    };
+  }),
 });
