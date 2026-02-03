@@ -3,6 +3,7 @@ import {
   ArrowUpAZIcon,
   CalendarPlusIcon,
   FileTextIcon,
+  LibraryIcon,
   TrendingDown,
   TrendingUp,
 } from "lucide-react";
@@ -90,5 +91,9 @@ export const sortGroups: { text: string; items: SortItem[] }[] = [
       { text: "Shortest First", Icon: FileTextIcon, value: "SHORTEST_FIRST" },
       { text: "Longest First", Icon: FileTextIcon, value: "LONGEST_FIRST" },
     ],
+  },
+  {
+    text: "BY SERIES",
+    items: [{ text: "Series Order", Icon: LibraryIcon, value: "SERIES_ORDER" }],
   },
 ] as const;
