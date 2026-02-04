@@ -49,7 +49,7 @@ const LibraryPagination = ({
       <Field orientation={"horizontal"}>
         <FieldLabel htmlFor="books-per-page">Books per Page</FieldLabel>
         <Select
-          defaultValue={
+          value={
             currentPageSize.toString() ??
             VALIDATION_LIMITS.BOOKS_QUERY_DEFAULT.toString()
           }
@@ -75,7 +75,7 @@ const LibraryPagination = ({
               isActive={currentPage > 1}
               onClick={() =>
                 onPageChange({
-                  newPage: currentPage - 1,
+                  newPage: Math.max(currentPage - 1, 1),
                   prevNextClicked: true,
                 })
               }
@@ -99,7 +99,11 @@ const LibraryPagination = ({
           {currentPage - 1 >= 1 && currentPage - 1 > 1 && (
             <PaginationItem className="hidden lg:flex">
               <PaginationLink
-                onClick={() => onPageChange({ newPage: currentPage - 1 })}
+                onClick={() =>
+                  onPageChange({
+                    newPage: currentPage - 1,
+                  })
+                }
               >
                 {currentPage - 1}
               </PaginationLink>
@@ -140,7 +144,7 @@ const LibraryPagination = ({
               isActive={currentPage < totalPages}
               onClick={() =>
                 onPageChange({
-                  newPage: currentPage + 1,
+                  newPage: Math.min(currentPage + 1, totalPages),
                   prevNextClicked: true,
                 })
               }
