@@ -1,6 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { createFakeReadingGoal, createMockCaller } from "@/lib/test-utils";
+import {
+  createFakeBook,
+  createFakeReadingGoal,
+  createFakeUser,
+  createMockCaller,
+} from "@/lib/test-utils";
 import { userRouter } from "@/trpc/routers/user";
 
 describe("userRouter", () => {
@@ -132,6 +137,116 @@ describe("userRouter", () => {
         data: { defaultReadingThreshold: 0 },
       });
       expect(result.newThreshold).toEqual(0);
+    });
+  });
+
+  describe("getYearlyBookStats", () => {
+    beforeEach(() => vi.clearAllMocks());
+
+    it("should return booksFinishedByYear grouped by year", async () => {
+      const { mockDb, caller } = createMockCaller(userRouter);
+
+      const books = [
+        createFakeBook({
+          finishedAt: new Date("2025-06-15"),
+          pageCount: 300,
+        }),
+        createFakeBook({
+          finishedAt: new Date("2025-09-01"),
+          pageCount: 250,
+        }),
+        createFakeBook({
+          finishedAt: new Date("2024-03-10"),
+          pageCount: 400,
+        }),
+      ];
+
+      vi.mocked(mockDb.book.findMany).mockResolvedValue(books);
+
+      const result = await caller.getYearlyBookStats();
+
+      expect(result.booksFinishedByYear).toEqual([
+        { year: 2025, count: 2 },
+        { year: 2024, count: 1 },
+      ]);
+    });
+
+    it("should filter out books below page count threshold", async () => {
+      const mockUser = createFakeUser({ defaultReadingThreshold: 200 });
+      const { mockDb, caller } = createMockCaller(userRouter, {
+        mockUser,
+      });
+
+      const books = [
+        createFakeBook({
+          finishedAt: new Date("2025-06-15"),
+          pageCount: 300,
+        }),
+        createFakeBook({
+          finishedAt: new Date("2025-09-01"),
+          pageCount: 50,
+        }),
+      ];
+
+      vi.mocked(mockDb.book.findMany).mockResolvedValue(books);
+
+      const result = await caller.getYearlyBookStats();
+
+      expect(result.booksFinishedByYear).toEqual([
+        { year: 2025, count: 1 },
+      ]);
+    });
+
+    it("should return empty array when no finished books exist", async () => {
+      const { mockDb, caller } = createMockCaller(userRouter);
+
+      vi.mocked(mockDb.book.findMany).mockResolvedValue([]);
+
+      const result = await caller.getYearlyBookStats();
+
+      expect(result.booksFinishedByYear).toEqual([]);
+    });
+
+    it("should use user's defaultReadingThreshold", async () => {
+      const customThreshold = 100;
+      const mockUser = createFakeUser({
+        defaultReadingThreshold: customThreshold,
+      });
+      const { mockDb, caller } = createMockCaller(userRouter, {
+        mockUser,
+      });
+
+      const books = [
+        createFakeBook({
+          finishedAt: new Date("2025-06-15"),
+          pageCount: 150,
+        }),
+        createFakeBook({
+          finishedAt: new Date("2025-09-01"),
+          pageCount: 50,
+        }),
+      ];
+
+      vi.mocked(mockDb.book.findMany).mockResolvedValue(books);
+
+      const result = await caller.getYearlyBookStats();
+
+      // 150 >= 100 threshold, 50 < 100 threshold
+      expect(result.booksFinishedByYear).toEqual([
+        { year: 2025, count: 1 },
+      ]);
+    });
+
+    it("should only query finished books for current user", async () => {
+      const { mockDb, caller, mockUser } = createMockCaller(userRouter);
+
+      vi.mocked(mockDb.book.findMany).mockResolvedValue([]);
+
+      await caller.getYearlyBookStats();
+
+      expect(mockDb.book.findMany).toHaveBeenCalledWith({
+        where: { userId: mockUser.id, finishedAt: { not: null } },
+      });
     });
   });
 });

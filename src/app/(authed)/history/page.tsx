@@ -6,18 +6,16 @@ import { RedirectToSignIn, useAuth } from "@clerk/nextjs";
 
 import LoadingState from "@/components/loading-state";
 import ReadingGoalHistoryTable from "@/components/reading-goals/reading-goal-history-table";
-import { useBooks } from "@/hooks/book";
 import { useReadingGoals } from "@/hooks/reading";
 
 const Page = (): React.ReactElement => {
-  const { books, isPending: isLoadingBooks } = useBooks();
-  const { goalHistory, isPending: isLoadingGoals } = useReadingGoals(books);
+  const { goalHistory, isPending: isLoadingGoals } = useReadingGoals();
   const { userId } = useAuth();
 
   if (!userId) {
-    <RedirectToSignIn />;
+    return <RedirectToSignIn />;
   }
-  if (isLoadingBooks || isLoadingGoals) {
+  if (isLoadingGoals) {
     return <LoadingState />;
   }
 

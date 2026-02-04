@@ -4,12 +4,10 @@ import { useCallback, useEffect, useMemo } from "react";
 
 import { toast } from "sonner";
 
-import type { Book } from "@/generated/prisma/client";
 import { READING_GOAL_DEFAULT_THRESHOLD } from "@/lib/constants";
 import {
   buildGoalHistory,
   calculateReadingGoalStats,
-  calculateYearlyStats,
   checkGoalCelebration,
   enrichGoalHistory,
 } from "@/lib/reading";
@@ -38,7 +36,7 @@ interface UseReadingGoalsReturn {
   isError: boolean;
 }
 
-export const useReadingGoals = (books: Book[]): UseReadingGoalsReturn => {
+export const useReadingGoals = (): UseReadingGoalsReturn => {
   const trpcUtils = trpc.useUtils();
 
   const {
@@ -84,13 +82,16 @@ export const useReadingGoals = (books: Book[]): UseReadingGoalsReturn => {
     readingGoalData?.defaultReadingThreshold ?? READING_GOAL_DEFAULT_THRESHOLD;
   const readingGoalHistory = readingGoalHistoryData?.readingGoalHistory ?? null;
 
-  const booksFinishedByYear = useMemo(() => {
-    return calculateYearlyStats(books, defaultReadingThreshold)
-      .booksFinishedByYear;
-  }, [books, defaultReadingThreshold]);
+  const { data, isPending: isCalculatingYearlyStats } =
+    trpc.user.getYearlyBookStats.useQuery();
+  const booksFinishedByYear = data?.booksFinishedByYear;
 
   const goalHistory = useMemo(
-    () => buildGoalHistory({ readingGoalHistory, booksFinishedByYear }),
+    () =>
+      buildGoalHistory({
+        readingGoalHistory,
+        booksFinishedByYear: booksFinishedByYear ?? [],
+      }),
     [readingGoalHistory, booksFinishedByYear],
   );
 
@@ -108,13 +109,16 @@ export const useReadingGoals = (books: Book[]): UseReadingGoalsReturn => {
     booksRemaining,
     expectedAtThisPoint,
   } = useMemo(
-    () => calculateReadingGoalStats(booksFinishedByYear, readingGoal),
+    () => calculateReadingGoalStats(booksFinishedByYear ?? [], readingGoal),
     [booksFinishedByYear, readingGoal],
   );
 
   useEffect(() => {
     checkGoalCelebration({
-      isLoading: fetchingReadingGoal || fetchingReadingGoalHistory,
+      isLoading:
+        fetchingReadingGoal ||
+        fetchingReadingGoalHistory ||
+        isCalculatingYearlyStats,
       booksReadThisYear,
       currentGoal,
       onCelebrate: (goal) => {
@@ -130,6 +134,7 @@ export const useReadingGoals = (books: Book[]): UseReadingGoalsReturn => {
     currentGoal,
     fetchingReadingGoal,
     fetchingReadingGoalHistory,
+    isCalculatingYearlyStats,
   ]);
 
   return {
@@ -150,7 +155,10 @@ export const useReadingGoals = (books: Book[]): UseReadingGoalsReturn => {
     setThreshold,
     isSettingThreshold,
 
-    isPending: fetchingReadingGoal || fetchingReadingGoalHistory,
+    isPending:
+      fetchingReadingGoal ||
+      fetchingReadingGoalHistory ||
+      isCalculatingYearlyStats,
     isError: isReadingGoalError || isReadingGoalHistoryError,
   };
 };

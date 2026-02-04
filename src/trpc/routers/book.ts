@@ -1,4 +1,5 @@
 import { TRPCError } from "@trpc/server";
+import { subWeeks } from "date-fns";
 import { UTApi } from "uploadthing/server";
 import z from "zod";
 
@@ -685,6 +686,51 @@ export const bookRouter = createTRPCRouter({
             }),
           })),
       ),
+    };
+  }),
+  getDashBoardBooks: authedProcedure.query(async ({ ctx }) => {
+    const [
+      readingBooks,
+      readingBooksCount,
+      readNextBooks,
+      readNextBooksCount,
+      recentlyReadBooks,
+    ] = await Promise.all([
+      ctx.db.book.findMany({
+        where: { status: "READING", userId: ctx.currentUser.id },
+        orderBy: { updatedAt: "desc" },
+        take: 10,
+      }),
+      ctx.db.book.count({
+        where: { status: "READING", userId: ctx.currentUser.id },
+      }),
+      ctx.db.book.findMany({
+        where: { status: "READ_NEXT", userId: ctx.currentUser.id },
+        orderBy: { updatedAt: "desc" },
+        take: 10,
+      }),
+      ctx.db.book.count({
+        where: { status: "READ_NEXT", userId: ctx.currentUser.id },
+      }),
+      ctx.db.book.findMany({
+        where: {
+          status: "READ",
+          finishedAt: {
+            gte: subWeeks(new Date(), 2),
+          },
+          userId: ctx.currentUser.id,
+        },
+        orderBy: { finishedAt: "desc" },
+        take: 10,
+      }),
+    ]);
+
+    return {
+      readingBooks,
+      readingBooksCount,
+      readNextBooks,
+      readNextBooksCount,
+      recentlyReadBooks,
     };
   }),
 });

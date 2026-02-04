@@ -1,6 +1,8 @@
 import z from "zod";
 
+import type { Book } from "@/generated/prisma/client";
 import { performanceLogger } from "@/lib/common/logger";
+import { calculateYearlyStats } from "@/lib/reading";
 
 import { authedProcedure, createTRPCRouter } from "../init";
 
@@ -102,4 +104,16 @@ export const userRouter = createTRPCRouter({
 
       return { newThreshold };
     }),
+
+  getYearlyBookStats: authedProcedure.query(async ({ ctx }) => {
+    const threshold = ctx.currentUser.defaultReadingThreshold;
+
+    const books = (await ctx.db.book.findMany({
+      where: { userId: ctx.currentUser.id, finishedAt: { not: null } },
+    })) as Book[];
+
+    const stats = calculateYearlyStats(books, threshold);
+
+    return { booksFinishedByYear: stats.booksFinishedByYear };
+  }),
 });
