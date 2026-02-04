@@ -74,13 +74,15 @@ export const bookRouter = createTRPCRouter({
       );
 
       findBooksTimer.start();
-      const books = await ctx.db.book.findMany({
-        where,
-        orderBy,
-        skip,
-        take: limit,
-      });
-      const totalCount = await ctx.db.book.count({ where });
+      const [books, totalCount] = await Promise.all([
+        ctx.db.book.findMany({
+          where,
+          orderBy,
+          skip,
+          take: limit,
+        }),
+        ctx.db.book.count({ where }),
+      ]);
       findBooksTimer.end({ ...filters, count: books.length });
 
       ctx.logger.debug({ count: books.length }, "Books query completed");
