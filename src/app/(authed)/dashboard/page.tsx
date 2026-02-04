@@ -1,7 +1,6 @@
 "use client";
 
 import { RedirectToSignIn, useAuth } from "@clerk/nextjs";
-import { startOfDay, subWeeks } from "date-fns";
 import {
   BookOpenIcon,
   CalendarIcon,
@@ -23,8 +22,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ReadStatus } from "@/generated/prisma/enums";
-import { useBooks } from "@/hooks/book";
+import { useDashBoardData } from "@/hooks/book/use-dashboard-data";
 import { useReadingGoals, useReadingStats } from "@/hooks/reading";
 import { useBreakPoint, useDialogState } from "@/hooks/ui";
 import {
@@ -42,11 +40,8 @@ const Page = (): React.ReactElement => {
     error,
     readNextBooks,
     readNextBooksCount,
-    books,
-  } = useBooks({
-    sortBy: "updatedAt",
-    sortDirection: "desc",
-  });
+    recentlyReadBooks,
+  } = useDashBoardData();
 
   const {
     pagesToday,
@@ -69,7 +64,7 @@ const Page = (): React.ReactElement => {
     isSettingGoal,
     setThreshold,
     isSettingThreshold,
-  } = useReadingGoals(books);
+  } = useReadingGoals();
 
   const breakPoint = useBreakPoint();
   const readingBooksToShowCount = Math.min(
@@ -84,14 +79,6 @@ const Page = (): React.ReactElement => {
   );
   const readNextBooksToShow = readNextBooks.slice(0, readNextBooksToShowCount);
 
-  const recentlyReadBooks = books
-    .filter(
-      (book) =>
-        book.status === ReadStatus.READ &&
-        book.finishedAt &&
-        startOfDay(book.finishedAt) > startOfDay(subWeeks(new Date(), 2)),
-    )
-    .sort((a, b) => b.finishedAt!.getTime() - a.finishedAt!.getTime());
   const recentlyReadBooksToShowCount = Math.min(
     getDashboardRecentlyReadBooksCount(breakPoint),
     recentlyReadBooks.length,

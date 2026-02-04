@@ -888,6 +888,130 @@ describe("bookRouter", () => {
     });
   });
 
+  describe("getDashBoardBooks", () => {
+    beforeEach(() => vi.clearAllMocks());
+
+    it("should return reading books ordered by updatedAt desc", async () => {
+      const { mockDb, caller } = createMockCaller(bookRouter);
+
+      const readingBook = createFakeBook({
+        status: "READING",
+        updatedAt: new Date(),
+      });
+
+      vi.mocked(mockDb.book.findMany).mockResolvedValue([readingBook]);
+      vi.mocked(mockDb.book.count).mockResolvedValue(1);
+
+      const result = await caller.getDashBoardBooks();
+
+      expect(result.readingBooks).toEqual([readingBook]);
+      expect(mockDb.book.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ status: "READING" }),
+          orderBy: { updatedAt: "desc" },
+          take: 10,
+        }),
+      );
+    });
+
+    it("should return correct readingBooksCount from count query", async () => {
+      const { mockDb, caller } = createMockCaller(bookRouter);
+
+      vi.mocked(mockDb.book.findMany).mockResolvedValue([]);
+      vi.mocked(mockDb.book.count).mockResolvedValue(25);
+
+      const result = await caller.getDashBoardBooks();
+
+      expect(result.readingBooksCount).toEqual(25);
+      expect(mockDb.book.count).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ status: "READING" }),
+        }),
+      );
+    });
+
+    it("should return read next books ordered by updatedAt desc", async () => {
+      const { mockDb, caller } = createMockCaller(bookRouter);
+
+      const readNextBook = createFakeBook({
+        status: "READ_NEXT",
+        updatedAt: new Date(),
+      });
+
+      vi.mocked(mockDb.book.findMany).mockResolvedValue([readNextBook]);
+      vi.mocked(mockDb.book.count).mockResolvedValue(1);
+
+      const result = await caller.getDashBoardBooks();
+
+      expect(result.readNextBooks).toEqual([readNextBook]);
+    });
+
+    it("should return correct readNextBooksCount from count query", async () => {
+      const { mockDb, caller } = createMockCaller(bookRouter);
+
+      vi.mocked(mockDb.book.findMany).mockResolvedValue([]);
+      vi.mocked(mockDb.book.count).mockResolvedValue(15);
+
+      const result = await caller.getDashBoardBooks();
+
+      expect(result.readNextBooksCount).toEqual(15);
+    });
+
+    it("should return recently finished books within 2 weeks", async () => {
+      const { mockDb, caller } = createMockCaller(bookRouter);
+
+      const recentBook = createFakeBook({
+        status: "READ",
+        finishedAt: subDays(new Date(), 3),
+      });
+
+      vi.mocked(mockDb.book.findMany).mockResolvedValue([recentBook]);
+      vi.mocked(mockDb.book.count).mockResolvedValue(0);
+
+      const result = await caller.getDashBoardBooks();
+
+      expect(result.recentlyReadBooks).toEqual([recentBook]);
+      expect(mockDb.book.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            status: "READ",
+            finishedAt: { gte: expect.any(Date) },
+          }),
+          orderBy: { finishedAt: "desc" },
+          take: 10,
+        }),
+      );
+    });
+
+    it("should scope all queries to current user", async () => {
+      const { mockDb, caller, mockUser } = createMockCaller(bookRouter);
+
+      vi.mocked(mockDb.book.findMany).mockResolvedValue([]);
+      vi.mocked(mockDb.book.count).mockResolvedValue(0);
+
+      await caller.getDashBoardBooks();
+
+      // All 5 calls (3 findMany + 2 count) should include userId
+      const findManyCalls = vi.mocked(mockDb.book.findMany).mock.calls;
+      const countCalls = vi.mocked(mockDb.book.count).mock.calls;
+
+      findManyCalls.forEach((call) => {
+        expect(call[0]).toEqual(
+          expect.objectContaining({
+            where: expect.objectContaining({ userId: mockUser.id }),
+          }),
+        );
+      });
+      countCalls.forEach((call) => {
+        expect(call[0]).toEqual(
+          expect.objectContaining({
+            where: expect.objectContaining({ userId: mockUser.id }),
+          }),
+        );
+      });
+    });
+  });
+
   describe("deleteBook", () => {
     beforeEach(() => {
       mockDeleteFiles.mockClear();
