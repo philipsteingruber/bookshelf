@@ -15,7 +15,7 @@
     "test:ui": "vitest --ui",
     "prisma:studio": "prisma studio --browser none",
     "postinstall": "prisma generate",
-    "preflight": "vitest run && tsc --noEmit && next build",
+    "preflight": "tsx scripts/preflight.ts",
     "prepare": "husky",
     "cleanup:covers": "tsx scripts/cleanup-orphaned-covers.ts"
   },
