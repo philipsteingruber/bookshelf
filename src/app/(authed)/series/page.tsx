@@ -25,7 +25,7 @@ const Page = (): React.ReactElement => {
     return <LoadingState />;
   }
   if (!userId) {
-    <RedirectToSignIn />;
+    return <RedirectToSignIn />;
   }
 
   const numCoversToShow =
@@ -87,7 +87,7 @@ const Page = (): React.ReactElement => {
                                 alt={`Cover of book in ${series.name}`}
                                 height={300}
                                 width={200}
-                                className="top-00 absolute h-[300px] w-[200px] rounded-md transition-transform duration-300 ease-out group-hover:translate-x-(--spread)"
+                                className="absolute top-0 h-[300px] w-[200px] rounded-md transition-transform duration-300 ease-out group-hover:translate-x-(--spread)"
                                 style={style}
                               />
                             );
