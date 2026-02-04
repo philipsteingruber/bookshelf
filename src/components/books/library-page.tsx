@@ -209,14 +209,18 @@ const LibraryPage = (): React.ReactElement => {
             <BookCard key={book.id} book={book} showStatusButton />
           ))}
         </div>
-        <span className="text-sm">{`Showing ${(params.page - 1) * params.pageSize + 1}-${Math.min(params.page * params.pageSize, totalCount)} of ${totalCount} books`}</span>
-        <LibraryPagination
-          currentPage={params.page}
-          currentPageSize={params.pageSize}
-          totalPages={totalPages}
-          onPageChange={handlePageChange}
-          onPageSizeChange={handlePageSizeChange}
-        />
+        {books.length > 0 && (
+          <span className="text-sm">{`Showing ${(params.page - 1) * params.pageSize + 1}-${Math.min(params.page * params.pageSize, totalCount)} of ${totalCount} books`}</span>
+        )}
+        {totalPages > 1 && (
+          <LibraryPagination
+            currentPage={params.page}
+            currentPageSize={params.pageSize}
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
+            onPageSizeChange={handlePageSizeChange}
+          />
+        )}
       </div>
     </Suspense>
   );
