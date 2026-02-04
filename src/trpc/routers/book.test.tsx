@@ -689,7 +689,205 @@ describe("bookRouter", () => {
         ...baseQuery,
       });
     });
+
+    it("should return totalCount alongside books", async () => {
+      const { mockDb, caller } = createMockCaller(bookRouter);
+
+      const fakeBook = createFakeBook();
+
+      vi.mocked(mockDb.book.findMany).mockResolvedValue([fakeBook]);
+      vi.mocked(mockDb.book.count).mockResolvedValue(42);
+
+      const result = await caller.getBooks();
+
+      expect(result.totalCount).toEqual(42);
+      expect(mockDb.book.count).toHaveBeenCalledWith({
+        where: { userId: fakeBook.userId },
+      });
+    });
+
+    it("should calculate skip from page parameter", async () => {
+      const { mockDb, caller } = createMockCaller(bookRouter);
+
+      const fakeBook = createFakeBook();
+
+      vi.mocked(mockDb.book.findMany).mockResolvedValue([fakeBook]);
+      vi.mocked(mockDb.book.count).mockResolvedValue(50);
+
+      await caller.getBooks({ page: 3, limit: 10 });
+
+      expect(mockDb.book.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          skip: 20,
+          take: 10,
+        }),
+      );
+    });
+
+    it("should default to skip 0 when no page provided", async () => {
+      const { mockDb, caller } = createMockCaller(bookRouter);
+
+      vi.mocked(mockDb.book.findMany).mockResolvedValue([]);
+      vi.mocked(mockDb.book.count).mockResolvedValue(0);
+
+      await caller.getBooks();
+
+      expect(mockDb.book.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          skip: 0,
+        }),
+      );
+    });
+
+    it("should sort by series with multi-column orderBy", async () => {
+      const { mockDb, caller } = createMockCaller(bookRouter);
+
+      vi.mocked(mockDb.book.findMany).mockResolvedValue([]);
+      vi.mocked(mockDb.book.count).mockResolvedValue(0);
+
+      await caller.getBooks({ sortBy: "series" });
+
+      expect(mockDb.book.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: [
+            { series: { sort: "asc", nulls: "last" } },
+            { seriesIndex: "asc" },
+            { titleSort: "asc" },
+          ],
+        }),
+      );
+    });
+
+    it("should filter by rating with gte operator", async () => {
+      const { mockDb, caller } = createMockCaller(bookRouter);
+
+      vi.mocked(mockDb.book.findMany).mockResolvedValue([]);
+      vi.mocked(mockDb.book.count).mockResolvedValue(0);
+
+      await caller.getBooks({ rating: 4 });
+
+      expect(mockDb.book.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            rating: { gte: 4 },
+          }),
+        }),
+      );
+    });
   });
+
+  describe("getSeriesList", () => {
+    beforeEach(() => vi.clearAllMocks());
+
+    it("should return grouped series data with book counts", async () => {
+      const { mockDb, caller } = createMockCaller(bookRouter);
+
+      const groupByResult = [
+        { series: "Horus Heresy", _count: { series: 3 } },
+        { series: "Gaunt's Ghosts", _count: { series: 2 } },
+      ];
+
+      const heresyBooks = [
+        createFakeBook({ id: 1, series: "Horus Heresy", seriesIndex: 1 }),
+        createFakeBook({ id: 2, series: "Horus Heresy", seriesIndex: 2 }),
+        createFakeBook({ id: 3, series: "Horus Heresy", seriesIndex: 3 }),
+      ];
+      const gauntBooks = [
+        createFakeBook({ id: 4, series: "Gaunt's Ghosts", seriesIndex: 1 }),
+        createFakeBook({ id: 5, series: "Gaunt's Ghosts", seriesIndex: 2 }),
+      ];
+
+      vi.mocked(mockDb.book.groupBy).mockResolvedValue(groupByResult as never);
+      vi.mocked(mockDb.book.findMany)
+        .mockResolvedValueOnce(heresyBooks)
+        .mockResolvedValueOnce(gauntBooks);
+
+      const result = await caller.getSeriesList();
+
+      expect(result.seriesData).toHaveLength(2);
+      expect(result.seriesData[0].name).toEqual("Horus Heresy");
+      expect(result.seriesData[0].bookCount).toEqual(3);
+      expect(result.seriesData[0].books).toEqual(heresyBooks);
+      expect(result.seriesData[1].name).toEqual("Gaunt's Ghosts");
+      expect(result.seriesData[1].bookCount).toEqual(2);
+      expect(result.seriesData[1].books).toEqual(gauntBooks);
+    });
+
+    it("should return empty array when no series exist", async () => {
+      const { mockDb, caller } = createMockCaller(bookRouter);
+
+      vi.mocked(mockDb.book.groupBy).mockResolvedValue([]);
+
+      const result = await caller.getSeriesList();
+
+      expect(result.seriesData).toEqual([]);
+    });
+
+    it("should filter out null series entries from groupBy results", async () => {
+      const { mockDb, caller } = createMockCaller(bookRouter);
+
+      const groupByResult = [
+        { series: null, _count: { series: 5 } },
+        { series: "Real Series", _count: { series: 2 } },
+      ];
+
+      const seriesBooks = [
+        createFakeBook({ id: 1, series: "Real Series", seriesIndex: 1 }),
+      ];
+
+      vi.mocked(mockDb.book.groupBy).mockResolvedValue(groupByResult as never);
+      vi.mocked(mockDb.book.findMany).mockResolvedValue(seriesBooks);
+
+      const result = await caller.getSeriesList();
+
+      expect(result.seriesData).toHaveLength(1);
+      expect(result.seriesData[0].name).toEqual("Real Series");
+    });
+
+    it("should limit books per series to 5", async () => {
+      const { mockDb, caller } = createMockCaller(bookRouter);
+
+      const groupByResult = [
+        { series: "Big Series", _count: { series: 10 } },
+      ];
+
+      vi.mocked(mockDb.book.groupBy).mockResolvedValue(groupByResult as never);
+      vi.mocked(mockDb.book.findMany).mockResolvedValue([]);
+
+      await caller.getSeriesList();
+
+      expect(mockDb.book.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          take: 5,
+        }),
+      );
+    });
+
+    it("should only query books for the current user", async () => {
+      const { mockDb, caller, mockUser } = createMockCaller(bookRouter);
+
+      const groupByResult = [
+        { series: "Test Series", _count: { series: 1 } },
+      ];
+
+      vi.mocked(mockDb.book.groupBy).mockResolvedValue(groupByResult as never);
+      vi.mocked(mockDb.book.findMany).mockResolvedValue([]);
+
+      await caller.getSeriesList();
+
+      expect(mockDb.book.groupBy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { userId: mockUser.id, series: { not: null } },
+        }),
+      );
+      expect(mockDb.book.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { userId: mockUser.id, series: "Test Series" },
+        }),
+      );
+    });
+  });
+
   describe("deleteBook", () => {
     beforeEach(() => {
       mockDeleteFiles.mockClear();
