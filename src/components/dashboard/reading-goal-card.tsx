@@ -68,8 +68,8 @@ const ReadingGoalCard = ({
     <Card className={cn("h-40 w-full", className)}>
       <CardContent className="flex w-full justify-between">
         <div className="mt-2 flex w-full -translate-y-3 flex-col items-center gap-y-1">
-          <span className="text-xs font-semibold lg:hidden">READING GOAL</span>
-          <p className="hidden items-center gap-x-1 text-center text-sm font-semibold lg:flex lg:whitespace-nowrap">
+          <span className="text-xs font-semibold xl:hidden">READING GOAL</span>
+          <p className="hidden items-center gap-x-1 text-center text-sm font-semibold xl:flex xl:whitespace-nowrap">
             <span>{`${currentCount} of ${goal} books`}</span>
             <Dialog
               open={isThresholdDialogOpen}
@@ -147,15 +147,15 @@ const ReadingGoalCard = ({
               <TooltipContent>{`At this point you should have read ${expectedAtThisPoint} books`}</TooltipContent>
             </Tooltip>
           </div>
-          <div className="flex items-center justify-center gap-x-2">
+          <div className="flex flex-col items-center justify-center gap-x-1 lg:flex-row">
             <div className="flex items-center justify-center">
-              <span className="text-sm font-semibold whitespace-nowrap lg:whitespace-normal">
+              <span className="text-sm font-semibold whitespace-nowrap xl:whitespace-normal">
                 Current goal: {goal}
               </span>
               <Button variant={"ghost"} size={"icon"} onClick={onEditClick}>
                 <EditIcon />
               </Button>
-              |
+              <span className="hidden lg:flex">|</span>
             </div>
             <Link className="text-sm font-semibold underline" href={"/history"}>
               History
