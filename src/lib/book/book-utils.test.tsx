@@ -4,6 +4,7 @@ import { ReadStatus } from "@/generated/prisma/enums";
 import {
   createAuthorSort,
   createTitleSort,
+  formatSeriesIndex,
   getStatusButtonStyle,
   parseReadStatus,
 } from "@/lib/book";
@@ -84,6 +85,24 @@ describe("bookUtils", () => {
 
     it("should handle multi-part surnames", () => {
       expect(createAuthorSort("First Van Last")).toEqual("Van Last, First");
+    });
+  });
+
+  describe("formatSeriesIndex", () => {
+    it("should return integer as-is for whole numbers", () => {
+      expect(formatSeriesIndex(1)).toEqual(1);
+    });
+
+    it("should return decimal as-is for non-whole numbers", () => {
+      expect(formatSeriesIndex(1.5)).toEqual(1.5);
+    });
+
+    it("should return 0 as-is", () => {
+      expect(formatSeriesIndex(0)).toEqual(0);
+    });
+
+    it("should preserve single decimal place values", () => {
+      expect(formatSeriesIndex(3.1)).toEqual(3.1);
     });
   });
 });
