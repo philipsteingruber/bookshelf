@@ -15,7 +15,7 @@ const RootLayout = ({
     <>
       {process.env.NODE_ENV === "development" && (
         <span className="fixed top-0 left-0 z-50 bg-red-500 p-2 text-white">
-          {breakPoint} - {window.innerWidth}px
+          {breakPoint} - {window.innerWidth ?? 0}px
         </span>
       )}
       <AppSidebar />
