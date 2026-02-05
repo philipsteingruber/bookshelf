@@ -71,6 +71,71 @@ const groupByWeek = (
   return grouped;
 };
 
+/**
+ * Calculates total pages read for each day across all books.
+ * For each day, sums up pages read from all books by comparing max progress
+ * that day against the baseline (last progress before that day).
+ */
+const calculatePagesPerDay = (
+  progress: ReadingProgressWithBook[],
+): Map<string, number> => {
+  const validProgress = progress.filter((p) => p.book.pageCount > 0);
+  const progressByDay = groupByDay(validProgress);
+  const pagesPerDay = new Map<string, number>();
+
+  // Group all entries by book to find baselines
+  const allEntriesByBook = new Map<number, ReadingProgressWithBook[]>();
+  validProgress.forEach((entry) => {
+    const bookEntries = allEntriesByBook.get(entry.bookId) || [];
+    allEntriesByBook.set(entry.bookId, [...bookEntries, entry]);
+  });
+
+  // Sort dates chronologically
+  const sortedDates = Array.from(progressByDay.keys()).sort();
+
+  for (const dateKey of sortedDates) {
+    const dayEntries = progressByDay.get(dateKey) || [];
+
+    // Parse date for comparison
+    const [year, month, day] = dateKey.split("-").map(Number);
+    const dayStart = new Date(year, month - 1, day);
+
+    // Group day's entries by book
+    const dayByBook = new Map<number, ReadingProgressWithBook[]>();
+    dayEntries.forEach((entry) => {
+      const bookEntries = dayByBook.get(entry.bookId) || [];
+      dayByBook.set(entry.bookId, [...bookEntries, entry]);
+    });
+
+    let totalPagesForDay = 0;
+
+    dayByBook.forEach((entries, bookId) => {
+      const allBookEntries = allEntriesByBook.get(bookId) || [];
+
+      // Find the last entry before this day for this book
+      const entriesBeforeDay = allBookEntries
+        .filter((e) => e.createdAt < dayStart)
+        .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+      const baseline =
+        entriesBeforeDay.length > 0 ? entriesBeforeDay[0].progress : 0;
+
+      // Find this day's max progress
+      const dayMaxProgress = Math.max(...entries.map((e) => e.progress));
+      const progressGain = dayMaxProgress - baseline;
+
+      totalPagesForDay += calculatePagesFromProgress(
+        progressGain,
+        entries[0].book.pageCount,
+      );
+    });
+
+    pagesPerDay.set(dateKey, totalPagesForDay);
+  }
+
+  return pagesPerDay;
+};
+
 export const calculateDailyStats = (
   progress: ReadingProgressWithBook[],
 ): DailyStats => {
@@ -303,6 +368,7 @@ export const calculateOverallStats = (
 
 export const calculateStreakDetails = (
   progress: ReadingProgressWithBook[],
+  minimumPagesForStreak: number = 0,
 ): StreakDetails => {
   if (progress.length === 0) {
     return {
@@ -313,8 +379,14 @@ export const calculateStreakDetails = (
     };
   }
 
-  const progressByDay = groupByDay(progress);
-  const activeDates = Array.from(progressByDay.keys())
+  const pagesPerDay = calculatePagesPerDay(progress);
+
+  // Filter to only days that meet the minimum pages threshold
+  const qualifyingDateKeys = Array.from(pagesPerDay.entries())
+    .filter(([_, pages]) => pages >= minimumPagesForStreak)
+    .map(([dateKey]) => dateKey);
+
+  const activeDates = qualifyingDateKeys
     .map((dateStr) => {
       const [year, month, day] = dateStr.split("-").map(Number);
       return new Date(year, month - 1, day);

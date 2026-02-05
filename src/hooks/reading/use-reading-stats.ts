@@ -1,53 +1,72 @@
 import { useMemo } from "react";
 
-import type { TRPCClientErrorLike } from "@trpc/client";
-
-import { calculateReadingStats } from "@/lib/reading";
-import type { ReadingStats } from "@/lib/types";
+import { calculateDailyStats, calculateWeeklyStats } from "@/lib/reading";
+import type { DailyStats, WeeklyStats } from "@/lib/types";
 import { trpc } from "@/trpc/client";
-import type { AppRouter } from "@/trpc/routers/_app";
 
 interface UseReadingStatsReturn {
   isPending: boolean;
   isError: boolean;
-  error: TRPCClientErrorLike<AppRouter> | null;
-  readingStats: ReadingStats | null;
-  pagesToday: number;
-  avgPagesPerDay: number;
-  avgPagesPerWeek: number;
   currentStreak: number;
+  longestStreak: number;
   isStreakActive: boolean;
-  pagesThisWeek: number;
-  pagesLastWeek: number;
   totalPagesRead: number;
   activeDays: number;
+  pagesToday: number;
+  avgPagesPerDay: number;
+  pagesThisWeek: number;
+  pagesLastWeek: number;
+  avgPagesPerWeek: number;
 }
 
-export const useReadingStats = (): UseReadingStatsReturn => {
-  const { data, isPending, isError, error } =
-    trpc.readingProgress.getAllReadingProgress.useQuery(undefined, {
-      refetchOnMount: true,
-    });
+const defaultDailyStats: DailyStats = {
+  pagesToday: 0,
+  averagePagesPerDay: 0,
+};
+const defaultWeeklyStats: WeeklyStats = {
+  pagesThisWeek: 0,
+  pagesLastWeek: 0,
+};
 
-  const readingStats = useMemo(() => {
-    return !!data?.allProgress
-      ? calculateReadingStats(data?.allProgress)
-      : null;
-  }, [data?.allProgress]);
+export const useReadingStats = (): UseReadingStatsReturn => {
+  const statsQuery = trpc.user.getUserStats.useQuery();
+  const recentProgressQuery =
+    trpc.readingProgress.getRecentReadingProgress.useQuery({ sinceDays: 90 });
+
+  const { daily, weekly } = useMemo(() => {
+    if (!recentProgressQuery.data) {
+      return {
+        daily: defaultDailyStats,
+        weekly: defaultWeeklyStats,
+      };
+    }
+
+    return {
+      daily: calculateDailyStats(recentProgressQuery.data),
+      weekly: calculateWeeklyStats(recentProgressQuery.data),
+    };
+  }, [recentProgressQuery.data]);
+
+  const avgPagesPerWeek = useMemo(() => {
+    if (!statsQuery.data) return 0;
+    const { totalPagesRead, totalActiveDays } = statsQuery.data;
+    if (totalActiveDays === 0) return 0;
+    const estimatedWeeks = Math.max(1, Math.ceil(totalActiveDays / 7));
+    return Math.round(totalPagesRead / estimatedWeeks);
+  }, [statsQuery.data]);
 
   return {
-    isPending,
-    isError,
-    error,
-    readingStats,
-    pagesToday: readingStats?.daily.pagesToday ?? 0,
-    avgPagesPerDay: Math.round(readingStats?.daily.averagePagesPerDay ?? 0),
-    avgPagesPerWeek: Math.round(readingStats?.overall.averagePagesPerWeek ?? 0),
-    currentStreak: readingStats?.streak.currentStreak ?? 0,
-    isStreakActive: readingStats?.streak.isActiveToday ?? false,
-    pagesThisWeek: readingStats?.weekly.pagesThisWeek ?? 0,
-    pagesLastWeek: readingStats?.weekly.pagesLastWeek ?? 0,
-    totalPagesRead: readingStats?.overall.totalPagesRead ?? 0,
-    activeDays: readingStats?.overall.activeDays ?? 0,
+    isPending: statsQuery.isPending || recentProgressQuery.isPending,
+    isError: statsQuery.isError || recentProgressQuery.isError,
+    currentStreak: statsQuery.data?.currentStreak ?? 0,
+    longestStreak: statsQuery.data?.longestStreak ?? 0,
+    isStreakActive: statsQuery.data?.isActiveToday ?? false,
+    totalPagesRead: statsQuery.data?.totalPagesRead ?? 0,
+    activeDays: statsQuery.data?.totalActiveDays ?? 0,
+    pagesToday: daily.pagesToday ?? 0,
+    avgPagesPerDay: Math.round(daily.averagePagesPerDay ?? 0),
+    avgPagesPerWeek,
+    pagesThisWeek: weekly.pagesThisWeek ?? 0,
+    pagesLastWeek: weekly.pagesLastWeek ?? 0,
   };
 };

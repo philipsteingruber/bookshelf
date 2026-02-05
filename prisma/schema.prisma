@@ -22,13 +22,15 @@ model User {
     email String @unique
 
     defaultReadingThreshold Int @default(200)
+    minimumPagesForStreak   Int @default(0)
 
-    books Book[]
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 
-    createdAt         DateTime          @default(now())
-    updatedAt         DateTime          @updatedAt
+    books             Book[]
     readingProgresses ReadingProgress[]
     readingGoals      ReadingGoal[]
+    stats             UserStats?
 
     @@index([clerkId])
 }
@@ -122,4 +124,19 @@ model ReadingProgress {
     @@index([bookId])
     @@index([bookId, createdAt])
     @@index([userId, createdAt])
+}
+
+model UserStats {
+    id     String @id @default(cuid())
+    user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+    userId String @unique
+
+    currentStreak   Int       @default(0)
+    longestStreak   Int       @default(0)
+    lastReadingDate DateTime?
+
+    totalPagesRead  Int @default(0)
+    totalActiveDays Int @default(0)
+
+    updatedAt DateTime @updatedAt
 }

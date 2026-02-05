@@ -6,6 +6,7 @@ import {
   createFakeBook,
   createFakeReadingProgress,
   createFakeReadingProgressWithBook,
+  createFakeUserStats,
   createMockCaller,
 } from "@/lib/test-utils";
 
@@ -28,6 +29,7 @@ describe("readingProgressRouter", () => {
         bookId: 1,
         progress: 80,
       });
+      const fakeUserStats = createFakeUserStats();
 
       vi.mocked(mockDb.book.findUnique).mockResolvedValue(fakeBook);
       vi.mocked(mockDb.$transaction).mockImplementation(async (callback) => {
@@ -41,6 +43,10 @@ describe("readingProgressRouter", () => {
         } as unknown as PrismaClient;
         return callback(fakeTxClient);
       });
+      // Mock UserStats operations (called after transaction)
+      vi.mocked(mockDb.readingProgress.findMany).mockResolvedValue([]);
+      vi.mocked(mockDb.userStats.upsert).mockResolvedValue(fakeUserStats);
+      vi.mocked(mockDb.userStats.update).mockResolvedValue(fakeUserStats);
 
       const result = await caller.createReadingProgressInstance({
         bookId: 1,
@@ -91,6 +97,7 @@ describe("readingProgressRouter", () => {
       const { mockDb, caller } = createMockCaller(readingProgressRouter);
 
       const fakeBook = createFakeBook({ progress: 0, pageCount: 100 });
+      const fakeUserStats = createFakeUserStats();
 
       const pagesRead = 50;
       const calculatedProgress = Math.floor(
@@ -118,6 +125,9 @@ describe("readingProgressRouter", () => {
         } as unknown as PrismaClient;
         return callback(fakeTxClient);
       });
+      vi.mocked(mockDb.readingProgress.findMany).mockResolvedValue([]);
+      vi.mocked(mockDb.userStats.upsert).mockResolvedValue(fakeUserStats);
+      vi.mocked(mockDb.userStats.update).mockResolvedValue(fakeUserStats);
 
       const result = await caller.createReadingProgressInstance({
         bookId: fakeBook.id,
@@ -132,6 +142,7 @@ describe("readingProgressRouter", () => {
       const { mockDb, caller } = createMockCaller(readingProgressRouter);
 
       const fakeBook = createFakeBook({ progress: 0, pageCount: 0 });
+      const fakeUserStats = createFakeUserStats();
 
       const fakeReadingProgress = createFakeReadingProgress({
         bookId: fakeBook.id,
@@ -154,6 +165,9 @@ describe("readingProgressRouter", () => {
         } as unknown as PrismaClient;
         return callback(fakeTxClient);
       });
+      vi.mocked(mockDb.readingProgress.findMany).mockResolvedValue([]);
+      vi.mocked(mockDb.userStats.upsert).mockResolvedValue(fakeUserStats);
+      vi.mocked(mockDb.userStats.update).mockResolvedValue(fakeUserStats);
 
       const result = await caller.createReadingProgressInstance({
         bookId: fakeBook.id,
@@ -168,6 +182,7 @@ describe("readingProgressRouter", () => {
       const { mockDb, caller } = createMockCaller(readingProgressRouter);
 
       const fakeBook = createFakeBook({ progress: 0, pageCount: 100 });
+      const fakeUserStats = createFakeUserStats();
 
       const newProgress = 50;
       const newPagesRead = 75;
@@ -197,6 +212,9 @@ describe("readingProgressRouter", () => {
 
         return callback(fakeTxClient);
       });
+      vi.mocked(mockDb.readingProgress.findMany).mockResolvedValue([]);
+      vi.mocked(mockDb.userStats.upsert).mockResolvedValue(fakeUserStats);
+      vi.mocked(mockDb.userStats.update).mockResolvedValue(fakeUserStats);
 
       const result = await caller.createReadingProgressInstance({
         bookId: fakeBook.id,
@@ -268,6 +286,7 @@ describe("readingProgressRouter", () => {
         bookId: fakeBook.id,
         progress: 100,
       });
+      const fakeUserStats = createFakeUserStats();
 
       vi.mocked(mockDb.book.findUnique).mockResolvedValue(fakeBook);
 
@@ -284,6 +303,9 @@ describe("readingProgressRouter", () => {
 
         return callback(fakeTxClient);
       });
+      vi.mocked(mockDb.readingProgress.findMany).mockResolvedValue([]);
+      vi.mocked(mockDb.userStats.upsert).mockResolvedValue(fakeUserStats);
+      vi.mocked(mockDb.userStats.update).mockResolvedValue(fakeUserStats);
 
       const result = await caller.createReadingProgressInstance({
         bookId: fakeBook.id,
@@ -500,6 +522,7 @@ describe("readingProgressRouter", () => {
         bookId: fakeBook.id,
         book: fakeBook,
       });
+      const fakeUserStats = createFakeUserStats();
 
       vi.mocked(mockDb.readingProgress.findUnique).mockResolvedValue(
         fakeReadingProgress,
@@ -511,9 +534,14 @@ describe("readingProgressRouter", () => {
           readingProgress: {
             delete: mockDelete,
             findFirst: vi.fn().mockResolvedValue(null),
+            count: vi.fn().mockResolvedValue(0),
+            findMany: vi.fn().mockResolvedValue([]),
           },
           book: {
             update: vi.fn().mockResolvedValue(fakeBook),
+          },
+          userStats: {
+            update: vi.fn().mockResolvedValue(fakeUserStats),
           },
         } as unknown as PrismaClient;
         return callback(fakeTxClient);
@@ -542,6 +570,7 @@ describe("readingProgressRouter", () => {
         bookId: fakeBook.id,
         book: fakeBook,
       });
+      const fakeUserStats = createFakeUserStats();
 
       vi.mocked(mockDb.readingProgress.findUnique).mockResolvedValue(
         secondReadingProgress,
@@ -555,9 +584,14 @@ describe("readingProgressRouter", () => {
           readingProgress: {
             delete: vi.fn().mockResolvedValue(secondReadingProgress),
             findFirst: vi.fn().mockResolvedValue(firstReadingProgress),
+            count: vi.fn().mockResolvedValue(1),
+            findMany: vi.fn().mockResolvedValue([firstReadingProgress]),
           },
           book: {
             update: mockUpdate,
+          },
+          userStats: {
+            update: vi.fn().mockResolvedValue(fakeUserStats),
           },
         } as unknown as PrismaClient;
         return callback(fakeTxClient);
@@ -580,6 +614,7 @@ describe("readingProgressRouter", () => {
         bookId: fakeBook.id,
         book: fakeBook,
       });
+      const fakeUserStats = createFakeUserStats();
 
       vi.mocked(mockDb.readingProgress.findUnique).mockResolvedValue(
         fakeReadingProgress,
@@ -591,9 +626,14 @@ describe("readingProgressRouter", () => {
           readingProgress: {
             delete: vi.fn().mockResolvedValue(fakeReadingProgress),
             findFirst: vi.fn().mockResolvedValue(null), // No remaining entries
+            count: vi.fn().mockResolvedValue(0),
+            findMany: vi.fn().mockResolvedValue([]),
           },
           book: {
             update: mockUpdate,
+          },
+          userStats: {
+            update: vi.fn().mockResolvedValue(fakeUserStats),
           },
         } as unknown as PrismaClient;
         return callback(fakeTxClient);
@@ -616,6 +656,7 @@ describe("readingProgressRouter", () => {
         bookId: fakeBook.id,
         book: fakeBook,
       });
+      const fakeUserStats = createFakeUserStats();
 
       vi.mocked(mockDb.readingProgress.findUnique).mockResolvedValue(
         fakeReadingProgress,
@@ -629,9 +670,14 @@ describe("readingProgressRouter", () => {
           readingProgress: {
             delete: vi.fn().mockResolvedValue(fakeReadingProgress),
             findFirst: vi.fn().mockResolvedValue(null), // No remaining entries
+            count: vi.fn().mockResolvedValue(0),
+            findMany: vi.fn().mockResolvedValue([]),
           },
           book: {
             update: mockUpdate,
+          },
+          userStats: {
+            update: vi.fn().mockResolvedValue(fakeUserStats),
           },
         } as unknown as PrismaClient;
         return callback(fakeTxClient);
@@ -982,6 +1028,7 @@ describe("readingProgressRouter", () => {
         progress: 0,
         pageCount: 15000,
       });
+      const fakeUserStats = createFakeUserStats();
 
       const pagesRead = 1500; // 10% of a 15,000 page book
       const expectedProgress = Math.floor(
@@ -1009,6 +1056,9 @@ describe("readingProgressRouter", () => {
         } as unknown as PrismaClient;
         return callback(fakeTxClient);
       });
+      vi.mocked(mockDb.readingProgress.findMany).mockResolvedValue([]);
+      vi.mocked(mockDb.userStats.upsert).mockResolvedValue(fakeUserStats);
+      vi.mocked(mockDb.userStats.update).mockResolvedValue(fakeUserStats);
 
       const result = await caller.createReadingProgressInstance({
         bookId: largePageCountBook.id,
@@ -1023,6 +1073,7 @@ describe("readingProgressRouter", () => {
       const { mockDb, caller } = createMockCaller(readingProgressRouter);
 
       const fakeBook = createFakeBook({ progress: 0, pageCount: 100 });
+      const fakeUserStats = createFakeUserStats();
 
       // Each rapid update should succeed because we're mocking the database
       // and updating the mock state between calls
@@ -1051,6 +1102,9 @@ describe("readingProgressRouter", () => {
           } as unknown as PrismaClient;
           return callback(fakeTxClient);
         });
+        vi.mocked(mockDb.readingProgress.findMany).mockResolvedValue([]);
+        vi.mocked(mockDb.userStats.upsert).mockResolvedValue(fakeUserStats);
+        vi.mocked(mockDb.userStats.update).mockResolvedValue(fakeUserStats);
 
         const result = await caller.createReadingProgressInstance({
           bookId: fakeBook.id,

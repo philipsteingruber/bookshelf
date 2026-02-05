@@ -17,7 +17,8 @@
     "postinstall": "prisma generate",
     "preflight": "tsx scripts/preflight.ts",
     "prepare": "husky",
-    "cleanup:covers": "tsx scripts/cleanup-orphaned-covers.ts"
+    "cleanup:covers": "tsx scripts/cleanup-orphaned-covers.ts",
+    "backfill:user-stats": "tsx scripts/backfill-user-stats.ts"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.36.5",
