@@ -1,8 +1,10 @@
+import { isToday } from "date-fns";
 import z from "zod";
 
 import type { Book } from "@/generated/prisma/client";
 import { performanceLogger } from "@/lib/common/logger";
-import { calculateYearlyStats } from "@/lib/reading";
+import { calculateYearlyStats, validateCurrentStreak } from "@/lib/reading";
+import { recalculateUserStreaks } from "@/lib/reading/streak-utils";
 
 import { authedProcedure, createTRPCRouter } from "../init";
 
@@ -116,4 +118,38 @@ export const userRouter = createTRPCRouter({
 
     return { booksFinishedByYear: stats.booksFinishedByYear };
   }),
+
+  getUserStats: authedProcedure.query(async ({ ctx }) => {
+    const stats = await ctx.db.userStats.upsert({
+      where: { userId: ctx.currentUser.id },
+      create: { userId: ctx.currentUser.id },
+      update: {},
+    });
+
+    const validatedStreak = validateCurrentStreak(stats);
+
+    return {
+      currentStreak: validatedStreak,
+      longestStreak: stats.longestStreak,
+      lastReadingDate: stats.lastReadingDate,
+      isActiveToday: stats.lastReadingDate
+        ? isToday(stats.lastReadingDate)
+        : false,
+      totalPagesRead: stats.totalPagesRead,
+      totalActiveDays: stats.totalActiveDays,
+    };
+  }),
+
+  setStreakThreshold: authedProcedure
+    .input(z.number().int().nonnegative().max(1000))
+    .mutation(async ({ ctx, input: newThreshold }) => {
+      await ctx.db.user.update({
+        where: { id: ctx.currentUser.id },
+        data: { minimumPagesForStreak: newThreshold },
+      });
+
+      await recalculateUserStreaks(ctx.db, ctx.currentUser);
+
+      return { success: true };
+    }),
 });

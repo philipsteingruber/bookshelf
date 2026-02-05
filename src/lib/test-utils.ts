@@ -8,6 +8,7 @@ import type {
   ReadingGoal,
   ReadingProgress,
   User,
+  UserStats,
 } from "@/generated/prisma/client";
 import { READING_GOAL_DEFAULT_THRESHOLD } from "@/lib/constants";
 import { formatRelativeDateCompact } from "@/lib/reading";
@@ -53,6 +54,11 @@ export function createMockDb(): PrismaClient {
       create: vi.fn(),
       update: vi.fn(),
       upsert: vi.fn(),
+    },
+    userStats: {
+      findUnique: vi.fn(),
+      upsert: vi.fn(),
+      update: vi.fn(),
     },
     $transaction: vi.fn(),
   } as unknown as PrismaClient;
@@ -178,6 +184,22 @@ export const createFakeReadingGoal = (
     userId: "test-user-123",
     year: currentYear,
     goal: 20,
+    ...overrides,
+  };
+};
+
+export const createFakeUserStats = (
+  overrides?: Partial<UserStats>,
+): UserStats => {
+  return {
+    id: "test-stats-123",
+    userId: "test-user-123",
+    currentStreak: 0,
+    longestStreak: 0,
+    lastReadingDate: null,
+    totalPagesRead: 0,
+    totalActiveDays: 0,
+    updatedAt: new Date(),
     ...overrides,
   };
 };

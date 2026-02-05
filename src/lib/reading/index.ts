@@ -30,3 +30,9 @@ export {
   calculateYearlyStats,
   transformProgressHistory,
 } from "./reading-stats-utils";
+export {
+  calculateStreakUpdate,
+  isToday,
+  isYesterday,
+  validateCurrentStreak,
+} from "./streak-utils";
