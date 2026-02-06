@@ -31,6 +31,8 @@ export const userRouter = createTRPCRouter({
         },
         update: { goal: newGoal },
       });
+
+      ctx.logger.info({ newGoal, year: currentYear }, "Reading goal updated");
       return { readingGoal };
     }),
 
@@ -103,10 +105,13 @@ export const userRouter = createTRPCRouter({
       });
       setReadingGoalThresholdTimer.end({ newThreshold });
 
+      ctx.logger.info({ newThreshold }, "Reading goal threshold updated");
       return { newThreshold };
     }),
 
   getYearlyBookStats: authedProcedure.query(async ({ ctx }) => {
+    ctx.logger.debug("Getting yearly book stats");
+
     const threshold = ctx.currentUser.defaultReadingThreshold;
 
     const books = (await ctx.db.book.findMany({
@@ -119,6 +124,8 @@ export const userRouter = createTRPCRouter({
   }),
 
   getUserStats: authedProcedure.query(async ({ ctx }) => {
+    ctx.logger.debug("Getting user stats");
+
     const stats = await ctx.db.userStats.upsert({
       where: { userId: ctx.currentUser.id },
       create: { userId: ctx.currentUser.id },
@@ -144,6 +151,8 @@ export const userRouter = createTRPCRouter({
   setStreakThreshold: authedProcedure
     .input(z.number().int().nonnegative().max(1000))
     .mutation(async ({ ctx, input: newThreshold }) => {
+      ctx.logger.debug({ newThreshold }, "Setting new streak threshold");
+
       await ctx.db.user.update({
         where: { id: ctx.currentUser.id },
         data: { minimumPagesForStreak: newThreshold },
@@ -154,12 +163,15 @@ export const userRouter = createTRPCRouter({
         minimumPagesForStreak: newThreshold,
       });
 
+      ctx.logger.info({ newThreshold }, "Streak threshold updated");
       return { success: true };
     }),
 
   setTimezone: authedProcedure
     .input(z.string().min(1).max(100))
     .mutation(async ({ ctx, input: timezone }) => {
+      ctx.logger.debug({ timezone }, "Setting user timezone");
+
       // Only update if timezone has changed
       if (ctx.currentUser.timezone !== timezone) {
         await ctx.db.user.update({
@@ -180,6 +192,7 @@ export const userRouter = createTRPCRouter({
     }),
 
   getTimezone: authedProcedure.query(({ ctx }) => {
+    ctx.logger.debug("Getting user timezone");
     return { timezone: ctx.currentUser.timezone };
   }),
 });

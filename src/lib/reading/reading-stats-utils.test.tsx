@@ -22,6 +22,7 @@ import {
   calculateStreakDetails,
   calculateWeeklyStats,
   calculateYearlyStats,
+  getQualifyingDays,
   transformProgressHistory,
 } from "./reading-stats-utils";
 
@@ -180,6 +181,179 @@ describe("reading-stats-utils", () => {
 
       expect(result.currentStreak).toEqual(2);
       expect(result.longestStreak).toEqual(2);
+    });
+
+    it("should respect minimumPagesForStreak threshold", () => {
+      const fakeBook = createFakeBook({ pageCount: 100 });
+
+      // First day: 10 pages (below 30 threshold)
+      const firstProgress = createFakeReadingProgressWithBook({
+        book: fakeBook,
+        progress: 10,
+        createdAt: subDays(new Date(), 2),
+      });
+      // Second day: 40 pages (above 30 threshold)
+      const secondProgress = createFakeReadingProgressWithBook({
+        book: fakeBook,
+        progress: 50,
+        createdAt: subDays(new Date(), 1),
+      });
+      // Third day: 50 pages (above 30 threshold)
+      const thirdProgress = createFakeReadingProgressWithBook({
+        book: fakeBook,
+        progress: 100,
+        createdAt: new Date(),
+      });
+
+      // With threshold of 30, only day 2 and 3 qualify
+      const result = calculateStreakDetails(
+        [firstProgress, secondProgress, thirdProgress],
+        30,
+      );
+
+      expect(result.currentStreak).toEqual(2);
+      expect(result.longestStreak).toEqual(2);
+    });
+
+    it("should handle timezone correctly for streak calculation", () => {
+      // Test that dates near midnight are grouped correctly based on timezone
+      const fakeBook = createFakeBook({ pageCount: 100 });
+
+      // Progress at 2026-01-14T23:00:00Z
+      // In UTC: Jan 14
+      // In Europe/Paris (UTC+1): Jan 15
+      const lateNightProgress = createFakeReadingProgressWithBook({
+        book: fakeBook,
+        progress: 50,
+        createdAt: new Date("2026-01-14T23:00:00Z"),
+      });
+
+      // Progress at 2026-01-15T01:00:00Z
+      // In UTC: Jan 15
+      // In Europe/Paris (UTC+1): Jan 15
+      const earlyMorningProgress = createFakeReadingProgressWithBook({
+        book: fakeBook,
+        progress: 100,
+        createdAt: new Date("2026-01-15T01:00:00Z"),
+      });
+
+      // In UTC, these are on different days (Jan 14 and Jan 15)
+      const resultUTC = calculateStreakDetails(
+        [lateNightProgress, earlyMorningProgress],
+        0,
+        "UTC",
+      );
+      expect(resultUTC.longestStreak).toEqual(2);
+
+      // In Europe/Paris, both are on Jan 15 (same day)
+      const resultParis = calculateStreakDetails(
+        [lateNightProgress, earlyMorningProgress],
+        0,
+        "Europe/Paris",
+      );
+      expect(resultParis.longestStreak).toEqual(1);
+    });
+  });
+
+  describe("getQualifyingDays", () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+      vi.setSystemTime(mockDate);
+      vi.clearAllMocks();
+    });
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("should return empty array for empty progress", () => {
+      const result = getQualifyingDays([], 0);
+      expect(result).toEqual([]);
+    });
+
+    it("should return all days when threshold is 0", () => {
+      const fakeBook = createFakeBook({ pageCount: 100 });
+
+      const firstProgress = createFakeReadingProgressWithBook({
+        book: fakeBook,
+        progress: 10,
+        createdAt: subDays(new Date(), 1),
+      });
+      const secondProgress = createFakeReadingProgressWithBook({
+        book: fakeBook,
+        progress: 20,
+        createdAt: new Date(),
+      });
+
+      const result = getQualifyingDays([firstProgress, secondProgress], 0);
+      expect(result.length).toEqual(2);
+    });
+
+    it("should filter out days below threshold", () => {
+      const fakeBook = createFakeBook({ pageCount: 100 });
+
+      // Day 1: 10 pages (below 20 threshold)
+      const firstProgress = createFakeReadingProgressWithBook({
+        book: fakeBook,
+        progress: 10,
+        createdAt: subDays(new Date(), 2),
+      });
+      // Day 2: 30 pages (above 20 threshold)
+      const secondProgress = createFakeReadingProgressWithBook({
+        book: fakeBook,
+        progress: 40,
+        createdAt: subDays(new Date(), 1),
+      });
+      // Day 3: 10 pages (below 20 threshold)
+      const thirdProgress = createFakeReadingProgressWithBook({
+        book: fakeBook,
+        progress: 50,
+        createdAt: new Date(),
+      });
+
+      const result = getQualifyingDays(
+        [firstProgress, secondProgress, thirdProgress],
+        20,
+      );
+      expect(result.length).toEqual(1);
+    });
+
+    it("should return date keys in YYYY-MM-DD format sorted chronologically", () => {
+      const fakeBook = createFakeBook({ pageCount: 100 });
+
+      const firstProgress = createFakeReadingProgressWithBook({
+        book: fakeBook,
+        progress: 50,
+        createdAt: subDays(new Date(), 2),
+      });
+      const secondProgress = createFakeReadingProgressWithBook({
+        book: fakeBook,
+        progress: 100,
+        createdAt: new Date(),
+      });
+
+      const result = getQualifyingDays([firstProgress, secondProgress], 0);
+
+      expect(result[0]).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(result[0] < result[1]).toBe(true);
+    });
+
+    it("should respect timezone when grouping days", () => {
+      const fakeBook = createFakeBook({ pageCount: 100 });
+
+      // Progress at 2026-01-14T23:00:00Z
+      // In UTC: Jan 14
+      // In Europe/Paris (UTC+1): Jan 15
+      const progress = createFakeReadingProgressWithBook({
+        book: fakeBook,
+        progress: 50,
+        createdAt: new Date("2026-01-14T23:00:00Z"),
+      });
+
+      const resultUTC = getQualifyingDays([progress], 0, "UTC");
+      expect(resultUTC[0]).toEqual("2026-01-14");
+
+      const resultParis = getQualifyingDays([progress], 0, "Europe/Paris");
+      expect(resultParis[0]).toEqual("2026-01-15");
     });
   });
   describe("calculateDailyStats", () => {
