@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import { BookIcon, FlameIcon, PlusIcon } from "lucide-react";
 
+import StreakThresholdSetting from "@/components/settings/streak-threshold-setting";
 import { useReadingStats } from "@/hooks/reading";
 import { cn } from "@/lib/utils";
 
@@ -29,7 +30,9 @@ const Header = (): React.ReactElement => {
           </div>
         </div>
         <div className="flex items-center gap-x-8 pr-4">
-          <StreakIndicator className="hidden md:flex" />
+          <StreakThresholdSetting>
+            <StreakIndicator className="hidden md:flex" />
+          </StreakThresholdSetting>
           <Link href={"/books/create"}>
             <Button className="cursor-pointer">
               <PlusIcon /> Add

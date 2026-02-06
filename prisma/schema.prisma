@@ -21,8 +21,9 @@ model User {
     name  String
     email String @unique
 
-    defaultReadingThreshold Int @default(200)
-    minimumPagesForStreak   Int @default(0)
+    defaultReadingThreshold Int    @default(200)
+    minimumPagesForStreak   Int    @default(0)
+    timezone                String @default("UTC")
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
@@ -131,9 +132,10 @@ model UserStats {
     user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
     userId String @unique
 
-    currentStreak   Int       @default(0)
-    longestStreak   Int       @default(0)
-    lastReadingDate DateTime?
+    currentStreak             Int       @default(0)
+    longestStreak             Int       @default(0)
+    lastQualifyingReadingDate DateTime?
+    lastReadingDate           DateTime?
 
     totalPagesRead  Int @default(0)
     totalActiveDays Int @default(0)

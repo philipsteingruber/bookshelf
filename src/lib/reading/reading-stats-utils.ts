@@ -1,10 +1,5 @@
-import {
-  differenceInDays,
-  format,
-  startOfDay,
-  startOfWeek,
-  subDays,
-} from "date-fns";
+import { differenceInDays, startOfWeek, subDays } from "date-fns";
+import { formatInTimeZone, toZonedTime } from "date-fns-tz";
 
 import type { Book, ReadingProgress } from "@/generated/prisma/client";
 import { calculatePagesFromProgress } from "@/lib/book";
@@ -18,6 +13,32 @@ import type {
   WeeklyStats,
   YearlyStats,
 } from "@/lib/types/reading";
+
+const DEFAULT_TIMEZONE = "UTC";
+
+/**
+ * Gets the start of day for a date in a specific timezone.
+ */
+const startOfDayInTimezone = (date: Date, timezone: string): Date => {
+  const dateKey = formatInTimeZone(date, timezone, "yyyy-MM-dd");
+  const [year, month, day] = dateKey.split("-").map(Number);
+  // Create a date at midnight in the target timezone
+  return toZonedTime(new Date(Date.UTC(year, month - 1, day)), timezone);
+};
+
+/**
+ * Gets today's date key in a specific timezone.
+ */
+const getTodayKey = (timezone: string): string => {
+  return formatInTimeZone(new Date(), timezone, "yyyy-MM-dd");
+};
+
+/**
+ * Gets yesterday's date key in a specific timezone.
+ */
+const getYesterdayKey = (timezone: string): string => {
+  return formatInTimeZone(subDays(new Date(), 1), timezone, "yyyy-MM-dd");
+};
 
 /**
  * Transforms a chronologically-ordered array of reading progress entries
@@ -45,11 +66,12 @@ export function transformProgressHistory(
 
 const groupByDay = (
   progress: ReadingProgressWithBook[],
+  timezone: string = DEFAULT_TIMEZONE,
 ): Map<string, ReadingProgressWithBook[]> => {
   const grouped = new Map<string, ReadingProgressWithBook[]>();
 
   progress.forEach((entry) => {
-    const dayKey = format(startOfDay(entry.createdAt), "yyyy-MM-dd");
+    const dayKey = formatInTimeZone(entry.createdAt, timezone, "yyyy-MM-dd");
     const existing = grouped.get(dayKey) || [];
     grouped.set(dayKey, [...existing, entry]);
   });
@@ -58,12 +80,15 @@ const groupByDay = (
 };
 const groupByWeek = (
   progress: ReadingProgressWithBook[],
+  timezone: string = DEFAULT_TIMEZONE,
 ): Map<string, ReadingProgressWithBook[]> => {
   const grouped = new Map<string, ReadingProgressWithBook[]>();
 
   progress.forEach((entry) => {
-    const weekStart = startOfWeek(entry.createdAt, { weekStartsOn: 1 });
-    const weekKey = format(weekStart, "yyyy-MM-dd");
+    // Convert to timezone first, then find week start
+    const zonedDate = toZonedTime(entry.createdAt, timezone);
+    const weekStart = startOfWeek(zonedDate, { weekStartsOn: 1 });
+    const weekKey = formatInTimeZone(weekStart, timezone, "yyyy-MM-dd");
     const existing = grouped.get(weekKey) || [];
     grouped.set(weekKey, [...existing, entry]);
   });
@@ -78,9 +103,10 @@ const groupByWeek = (
  */
 const calculatePagesPerDay = (
   progress: ReadingProgressWithBook[],
+  timezone: string = DEFAULT_TIMEZONE,
 ): Map<string, number> => {
   const validProgress = progress.filter((p) => p.book.pageCount > 0);
-  const progressByDay = groupByDay(validProgress);
+  const progressByDay = groupByDay(validProgress, timezone);
   const pagesPerDay = new Map<string, number>();
 
   // Group all entries by book to find baselines
@@ -96,10 +122,6 @@ const calculatePagesPerDay = (
   for (const dateKey of sortedDates) {
     const dayEntries = progressByDay.get(dateKey) || [];
 
-    // Parse date for comparison
-    const [year, month, day] = dateKey.split("-").map(Number);
-    const dayStart = new Date(year, month - 1, day);
-
     // Group day's entries by book
     const dayByBook = new Map<number, ReadingProgressWithBook[]>();
     dayEntries.forEach((entry) => {
@@ -113,8 +135,16 @@ const calculatePagesPerDay = (
       const allBookEntries = allEntriesByBook.get(bookId) || [];
 
       // Find the last entry before this day for this book
+      // Compare using the date key to ensure timezone consistency
       const entriesBeforeDay = allBookEntries
-        .filter((e) => e.createdAt < dayStart)
+        .filter((e) => {
+          const entryDateKey = formatInTimeZone(
+            e.createdAt,
+            timezone,
+            "yyyy-MM-dd",
+          );
+          return entryDateKey < dateKey;
+        })
         .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
       const baseline =
@@ -138,53 +168,22 @@ const calculatePagesPerDay = (
 
 export const calculateDailyStats = (
   progress: ReadingProgressWithBook[],
+  timezone: string = DEFAULT_TIMEZONE,
 ): DailyStats => {
   const validProgress = progress.filter((p) => p.book.pageCount > 0);
 
   if (validProgress.length === 0) {
-    return { pagesToday: 0, averagePagesPerDay: 0 };
+    return { pagesToday: 0, pagesYesterday: 0, averagePagesPerDay: 0 };
   }
 
-  const progressByDay = groupByDay(validProgress);
+  const progressByDay = groupByDay(validProgress, timezone);
+  const pagesPerDay = calculatePagesPerDay(validProgress, timezone);
 
-  const today = format(startOfDay(new Date()), "yyyy-MM-dd");
-  const todayEntries = progressByDay.get(today) || [];
+  const today = getTodayKey(timezone);
+  const yesterday = getYesterdayKey(timezone);
 
-  const todayByBook = new Map<number, ReadingProgressWithBook[]>();
-  todayEntries.forEach((entry) => {
-    const bookEntries = todayByBook.get(entry.bookId) || [];
-    todayByBook.set(entry.bookId, [...bookEntries, entry]);
-  });
-
-  // Group all entries by book to find previous day's baseline
-  const allEntriesByBook = new Map<number, ReadingProgressWithBook[]>();
-  validProgress.forEach((entry) => {
-    const bookEntries = allEntriesByBook.get(entry.bookId) || [];
-    allEntriesByBook.set(entry.bookId, [...bookEntries, entry]);
-  });
-
-  let pagesToday = 0;
-  todayByBook.forEach((todayEntries, bookId) => {
-    const allBookEntries = allEntriesByBook.get(bookId) || [];
-    const todayStart = startOfDay(new Date());
-
-    // Find the last entry before today for this book
-    const entriesBeforeToday = allBookEntries
-      .filter((e) => e.createdAt < todayStart)
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-
-    const baseline =
-      entriesBeforeToday.length > 0 ? entriesBeforeToday[0].progress : 0;
-
-    // Find today's max progress
-    const todayMaxProgress = Math.max(...todayEntries.map((e) => e.progress));
-    const progressGain = todayMaxProgress - baseline;
-
-    pagesToday += calculatePagesFromProgress(
-      progressGain,
-      todayEntries[0].book.pageCount,
-    );
-  });
+  const pagesToday = pagesPerDay.get(today) ?? 0;
+  const pagesYesterday = pagesPerDay.get(yesterday) ?? 0;
 
   let totalPages = 0;
   const bookProgress = new Map<number, { max: number; pageCount: number }>();
@@ -206,11 +205,12 @@ export const calculateDailyStats = (
   const activeDays = progressByDay.size;
   const averagePagesPerDay = activeDays > 0 ? totalPages / activeDays : 0;
 
-  return { pagesToday, averagePagesPerDay };
+  return { pagesToday, pagesYesterday, averagePagesPerDay };
 };
 
 export const calculateWeeklyStats = (
   progress: ReadingProgressWithBook[],
+  timezone: string = DEFAULT_TIMEZONE,
 ): WeeklyStats => {
   const validProgress = progress.filter((p) => p.book.pageCount > 0);
 
@@ -221,15 +221,17 @@ export const calculateWeeklyStats = (
     };
   }
 
-  const progressByWeek = groupByWeek(validProgress);
+  const progressByWeek = groupByWeek(validProgress, timezone);
 
-  const thisWeekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
-  const lastWeekStart = startOfWeek(subDays(new Date(), 7), {
+  // Get current time in timezone, then find week starts
+  const nowInTimezone = toZonedTime(new Date(), timezone);
+  const thisWeekStart = startOfWeek(nowInTimezone, { weekStartsOn: 1 });
+  const lastWeekStart = startOfWeek(subDays(nowInTimezone, 7), {
     weekStartsOn: 1,
   });
 
-  const thisWeekKey = format(thisWeekStart, "yyyy-MM-dd");
-  const lastWeekKey = format(lastWeekStart, "yyyy-MM-dd");
+  const thisWeekKey = formatInTimeZone(thisWeekStart, timezone, "yyyy-MM-dd");
+  const lastWeekKey = formatInTimeZone(lastWeekStart, timezone, "yyyy-MM-dd");
 
   // Group all entries by book to find baselines
   const allEntriesByBook = new Map<number, ReadingProgressWithBook[]>();
@@ -240,7 +242,7 @@ export const calculateWeeklyStats = (
 
   const calculateWeekPages = (
     weekEntries: ReadingProgressWithBook[],
-    weekStart: Date,
+    weekStartKey: string,
   ): number => {
     // Group week entries by book
     const weekByBook = new Map<number, ReadingProgressWithBook[]>();
@@ -253,9 +255,18 @@ export const calculateWeeklyStats = (
     weekByBook.forEach((entries, bookId) => {
       const allBookEntries = allEntriesByBook.get(bookId) || [];
 
-      // Find the last entry before this week started
+      // Find the last entry before this week started (compare week keys)
       const entriesBeforeWeek = allBookEntries
-        .filter((e) => e.createdAt < weekStart)
+        .filter((e) => {
+          const entryZoned = toZonedTime(e.createdAt, timezone);
+          const entryWeekStart = startOfWeek(entryZoned, { weekStartsOn: 1 });
+          const entryWeekKey = formatInTimeZone(
+            entryWeekStart,
+            timezone,
+            "yyyy-MM-dd",
+          );
+          return entryWeekKey < weekStartKey;
+        })
         .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
       const baseline =
@@ -276,11 +287,11 @@ export const calculateWeeklyStats = (
 
   const pagesThisWeek = calculateWeekPages(
     progressByWeek.get(thisWeekKey) || [],
-    thisWeekStart,
+    thisWeekKey,
   );
   const pagesLastWeek = calculateWeekPages(
     progressByWeek.get(lastWeekKey) || [],
-    lastWeekStart,
+    lastWeekKey,
   );
 
   return {
@@ -323,6 +334,7 @@ export const calculateYearlyStats = (
 
 export const calculateOverallStats = (
   progress: ReadingProgressWithBook[],
+  timezone: string = DEFAULT_TIMEZONE,
 ): OverallStats => {
   const validProgress = progress.filter((p) => p.book.pageCount > 0);
 
@@ -335,8 +347,8 @@ export const calculateOverallStats = (
     };
   }
 
-  const progressByDay = groupByDay(validProgress);
-  const progressByWeek = groupByWeek(validProgress);
+  const progressByDay = groupByDay(validProgress, timezone);
+  const progressByWeek = groupByWeek(validProgress, timezone);
 
   const activeDays = progressByDay.size;
   const weeksActive = progressByWeek.size;
@@ -366,9 +378,47 @@ export const calculateOverallStats = (
   return { activeDays, totalPagesRead, averagePagesPerWeek, weeksActive };
 };
 
+/**
+ * Returns all date keys (YYYY-MM-DD) that meet the minimum pages threshold, sorted chronologically.
+ */
+export const getQualifyingDays = (
+  progress: ReadingProgressWithBook[],
+  minimumPagesForStreak: number = 0,
+  timezone: string = DEFAULT_TIMEZONE,
+): string[] => {
+  if (progress.length === 0) {
+    return [];
+  }
+
+  const pagesPerDay = calculatePagesPerDay(progress, timezone);
+
+  return Array.from(pagesPerDay.entries())
+    .filter(([_, pages]) => pages >= minimumPagesForStreak)
+    .map(([dateKey]) => dateKey)
+    .sort();
+};
+
+/**
+ * Helper to parse a date key (YYYY-MM-DD) into a Date object (UTC midnight).
+ */
+const parseDateKey = (dateKey: string): Date => {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day));
+};
+
+/**
+ * Helper to calculate difference in days between two date keys.
+ */
+const daysBetweenKeys = (key1: string, key2: string): number => {
+  const date1 = parseDateKey(key1);
+  const date2 = parseDateKey(key2);
+  return differenceInDays(date2, date1);
+};
+
 export const calculateStreakDetails = (
   progress: ReadingProgressWithBook[],
   minimumPagesForStreak: number = 0,
+  timezone: string = DEFAULT_TIMEZONE,
 ): StreakDetails => {
   if (progress.length === 0) {
     return {
@@ -379,20 +429,13 @@ export const calculateStreakDetails = (
     };
   }
 
-  const pagesPerDay = calculatePagesPerDay(progress);
+  const activeDateKeys = getQualifyingDays(
+    progress,
+    minimumPagesForStreak,
+    timezone,
+  );
 
-  // Filter to only days that meet the minimum pages threshold
-  const qualifyingDateKeys = Array.from(pagesPerDay.entries())
-    .filter(([_, pages]) => pages >= minimumPagesForStreak)
-    .map(([dateKey]) => dateKey);
-
-  const activeDates = qualifyingDateKeys
-    .map((dateStr) => {
-      const [year, month, day] = dateStr.split("-").map(Number);
-      return new Date(year, month - 1, day);
-    })
-    .sort((a, b) => a.getTime() - b.getTime());
-  if (activeDates.length === 0) {
+  if (activeDateKeys.length === 0) {
     return {
       currentStreak: 0,
       longestStreak: 0,
@@ -401,20 +444,18 @@ export const calculateStreakDetails = (
     };
   }
 
-  const today = startOfDay(new Date());
-  const isActiveToday = activeDates.some(
-    (date) => startOfDay(date).getTime() === today.getTime(),
-  );
+  const todayKey = getTodayKey(timezone);
+  const yesterdayKey = getYesterdayKey(timezone);
+  const isActiveToday = activeDateKeys.includes(todayKey);
 
   let currentStreak = 0;
   let longestStreak = 0;
   let tempStreak = 1;
   let streakStart: Date | null = null;
 
-  for (let i = 1; i < activeDates.length; i++) {
-    const prevDate = startOfDay(activeDates[i - 1]);
-    const currDate = startOfDay(activeDates[i]);
-    const daysDiff = differenceInDays(currDate, prevDate);
+  // Calculate longest streak
+  for (let i = 1; i < activeDateKeys.length; i++) {
+    const daysDiff = daysBetweenKeys(activeDateKeys[i - 1], activeDateKeys[i]);
 
     if (daysDiff === 1) {
       tempStreak++;
@@ -426,24 +467,22 @@ export const calculateStreakDetails = (
 
   longestStreak = Math.max(longestStreak, tempStreak);
 
-  const lastActiveDate = startOfDay(activeDates[activeDates.length - 1]);
-  const yesterday = subDays(new Date(today), 1);
+  // Calculate current streak
+  const lastActiveDateKey = activeDateKeys[activeDateKeys.length - 1];
 
-  if (
-    lastActiveDate.getTime() === today.getTime() ||
-    lastActiveDate.getTime() === startOfDay(yesterday).getTime()
-  ) {
+  if (lastActiveDateKey === todayKey || lastActiveDateKey === yesterdayKey) {
     currentStreak = 1;
-    streakStart = lastActiveDate;
+    streakStart = parseDateKey(lastActiveDateKey);
 
-    for (let i = activeDates.length - 2; i >= 0; i--) {
-      const prevDate = startOfDay(activeDates[i]);
-      const nextDate = startOfDay(activeDates[i + 1]);
-      const daysDiff = differenceInDays(nextDate, prevDate);
+    for (let i = activeDateKeys.length - 2; i >= 0; i--) {
+      const daysDiff = daysBetweenKeys(
+        activeDateKeys[i],
+        activeDateKeys[i + 1],
+      );
 
       if (daysDiff === 1) {
         currentStreak++;
-        streakStart = prevDate;
+        streakStart = parseDateKey(activeDateKeys[i]);
       } else {
         break;
       }
@@ -458,11 +497,13 @@ export const calculateStreakDetails = (
 
 export const calculateReadingStats = (
   progress: ReadingProgressWithBook[],
+  threshold?: number,
+  timezone: string = DEFAULT_TIMEZONE,
 ): ReadingStats => {
   return {
-    daily: calculateDailyStats(progress),
-    weekly: calculateWeeklyStats(progress),
-    overall: calculateOverallStats(progress),
-    streak: calculateStreakDetails(progress),
+    daily: calculateDailyStats(progress, timezone),
+    weekly: calculateWeeklyStats(progress, timezone),
+    overall: calculateOverallStats(progress, timezone),
+    streak: calculateStreakDetails(progress, threshold ?? 0, timezone),
   };
 };

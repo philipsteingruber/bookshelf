@@ -197,6 +197,7 @@ export const createFakeUserStats = (
     currentStreak: 0,
     longestStreak: 0,
     lastReadingDate: null,
+    lastQualifyingReadingDate: null,
     totalPagesRead: 0,
     totalActiveDays: 0,
     updatedAt: new Date(),

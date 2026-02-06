@@ -1,9 +1,8 @@
-import { isToday } from "date-fns";
 import z from "zod";
 
 import type { Book } from "@/generated/prisma/client";
 import { performanceLogger } from "@/lib/common/logger";
-import { calculateYearlyStats, validateCurrentStreak } from "@/lib/reading";
+import { calculateYearlyStats, isToday, validateCurrentStreak } from "@/lib/reading";
 import { recalculateUserStreaks } from "@/lib/reading/streak-utils";
 
 import { authedProcedure, createTRPCRouter } from "../init";
@@ -126,17 +125,19 @@ export const userRouter = createTRPCRouter({
       update: {},
     });
 
-    const validatedStreak = validateCurrentStreak(stats);
+    const timezone = ctx.currentUser.timezone;
+    const validatedStreak = validateCurrentStreak(stats, timezone);
 
     return {
       currentStreak: validatedStreak,
       longestStreak: stats.longestStreak,
       lastReadingDate: stats.lastReadingDate,
       isActiveToday: stats.lastReadingDate
-        ? isToday(stats.lastReadingDate)
+        ? isToday(stats.lastReadingDate, timezone)
         : false,
       totalPagesRead: stats.totalPagesRead,
       totalActiveDays: stats.totalActiveDays,
+      streakThreshold: ctx.currentUser.minimumPagesForStreak,
     };
   }),
 
@@ -152,4 +153,30 @@ export const userRouter = createTRPCRouter({
 
       return { success: true };
     }),
+
+  setTimezone: authedProcedure
+    .input(z.string().min(1).max(100))
+    .mutation(async ({ ctx, input: timezone }) => {
+      // Only update if timezone has changed
+      if (ctx.currentUser.timezone !== timezone) {
+        await ctx.db.user.update({
+          where: { id: ctx.currentUser.id },
+          data: { timezone },
+        });
+
+        // Recalculate streaks with new timezone
+        await recalculateUserStreaks(ctx.db, {
+          ...ctx.currentUser,
+          timezone,
+        });
+
+        ctx.logger.info({ timezone }, "User timezone updated");
+      }
+
+      return { success: true };
+    }),
+
+  getTimezone: authedProcedure.query(({ ctx }) => {
+    return { timezone: ctx.currentUser.timezone };
+  }),
 });

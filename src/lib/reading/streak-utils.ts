@@ -1,7 +1,13 @@
-import { startOfDay, subDays } from "date-fns";
+import { subDays } from "date-fns";
+import { formatInTimeZone } from "date-fns-tz";
 
 import type { PrismaClient, User, UserStats } from "@/generated/prisma/client";
-import { calculateStreakDetails } from "@/lib/reading/reading-stats-utils";
+import {
+  calculateStreakDetails,
+  getQualifyingDays,
+} from "@/lib/reading/reading-stats-utils";
+
+const DEFAULT_TIMEZONE = "UTC";
 
 /**
  * A Prisma client that can be either the full PrismaClient or
@@ -12,37 +18,64 @@ type TransactionClient = Omit<
   "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends"
 >;
 
-export const isToday = (date: Date): boolean => {
-  return startOfDay(date).getTime() === startOfDay(new Date()).getTime();
+/**
+ * Helper to parse a date key (YYYY-MM-DD) into a Date object (UTC midnight).
+ */
+const parseDateKey = (dateKey: string): Date => {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day));
 };
 
-export const isYesterday = (date: Date): boolean => {
-  return (
-    startOfDay(date).getTime() === startOfDay(subDays(new Date(), 1)).getTime()
+export const isToday = (
+  date: Date,
+  timezone: string = DEFAULT_TIMEZONE,
+): boolean => {
+  const dateKey = formatInTimeZone(date, timezone, "yyyy-MM-dd");
+  const todayKey = formatInTimeZone(new Date(), timezone, "yyyy-MM-dd");
+  return dateKey === todayKey;
+};
+
+export const isYesterday = (
+  date: Date,
+  timezone: string = DEFAULT_TIMEZONE,
+): boolean => {
+  const dateKey = formatInTimeZone(date, timezone, "yyyy-MM-dd");
+  const yesterdayKey = formatInTimeZone(
+    subDays(new Date(), 1),
+    timezone,
+    "yyyy-MM-dd",
   );
+  return dateKey === yesterdayKey;
 };
 
 export const calculateStreakUpdate = (
   lastReadingDate: Date | null,
   currentStreak: number,
+  timezone: string = DEFAULT_TIMEZONE,
 ): { newStreak: number; shouldUpdate: boolean } => {
   if (lastReadingDate === null) {
     return { newStreak: 1, shouldUpdate: true };
   }
-  if (isToday(lastReadingDate)) {
+  if (isToday(lastReadingDate, timezone)) {
     return { newStreak: currentStreak, shouldUpdate: false };
   }
-  if (isYesterday(lastReadingDate)) {
+  if (isYesterday(lastReadingDate, timezone)) {
     return { newStreak: currentStreak + 1, shouldUpdate: true };
   }
   return { newStreak: 1, shouldUpdate: true };
 };
 
-export const validateCurrentStreak = (stats: UserStats): number => {
-  if (!stats.lastReadingDate) {
+export const validateCurrentStreak = (
+  stats: UserStats,
+  timezone: string = DEFAULT_TIMEZONE,
+): number => {
+  if (!stats.lastQualifyingReadingDate) {
     return 0;
   }
-  if (isToday(stats.lastReadingDate) || isYesterday(stats.lastReadingDate)) {
+  if (
+    isToday(stats.lastQualifyingReadingDate, timezone) ||
+    isYesterday(stats.lastQualifyingReadingDate, timezone)
+  ) {
     return stats.currentStreak;
   }
 
@@ -62,7 +95,18 @@ export const recalculateUserStreaks = async (
   const streakDetails = calculateStreakDetails(
     allProgress,
     user.minimumPagesForStreak,
+    user.timezone,
   );
+
+  const qualifyingDayKeys = getQualifyingDays(
+    allProgress,
+    user.minimumPagesForStreak,
+    user.timezone,
+  );
+  const lastQualifyingReadingDate =
+    qualifyingDayKeys.length > 0
+      ? parseDateKey(qualifyingDayKeys[qualifyingDayKeys.length - 1])
+      : null;
 
   // Calculate lastReadingDate from progress entries (most recent reading date)
   const lastReadingDate =
@@ -76,6 +120,7 @@ export const recalculateUserStreaks = async (
       currentStreak: streakDetails.currentStreak,
       longestStreak: streakDetails.longestStreak,
       lastReadingDate,
+      lastQualifyingReadingDate,
     },
   });
 };

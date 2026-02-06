@@ -2,7 +2,7 @@
 
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { SidebarInset } from "@/components/ui/sidebar";
-import { useBreakPoint } from "@/hooks/ui";
+import { useBreakPoint, useTimezoneSync } from "@/hooks/ui";
 
 const RootLayout = ({
   children,
@@ -10,6 +10,9 @@ const RootLayout = ({
   children: React.ReactNode;
 }>): React.ReactElement => {
   const breakPoint = useBreakPoint();
+
+  // Auto-sync browser timezone with server
+  useTimezoneSync();
 
   return (
     <>

@@ -197,6 +197,7 @@ describe("reading-stats-utils", () => {
       expect(result).toEqual({
         averagePagesPerDay: 0,
         pagesToday: 0,
+        pagesYesterday: 0,
       } satisfies DailyStats);
     });
 
@@ -212,6 +213,7 @@ describe("reading-stats-utils", () => {
       expect(result).toEqual({
         averagePagesPerDay: 0,
         pagesToday: 0,
+        pagesYesterday: 0,
       } satisfies DailyStats);
     });
 
@@ -801,6 +803,7 @@ describe("reading-stats-utils", () => {
         daily: {
           pagesToday: expect.any(Number),
           averagePagesPerDay: expect.any(Number),
+          pagesYesterday: expect.any(Number),
         } satisfies DailyStats,
         weekly: {
           pagesLastWeek: expect.any(Number),
