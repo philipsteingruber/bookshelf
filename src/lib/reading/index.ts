@@ -28,6 +28,7 @@ export {
   calculateStreakDetails,
   calculateWeeklyStats,
   calculateYearlyStats,
+  getQualifyingDays,
   transformProgressHistory,
 } from "./reading-stats-utils";
 export {

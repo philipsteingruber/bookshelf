@@ -185,6 +185,7 @@ export const readingProgressRouter = createTRPCRouter({
         const { newStreak, shouldUpdate } = calculateStreakUpdate(
           currentStreak.lastReadingDate,
           currentStreak.currentStreak,
+          ctx.currentUser.timezone,
         );
 
         if (shouldUpdate) {
@@ -194,6 +195,7 @@ export const readingProgressRouter = createTRPCRouter({
               currentStreak: newStreak,
               longestStreak: Math.max(newStreak, currentStreak.longestStreak),
               lastReadingDate: new Date(),
+              lastQualifyingReadingDate: new Date(),
               totalActiveDays: isFirstEntryToday
                 ? currentStreak.totalActiveDays + 1
                 : currentStreak.totalActiveDays,

@@ -45,9 +45,9 @@ const Page = (): React.ReactElement => {
 
   const {
     pagesToday,
+    pagesYesterday,
     avgPagesPerDay,
     avgPagesPerWeek,
-    totalPagesRead,
     pagesThisWeek,
     pagesLastWeek,
   } = useReadingStats();
@@ -109,7 +109,7 @@ const Page = (): React.ReactElement => {
     {
       header: "PAGES TODAY",
       value: pagesToday,
-      footer: `${totalPagesRead} total pages read`,
+      footer: `${pagesYesterday} pages read yesterday`,
       icon: TrendingUpIcon,
     },
     {

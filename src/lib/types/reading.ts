@@ -10,6 +10,7 @@ export type ReadingProgressWithBook = ReadingProgress & {
 
 export interface DailyStats {
   pagesToday: number;
+  pagesYesterday: number;
   averagePagesPerDay: number;
 }
 export interface WeeklyStats {

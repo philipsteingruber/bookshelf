@@ -13,6 +13,7 @@ interface UseReadingStatsReturn {
   totalPagesRead: number;
   activeDays: number;
   pagesToday: number;
+  pagesYesterday: number;
   avgPagesPerDay: number;
   pagesThisWeek: number;
   pagesLastWeek: number;
@@ -21,6 +22,7 @@ interface UseReadingStatsReturn {
 
 const defaultDailyStats: DailyStats = {
   pagesToday: 0,
+  pagesYesterday: 0,
   averagePagesPerDay: 0,
 };
 const defaultWeeklyStats: WeeklyStats = {
@@ -64,6 +66,7 @@ export const useReadingStats = (): UseReadingStatsReturn => {
     totalPagesRead: statsQuery.data?.totalPagesRead ?? 0,
     activeDays: statsQuery.data?.totalActiveDays ?? 0,
     pagesToday: daily.pagesToday ?? 0,
+    pagesYesterday: daily.pagesYesterday ?? 0,
     avgPagesPerDay: Math.round(daily.averagePagesPerDay ?? 0),
     avgPagesPerWeek,
     pagesThisWeek: weekly.pagesThisWeek ?? 0,
