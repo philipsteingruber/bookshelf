@@ -149,7 +149,10 @@ export const userRouter = createTRPCRouter({
         data: { minimumPagesForStreak: newThreshold },
       });
 
-      await recalculateUserStreaks(ctx.db, ctx.currentUser);
+      await recalculateUserStreaks(ctx.db, {
+        ...ctx.currentUser,
+        minimumPagesForStreak: newThreshold,
+      });
 
       return { success: true };
     }),
