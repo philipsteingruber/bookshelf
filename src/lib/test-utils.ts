@@ -94,6 +94,8 @@ export function createFakeUser(overrides: Partial<User> = {}): User {
     createdAt: new Date(),
     updatedAt: new Date(),
     defaultReadingThreshold: READING_GOAL_DEFAULT_THRESHOLD,
+    timezone: "UTC",
+    minimumPagesForStreak: 0,
     ...overrides,
   } as User;
 }
@@ -278,14 +280,14 @@ export function createMockStorage(
 export function createMockUseQueryReturn<TData = null>(
   overrides: Partial<{
     data: TData;
-    isLoading: boolean;
+    isPending: boolean;
     isError: boolean;
     error: Error | null;
   }> = {},
 ): never {
   return {
     data: null as TData,
-    isLoading: false,
+    isPending: false,
     isError: false,
     error: null,
     ...overrides,
