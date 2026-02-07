@@ -1,4 +1,5 @@
 export type { BookFilters, ScrapeData, SeriesInfo } from "./book";
+export type { ExportData, ReadingProgressForExport } from "./export";
 export type {
   BooksFinishedByYear,
   BuildGoalHistoryOptions,
