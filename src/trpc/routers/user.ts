@@ -2,7 +2,11 @@ import z from "zod";
 
 import type { Book } from "@/generated/prisma/client";
 import { performanceLogger } from "@/lib/common/logger";
-import { calculateYearlyStats, isToday, validateCurrentStreak } from "@/lib/reading";
+import {
+  calculateYearlyStats,
+  isToday,
+  validateCurrentStreak,
+} from "@/lib/reading";
 import { recalculateUserStreaks } from "@/lib/reading/streak-utils";
 
 import { authedProcedure, createTRPCRouter } from "../init";
@@ -194,5 +198,69 @@ export const userRouter = createTRPCRouter({
   getTimezone: authedProcedure.query(({ ctx }) => {
     ctx.logger.debug("Getting user timezone");
     return { timezone: ctx.currentUser.timezone };
+  }),
+
+  getExportData: authedProcedure.mutation(async ({ ctx }) => {
+    ctx.logger.debug("Getting export data");
+
+    const exportDataTimer = performanceLogger(
+      "DB: Fetch all export data",
+      500,
+      ctx.logger,
+    );
+
+    exportDataTimer.start();
+    const [books, readingProgress, readingGoals, userStats] = await Promise.all(
+      [
+        ctx.db.book.findMany({
+          where: { userId: ctx.currentUser.id },
+          orderBy: { createdAt: "asc" },
+        }),
+        ctx.db.readingProgress.findMany({
+          where: { userId: ctx.currentUser.id },
+          include: {
+            book: { select: { id: true, title: true, author: true } },
+          },
+          orderBy: { createdAt: "asc" },
+        }),
+        ctx.db.readingGoal.findMany({
+          where: { userId: ctx.currentUser.id },
+          orderBy: { year: "asc" },
+        }),
+        ctx.db.userStats.findUnique({ where: { userId: ctx.currentUser.id } }),
+      ],
+    );
+
+    const user = await ctx.db.user.findUnique({
+      where: { id: ctx.currentUser.id },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        defaultReadingThreshold: true,
+        minimumPagesForStreak: true,
+        timezone: true,
+        createdAt: true,
+      },
+    });
+    exportDataTimer.end();
+
+    ctx.logger.info(
+      {
+        bookCount: books.length,
+        progressCount: readingProgress.length,
+        goalCount: readingGoals.length,
+      },
+      "Export data retrieved",
+    );
+
+    return {
+      user,
+      books,
+      readingProgress,
+      readingGoals,
+      userStats,
+      exportDate: new Date().toISOString(),
+    };
   }),
 });
