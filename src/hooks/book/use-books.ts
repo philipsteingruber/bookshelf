@@ -41,7 +41,7 @@ export const useBooks = (
 
   const [debouncedSearch] = useDebounce(search, DEBOUNCE_INTERVAL);
 
-  const { data, isLoading, isError, error } = trpc.book.getBooks.useQuery(
+  const { data, isPending, isError, error } = trpc.book.getBooks.useQuery(
     {
       status,
       rating,
@@ -61,7 +61,7 @@ export const useBooks = (
 
   const books: Book[] = useMemo(() => data?.books || [], [data?.books]);
 
-  const isEmpty = books.length === 0 && !isLoading;
+  const isEmpty = books.length === 0 && !isPending;
   const count = books.length;
   const hasBooks = count > 0;
 
@@ -69,7 +69,7 @@ export const useBooks = (
     books,
     totalCount: data?.totalCount ?? 0,
     totalPages: data?.totalCount ? Math.ceil(data.totalCount / limit) : 0,
-    isPending: isLoading,
+    isPending,
     isError,
     error,
     isEmpty,

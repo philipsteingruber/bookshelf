@@ -17,16 +17,6 @@ import type {
 const DEFAULT_TIMEZONE = "UTC";
 
 /**
- * Gets the start of day for a date in a specific timezone.
- */
-const startOfDayInTimezone = (date: Date, timezone: string): Date => {
-  const dateKey = formatInTimeZone(date, timezone, "yyyy-MM-dd");
-  const [year, month, day] = dateKey.split("-").map(Number);
-  // Create a date at midnight in the target timezone
-  return toZonedTime(new Date(Date.UTC(year, month - 1, day)), timezone);
-};
-
-/**
  * Gets today's date key in a specific timezone.
  */
 const getTodayKey = (timezone: string): string => {

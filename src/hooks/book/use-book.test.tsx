@@ -38,7 +38,7 @@ describe("useBook", () => {
     mockGetData.mockReturnValue(undefined);
     // Reset useQuery to default "no data" state
     vi.mocked(trpc.book.getBook.useQuery).mockReturnValue(
-      createMockUseQueryReturn({ data: null, isLoading: false }),
+      createMockUseQueryReturn({ data: null, isPending: false }),
     );
   });
 
@@ -53,7 +53,7 @@ describe("useBook", () => {
       vi.mocked(trpc.book.getBook.useQuery).mockReturnValue(
         createMockUseQueryReturn({
           data: { book: cachedBook },
-          isLoading: false,
+          isPending: false,
           isError: false,
         }),
       );
@@ -72,7 +72,7 @@ describe("useBook", () => {
       vi.mocked(trpc.book.getBook.useQuery).mockReturnValue(
         createMockUseQueryReturn({
           data: { book: fakeBook },
-          isLoading: false,
+          isPending: false,
           isError: false,
         }),
       );
@@ -90,7 +90,7 @@ describe("useBook", () => {
       vi.mocked(trpc.book.getBook.useQuery).mockReturnValue(
         createMockUseQueryReturn({
           data: { book: fakeBook },
-          isLoading: false,
+          isPending: false,
           isError: false,
         }),
       );
@@ -107,7 +107,7 @@ describe("useBook", () => {
       vi.mocked(trpc.book.getBook.useQuery).mockReturnValue(
         createMockUseQueryReturn({
           data: { book: fakeBook },
-          isLoading: false,
+          isPending: false,
         }),
       );
 
@@ -125,7 +125,7 @@ describe("useBook", () => {
       vi.mocked(trpc.book.getBook.useQuery).mockReturnValue(
         createMockUseQueryReturn({
           data: { book: fakeBook },
-          isLoading: false,
+          isPending: false,
         }),
       );
 
@@ -140,7 +140,7 @@ describe("useBook", () => {
       vi.mocked(trpc.book.getBook.useQuery).mockReturnValue(
         createMockUseQueryReturn({
           data: { book: fakeBook },
-          isLoading: false,
+          isPending: false,
         }),
       );
 
@@ -155,7 +155,7 @@ describe("useBook", () => {
       vi.mocked(trpc.book.getBook.useQuery).mockReturnValue(
         createMockUseQueryReturn({
           data: { book: fakeBook },
-          isLoading: false,
+          isPending: false,
         }),
       );
 
@@ -170,7 +170,7 @@ describe("useBook", () => {
       vi.mocked(trpc.book.getBook.useQuery).mockReturnValue(
         createMockUseQueryReturn({
           data: { book: fakeBook },
-          isLoading: false,
+          isPending: false,
         }),
       );
 

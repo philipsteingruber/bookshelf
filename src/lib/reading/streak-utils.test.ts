@@ -3,7 +3,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createFakeUserStats } from "@/lib/test-utils";
 
-import { isToday, isYesterday, validateCurrentStreak } from "./streak-utils";
+import {
+  calculateStreakUpdate,
+  isToday,
+  isYesterday,
+  validateCurrentStreak,
+} from "./streak-utils";
 
 const mockDate = new Date("2026-01-15T12:00:00Z");
 
@@ -170,6 +175,69 @@ describe("streak-utils", () => {
       });
 
       expect(validateCurrentStreak(stats)).toBe(5);
+    });
+  });
+
+  describe("calculateStreakUpdate", () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+      vi.setSystemTime(mockDate);
+    });
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("should return newStreak=1, shouldUpdate=true for null lastReadingDate", () => {
+      const result = calculateStreakUpdate(null, 0, "UTC");
+
+      expect(result.newStreak).toBe(1);
+      expect(result.shouldUpdate).toBe(true);
+    });
+
+    it("should return shouldUpdate=false when lastReadingDate is today", () => {
+      const result = calculateStreakUpdate(mockDate, 5, "UTC");
+
+      expect(result.newStreak).toBe(5);
+      expect(result.shouldUpdate).toBe(false);
+    });
+
+    it("should return incremented streak when lastReadingDate is yesterday", () => {
+      const yesterday = subDays(mockDate, 1);
+      const result = calculateStreakUpdate(yesterday, 5, "UTC");
+
+      expect(result.newStreak).toBe(6);
+      expect(result.shouldUpdate).toBe(true);
+    });
+
+    it("should return newStreak=1 when lastReadingDate is older than yesterday", () => {
+      const twoDaysAgo = subDays(mockDate, 2);
+      const result = calculateStreakUpdate(twoDaysAgo, 10, "UTC");
+
+      expect(result.newStreak).toBe(1);
+      expect(result.shouldUpdate).toBe(true);
+    });
+
+    it("should respect timezone when determining if lastReadingDate is yesterday", () => {
+      // 2026-01-14T22:00:00Z is Jan 14 in UTC (yesterday), but Jan 15 in UTC+5 (today)
+      const date = new Date("2026-01-14T22:00:00Z");
+
+      // In UTC, this is yesterday, so streak should increment
+      const resultUTC = calculateStreakUpdate(date, 5, "UTC");
+      expect(resultUTC.newStreak).toBe(6);
+      expect(resultUTC.shouldUpdate).toBe(true);
+
+      // In UTC+5, this is today, so shouldUpdate should be false
+      const resultKarachi = calculateStreakUpdate(date, 5, "Asia/Karachi");
+      expect(resultKarachi.newStreak).toBe(5);
+      expect(resultKarachi.shouldUpdate).toBe(false);
+    });
+
+    it("should use UTC as default timezone", () => {
+      const yesterday = subDays(mockDate, 1);
+      const result = calculateStreakUpdate(yesterday, 3);
+
+      expect(result.newStreak).toBe(4);
+      expect(result.shouldUpdate).toBe(true);
     });
   });
 });

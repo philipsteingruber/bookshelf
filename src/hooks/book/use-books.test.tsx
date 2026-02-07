@@ -13,7 +13,7 @@ vi.mock("@/trpc/client", () => ({
       getBooks: {
         useQuery: vi.fn().mockReturnValue({
           data: { books: [] },
-          isLoading: false,
+          isPending: false,
           isError: false,
           error: null,
         }),
@@ -75,7 +75,7 @@ describe("useBooks", () => {
       vi.mocked(trpc.book.getBooks.useQuery).mockReturnValue(
         createMockUseQueryReturn({
           data: { books: [fakeBook] },
-          isLoading: false,
+          isPending: false,
           isError: false,
           error: null,
         }),
@@ -86,7 +86,7 @@ describe("useBooks", () => {
       vi.mocked(trpc.book.getBooks.useQuery).mockReturnValue(
         createMockUseQueryReturn({
           data: { books: [] },
-          isLoading: true,
+          isPending: true,
           isError: false,
           error: null,
         }),
@@ -103,7 +103,7 @@ describe("useBooks", () => {
       vi.mocked(trpc.book.getBooks.useQuery).mockReturnValue(
         createMockUseQueryReturn({
           data: { books: [fakeBook] },
-          isLoading: false,
+          isPending: false,
           isError: false,
           error: null,
         }),
@@ -134,7 +134,7 @@ describe("useBooks", () => {
       vi.mocked(trpc.book.getBooks.useQuery).mockReturnValue(
         createMockUseQueryReturn({
           data: { books: [fakeBook] },
-          isLoading: false,
+          isPending: false,
           isError: false,
           error: null,
         }),
@@ -149,7 +149,7 @@ describe("useBooks", () => {
       vi.mocked(trpc.book.getBooks.useQuery).mockReturnValue(
         createMockUseQueryReturn({
           data: { books: [] },
-          isLoading: true,
+          isPending: true,
           isError: false,
           error: null,
         }),
@@ -164,7 +164,7 @@ describe("useBooks", () => {
       vi.mocked(trpc.book.getBooks.useQuery).mockReturnValue(
         createMockUseQueryReturn({
           data: { books: [] },
-          isLoading: false,
+          isPending: false,
           isError: true,
           error,
         }),
@@ -184,6 +184,5 @@ describe("useBooks", () => {
         expect.objectContaining({ enabled: false }),
       );
     });
-
   });
 });
