@@ -1,6 +1,6 @@
 "use client";
 
-import { type ChangeEvent, Suspense } from "react";
+import { type ChangeEvent } from "react";
 
 import { RedirectToSignIn, useAuth } from "@clerk/nextjs";
 import {
@@ -188,41 +188,37 @@ const LibraryPage = (): React.ReactElement => {
   }
 
   return (
-    <Suspense>
-      <div className="flex w-full flex-col items-center gap-y-4 px-2 sm:px-0">
-        <LibraryFilterPicker
-          selectedSorting={params.sort}
-          onSortingChange={(newSort) =>
-            setParams({ sort: newSort, page: null })
-          }
-          inputSearch={params.q}
-          onSearchChange={handleSearchChange}
-          selectedFilter={params.status}
-          onFilterChange={(newFilter) =>
-            setParams({ status: newFilter, page: null })
-          }
-          onClearFilters={handleClearFilters}
-          className="w-full md:w-5/6"
-        />
-        <div className="grid w-full grid-cols-2 items-center gap-4 px-4 pt-4 sm:grid-cols-3 md:w-5/6 md:grid-cols-4 md:px-0 xl:grid-cols-5 2xl:grid-cols-6">
-          {books.map((book) => (
-            <BookCard key={book.id} book={book} showStatusButton />
-          ))}
-        </div>
-        {books.length > 0 && (
-          <span className="text-sm">{`Showing ${(params.page - 1) * params.pageSize + 1}-${Math.min(params.page * params.pageSize, totalCount)} of ${totalCount} books`}</span>
-        )}
-        {totalPages > 1 && (
-          <LibraryPagination
-            currentPage={params.page}
-            currentPageSize={params.pageSize}
-            totalPages={totalPages}
-            onPageChange={handlePageChange}
-            onPageSizeChange={handlePageSizeChange}
-          />
-        )}
+    <div className="flex w-full flex-col items-center gap-y-4 px-2 sm:px-0">
+      <LibraryFilterPicker
+        selectedSorting={params.sort}
+        onSortingChange={(newSort) => setParams({ sort: newSort, page: null })}
+        inputSearch={params.q}
+        onSearchChange={handleSearchChange}
+        selectedFilter={params.status}
+        onFilterChange={(newFilter) =>
+          setParams({ status: newFilter, page: null })
+        }
+        onClearFilters={handleClearFilters}
+        className="w-full md:w-5/6"
+      />
+      <div className="grid w-full grid-cols-2 items-center gap-4 px-4 pt-4 sm:grid-cols-3 md:w-5/6 md:grid-cols-4 md:px-0 xl:grid-cols-5 2xl:grid-cols-6">
+        {books.map((book) => (
+          <BookCard key={book.id} book={book} showStatusButton />
+        ))}
       </div>
-    </Suspense>
+      {books.length > 0 && (
+        <span className="text-sm">{`Showing ${(params.page - 1) * params.pageSize + 1}-${Math.min(params.page * params.pageSize, totalCount)} of ${totalCount} books`}</span>
+      )}
+      {totalPages > 1 && (
+        <LibraryPagination
+          currentPage={params.page}
+          currentPageSize={params.pageSize}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+          onPageSizeChange={handlePageSizeChange}
+        />
+      )}
+    </div>
   );
 };
 
