@@ -81,6 +81,10 @@ const eslintConfig = defineConfig([
               name: "node:test",
               message: "Use vitest instead of node:test",
             },
+            {
+              name: "next/router",
+              message: "Use router from next/navigation instead",
+            },
           ],
           patterns: [
             {
