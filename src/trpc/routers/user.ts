@@ -308,6 +308,7 @@ export const userRouter = createTRPCRouter({
         } else {
           await importFromCSV(tx, ctx, input.data, results);
         }
+        await recalculateUserStreaks(tx, ctx.currentUser);
       });
 
       return results;
