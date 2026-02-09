@@ -5,6 +5,7 @@ import Link from "next/link";
 import { BookIcon, FlameIcon, PlusIcon } from "lucide-react";
 
 import ExportDataDialog from "@/components/settings/export-data-dialog";
+import ImportDataDialog from "@/components/settings/import-data-dialog";
 import StreakThresholdSetting from "@/components/settings/streak-threshold-setting";
 import { useReadingStats } from "@/hooks/reading";
 import { cn } from "@/lib/utils";
@@ -35,6 +36,7 @@ const Header = (): React.ReactElement => {
             <StreakIndicator className="hidden md:flex" />
           </StreakThresholdSetting>
           <div className="flex items-center gap-x-4">
+            <ImportDataDialog />
             <ExportDataDialog />
             <Link href={"/books/create"}>
               <Button className="cursor-pointer">

@@ -2,12 +2,20 @@ import z from "zod";
 
 import type { Book } from "@/generated/prisma/client";
 import { performanceLogger } from "@/lib/common/logger";
+import { importFromCSV, importFromJSON } from "@/lib/import";
 import {
   calculateYearlyStats,
   isToday,
   validateCurrentStreak,
 } from "@/lib/reading";
 import { recalculateUserStreaks } from "@/lib/reading/streak-utils";
+import {
+  bookCSVSchema,
+  goalCSVSchema,
+  importJSONSchema,
+  progressCSVSchema,
+} from "@/lib/schemas";
+import type { ExportData, ImportResults } from "@/lib/types";
 
 import { authedProcedure, createTRPCRouter } from "../init";
 
@@ -263,4 +271,45 @@ export const userRouter = createTRPCRouter({
       exportDate: new Date().toISOString(),
     };
   }),
+  importData: authedProcedure
+    .input(
+      z.discriminatedUnion("format", [
+        z.object({
+          format: z.literal("json"),
+          data: z.object({ json: importJSONSchema }),
+        }),
+        z.object({
+          format: z.literal("csv"),
+          data: z.object({
+            books: z.array(bookCSVSchema).optional(),
+            progress: z.array(progressCSVSchema).optional(),
+            goals: z.array(goalCSVSchema).optional(),
+          }),
+        }),
+      ]),
+    )
+    .mutation(async ({ input, ctx }) => {
+      ctx.logger.info("Starting data import");
+
+      const results: ImportResults = {
+        created: { books: 0, progress: 0, goals: 0 },
+        skipped: { books: 0, progress: 0, goals: 0 },
+        errors: [],
+      };
+
+      await ctx.db.$transaction(async (tx) => {
+        if (input.format === "json") {
+          await importFromJSON(
+            tx,
+            ctx,
+            input.data.json as unknown as ExportData,
+            results,
+          );
+        } else {
+          await importFromCSV(tx, ctx, input.data, results);
+        }
+      });
+
+      return results;
+    }),
 });
