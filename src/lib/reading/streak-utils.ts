@@ -2,21 +2,13 @@ import { subDays } from "date-fns";
 import { formatInTimeZone } from "date-fns-tz";
 
 import type { PrismaClient, User, UserStats } from "@/generated/prisma/client";
+import type { TransactionClient } from "@/generated/prisma/internal/prismaNamespace";
 import {
   calculateStreakDetails,
   getQualifyingDays,
 } from "@/lib/reading/reading-stats-utils";
 
 const DEFAULT_TIMEZONE = "UTC";
-
-/**
- * A Prisma client that can be either the full PrismaClient or
- * a transaction client (which lacks $transaction, $connect, etc.)
- */
-type TransactionClient = Omit<
-  PrismaClient,
-  "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends"
->;
 
 /**
  * Helper to parse a date key (YYYY-MM-DD) into a Date object (UTC midnight).

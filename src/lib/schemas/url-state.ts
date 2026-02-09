@@ -1,3 +1,5 @@
+"use client";
+
 import { parseAsInteger, parseAsString, parseAsStringLiteral } from "nuqs";
 
 import {
