@@ -9,6 +9,14 @@ export type {
   ReadingGoalStats,
 } from "./goals";
 export type {
+  BookCSVRow,
+  CSVImportData,
+  GoalCSVRow,
+  ImportFormat,
+  ImportResults,
+  ProgressCSVRow,
+} from "./import";
+export type {
   ChartDataPoint,
   DailyStats,
   OverallStats,

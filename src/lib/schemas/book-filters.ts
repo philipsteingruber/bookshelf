@@ -1,20 +1,13 @@
 import z from "zod";
 
+import { ReadStatus } from "@/generated/prisma/enums";
 import { BookScalarFieldEnum } from "@/generated/prisma/internal/prismaNamespace";
 
 import { VALIDATION_LIMITS } from "../constants";
 
-const readStatusEnum = z.enum([
-  "READ",
-  "READING",
-  "TO_READ",
-  "DNF",
-  "READ_NEXT",
-]);
-
 export const bookFiltersSchema = z
   .object({
-    status: readStatusEnum.optional(),
+    status: z.enum(Object.values(ReadStatus)).optional(),
     rating: z.number().min(1).max(5).optional(),
     search: z.string().optional(), // Search in title/author
     sortBy: z.enum(Object.values(BookScalarFieldEnum)).optional(),
