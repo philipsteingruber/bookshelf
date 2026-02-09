@@ -5,6 +5,7 @@ import { auth } from "@clerk/nextjs/server";
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 
+import type { User } from "@/generated/prisma/client";
 import {
   createLoggerWithContext,
   performanceLogger,
@@ -70,6 +71,8 @@ const isAuthed = t.middleware(async ({ next, ctx }) => {
     },
   });
 });
+
+export type AuthedContext = Context & { currentUser: User };
 
 // Base router and procedure helpers
 export const createTRPCRouter = t.router;
