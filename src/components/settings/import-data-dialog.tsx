@@ -154,8 +154,9 @@ const ImportDataDialog = (): React.ReactElement => {
                     value="csv"
                     id="csv"
                     className="cursor-pointer"
+                    disabled
                   />
-                  <Label htmlFor="csv" className="cursor-pointer">
+                  <Label htmlFor="csv" className="cursor-not-allowed">
                     CSV
                   </Label>
                 </div>
