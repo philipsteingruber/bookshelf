@@ -34,16 +34,24 @@ import type { CSVImportData, ImportFormat, ImportResults } from "@/lib/types";
 import { trpc } from "@/trpc/client";
 
 const ImportDataDialog = (): React.ReactElement => {
+  const trpcUtils = trpc.useUtils();
+
   const { mutateAsync: importData, isPending: isImportingData } =
     trpc.user.importData.useMutation({
       onSuccess: () => {
         toast.success("Successfully imported data");
+        setIsOpen(false);
+        trpcUtils.book.getDashBoardBooks.invalidate();
+        trpcUtils.user.getUserStats.invalidate();
+        trpcUtils.user.getReadingGoal.invalidate();
+        trpcUtils.user.getReadingGoalHistory.invalidate();
+        trpcUtils.readingProgress.getRecentReadingProgress.invalidate();
       },
       onError: (error) => {
         handleTRPCError(error);
       },
     });
-  const { isOpen, handleOpenChange } = useDialogState({
+  const { isOpen, setIsOpen, handleOpenChange } = useDialogState({
     preventClose: isImportingData,
   });
   const [format, setFormat] = useState<ImportFormat>("json");
