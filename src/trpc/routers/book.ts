@@ -131,6 +131,10 @@ export const bookRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.currentUser.id;
 
+      // Normalize series: empty string to null
+      const normalizedSeries =
+        input.series && input.series.trim() !== "" ? input.series : null;
+
       ctx.logger.info(
         {
           title: input.title,
@@ -141,7 +145,7 @@ export const bookRouter = createTRPCRouter({
       );
 
       // Check for duplicate series entry
-      if (input.series && input.seriesIndex) {
+      if (normalizedSeries && input.seriesIndex) {
         const duplicateSeriesTimer = performanceLogger(
           "DB: Check for duplicate series index",
           500,
@@ -152,7 +156,7 @@ export const bookRouter = createTRPCRouter({
         const duplicateSeries = await ctx.db.book.findFirst({
           where: {
             userId,
-            series: { equals: input.series, mode: "insensitive" },
+            series: { equals: normalizedSeries, mode: "insensitive" },
             seriesIndex: input.seriesIndex,
           },
         });
@@ -161,7 +165,7 @@ export const bookRouter = createTRPCRouter({
         if (duplicateSeries) {
           ctx.logger.warn(
             {
-              series: input.series,
+              series: normalizedSeries,
               seriesIndex: input.seriesIndex,
               existingBookId: duplicateSeries.id,
               existingBookTitle: duplicateSeries.title,
@@ -171,7 +175,7 @@ export const bookRouter = createTRPCRouter({
 
           throw new TRPCError({
             code: "CONFLICT",
-            message: `You already have "${duplicateSeries.title}" at position ${input.seriesIndex} in ${input.series}`,
+            message: `You already have "${duplicateSeries.title}" at position ${input.seriesIndex} in ${normalizedSeries}`,
           });
         }
       }
@@ -224,7 +228,7 @@ export const bookRouter = createTRPCRouter({
           authorSort: createAuthorSort(input.author),
           pageCount: input.pageCount,
           isbn: input.isbn || null,
-          series: input.series,
+          series: normalizedSeries,
           seriesIndex: input.seriesIndex,
           publishedYear: input.publishedYear,
           summary: input.summary,
