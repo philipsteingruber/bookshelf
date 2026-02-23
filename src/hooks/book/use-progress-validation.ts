@@ -13,7 +13,9 @@ export const useProgressValidation = (
   handleChange: (value: string) => void;
   resetInput: () => void;
 } => {
-  const [inputValue, setInputValue] = useState<string>("");
+  const [inputValue, setInputValue] = useState<string>(
+    book.progress.toString() || "",
+  );
   const [error, setError] = useState<string | null>(null);
 
   const handleChange = useCallback(
