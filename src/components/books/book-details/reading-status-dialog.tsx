@@ -53,6 +53,10 @@ const ReadingStatusDialog = ({
         setIsReadingStatusDialogOpen(false);
         trpcUtils.book.getBook.invalidate(book.id);
         trpcUtils.book.getBooks.invalidate();
+        trpcUtils.book.getDashBoardBooks.invalidate();
+        if (data.updatedBook.status === "READ") {
+          trpcUtils.user.getReadingGoal.invalidate();
+        }
       },
     });
   const { mutate: updatePageCount, isPending: isUpdatingPageCount } =

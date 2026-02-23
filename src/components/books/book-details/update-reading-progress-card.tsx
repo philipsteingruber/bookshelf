@@ -33,7 +33,7 @@ const UpdateReadingProgressCard = ({
   const [enteredComments, setEnteredComments] = useState<string>("");
   const { mutate: updateReadingProgress, isPending } =
     trpc.readingProgress.createReadingProgressInstance.useMutation({
-      onSuccess: () => {
+      onSuccess: (data) => {
         utils.book.getBook.invalidate(book.id);
         utils.readingProgress.getProgressHistory.invalidate();
         utils.book.getBooks.invalidate({
@@ -41,6 +41,13 @@ const UpdateReadingProgressCard = ({
           sortDirection: "desc",
         });
         utils.readingProgress.getAllReadingProgress.invalidate();
+        utils.book.getDashBoardBooks.invalidate();
+
+        if (data.updatedBook.status === "READ") {
+          const trpcUtils = trpc.useUtils();
+          trpcUtils.user.getReadingGoal.invalidate();
+        }
+
         resetProgressInput();
         setEnteredComments("");
         toast.success("Successfully updated reading progress.");
