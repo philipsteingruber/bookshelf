@@ -10,11 +10,11 @@ describe("useProgressValidation", () => {
   });
 
   describe("Initial state", () => {
-    it("should return empty inputValue initially", () => {
+    it("should return book's progress as inputValue initially", () => {
       const book = createFakeBook({ progress: 50, pageCount: 200 });
       const { result } = renderHook(() => useProgressValidation(book, "%"));
 
-      expect(result.current.inputValue).toBe("");
+      expect(result.current.inputValue).toBe(book.progress.toString());
     });
 
     it("should return null error initially", () => {
@@ -24,11 +24,11 @@ describe("useProgressValidation", () => {
       expect(result.current.error).toBeNull();
     });
 
-    it("should return isValid as false initially (empty input)", () => {
+    it("should return isValid as true initially (initial input)", () => {
       const book = createFakeBook({ progress: 50, pageCount: 200 });
       const { result } = renderHook(() => useProgressValidation(book, "%"));
 
-      expect(result.current.isValid).toBe(false);
+      expect(result.current.isValid).toBe(true);
     });
   });
 
@@ -162,11 +162,11 @@ describe("useProgressValidation", () => {
       expect(result.current.isValid).toBe(true);
     });
 
-    it("should return false when input is empty", () => {
+    it("should return true for initial value", () => {
       const book = createFakeBook({ progress: 50, pageCount: 200 });
       const { result } = renderHook(() => useProgressValidation(book, "%"));
 
-      expect(result.current.isValid).toBe(false);
+      expect(result.current.isValid).toBe(true);
     });
 
     it("should return false when there is an error", () => {
