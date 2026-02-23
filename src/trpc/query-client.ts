@@ -24,6 +24,7 @@ export function makeQueryClient(): QueryClient {
           return failureCount < 3;
         },
         refetchOnWindowFocus: true,
+        refetchOnMount: true,
       },
       dehydrate: {
         serializeData: superjson.serialize,
