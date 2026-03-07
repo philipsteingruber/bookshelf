@@ -35,6 +35,8 @@ export const useReadingStats = (): UseReadingStatsReturn => {
   const recentProgressQuery =
     trpc.readingProgress.getRecentReadingProgress.useQuery({ sinceDays: 90 });
 
+  const timezone = statsQuery.data?.timezone;
+
   const { daily, weekly } = useMemo(() => {
     if (!recentProgressQuery.data) {
       return {
@@ -44,10 +46,10 @@ export const useReadingStats = (): UseReadingStatsReturn => {
     }
 
     return {
-      daily: calculateDailyStats(recentProgressQuery.data),
-      weekly: calculateWeeklyStats(recentProgressQuery.data),
+      daily: calculateDailyStats(recentProgressQuery.data, timezone),
+      weekly: calculateWeeklyStats(recentProgressQuery.data, timezone),
     };
-  }, [recentProgressQuery.data]);
+  }, [recentProgressQuery.data, timezone]);
 
   const avgPagesPerWeek = useMemo(() => {
     if (!statsQuery.data) return 0;
