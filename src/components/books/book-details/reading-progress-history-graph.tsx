@@ -7,6 +7,8 @@ import {
   YAxis,
 } from "recharts";
 
+import { formatInTimeZone } from "date-fns-tz";
+
 import {
   type ChartConfig,
   ChartContainer,
@@ -40,12 +42,14 @@ const chartConfig = {
 const ReadingProgressHistoryGraph = ({
   readingHistory,
   className,
+  timezone,
 }: {
   readingHistory: ReadingProgressWithProgressSinceLast[];
   className?: string;
+  timezone: string;
 }): React.ReactElement => {
   // Aggregate by day (used for trendline calculation - real data only)
-  const aggregatedData = aggregateByDay(readingHistory);
+  const aggregatedData = aggregateByDay(readingHistory, timezone);
   // Add synthetic 0% baseline for display (visual anchor only)
   const displayData = ensureZeroBaseline(aggregatedData);
 
@@ -74,7 +78,7 @@ const ReadingProgressHistoryGraph = ({
     progress: entry.progress,
     progressSinceLast: entry.progressSinceLast,
     comments: entry.comments,
-    fullDate: entry.createdAt.toLocaleString(),
+    fullDate: formatInTimeZone(entry.createdAt, timezone, "PPpp"),
     originalEntry: entry,
   }));
 
@@ -86,7 +90,7 @@ const ReadingProgressHistoryGraph = ({
       progress: entry.progress,
       progressSinceLast: entry.progressSinceLast,
       comments: entry.comments,
-      fullDate: entry.createdAt.toLocaleString(),
+      fullDate: formatInTimeZone(entry.createdAt, timezone, "PPpp"),
       originalEntry: entry,
     }),
   );
