@@ -28,7 +28,7 @@ const TYPE_STYLES: Record<
   },
   standard: {
     card: "bg-white dark:bg-neutral-900",
-    border: "border-neutral-200 dark:border-neutral-700",
+    border: "border-gray-200 dark:border-neutral-700",
     divider: "border-neutral-100 dark:border-neutral-700",
     badge: null,
     badgeLabel: null,
