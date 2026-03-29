@@ -16,6 +16,7 @@ export const env = createEnv({
     BETTERSTACK_TOKEN: z.string().min(1).optional(),
     BETTERSTACK_INGESTING_HOST: z.string().url().optional(),
     SCRAPFLY_API_KEY: z.string().min(1),
+    ANTHROPIC_API_KEY: z.string().min(1),
     // Vercel-provided variables (optional, only present in Vercel deployments)
     VERCEL_URL: z.string().optional(),
     VERCEL_REGION: z.string().optional(),
@@ -43,6 +44,7 @@ export const env = createEnv({
     BETTERSTACK_TOKEN: process.env.BETTERSTACK_TOKEN,
     BETTERSTACK_INGESTING_HOST: process.env.BETTERSTACK_INGESTING_HOST,
     SCRAPFLY_API_KEY: process.env.SCRAPFLY_API_KEY,
+    ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
     VERCEL_URL: process.env.VERCEL_URL,
     VERCEL_REGION: process.env.VERCEL_REGION,
     NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:
