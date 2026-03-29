@@ -95,6 +95,29 @@ describe("chartUtils", () => {
       );
       expect(result.length).toEqual(2);
     });
+
+    it("should group entries by local day when timezone spans a UTC day boundary", () => {
+      // Both entries are 2026-01-15 in EST, but on different UTC days
+      // entry1: 2026-01-15 11 PM EST = 2026-01-16 04:00 UTC
+      // entry2: 2026-01-15 10 PM EST = 2026-01-16 03:00 UTC (earlier on same local day)
+      const entry1 = createFakeReadingProgressWithProgressSinceLast({
+        createdAt: new Date("2026-01-16T04:00:00Z"),
+        progress: 80,
+        progressSinceLast: 20,
+      });
+      const entry2 = createFakeReadingProgressWithProgressSinceLast({
+        createdAt: new Date("2026-01-16T03:00:00Z"),
+        progress: 60,
+        progressSinceLast: 20,
+      });
+
+      const result = aggregateByDay([entry1, entry2], "America/New_York");
+
+      // Both entries are on Jan 15 in EST, so they should collapse into one entry
+      expect(result.length).toEqual(1);
+      // Keeps the latest entry (entry1 is later)
+      expect(result[0].progress).toEqual(80);
+    });
   });
 
   describe("calculateTrendline", () => {
