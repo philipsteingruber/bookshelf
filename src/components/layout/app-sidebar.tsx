@@ -18,6 +18,7 @@ import {
   BookSearchIcon,
   HistoryIcon,
   LibraryIcon,
+  SparklesIcon,
 } from "lucide-react";
 
 import {
@@ -49,6 +50,7 @@ const sidebarItems: SidebarItem[] = [
   { title: "Library", href: "/books", icon: BookSearchIcon },
   { title: "Series", href: "/series", icon: LibraryIcon },
   { title: "History", href: "/history", icon: HistoryIcon },
+  { title: "Recommendations", href: "/recommendations", icon: SparklesIcon },
 ];
 
 export const AppSidebar = (): React.ReactElement => {

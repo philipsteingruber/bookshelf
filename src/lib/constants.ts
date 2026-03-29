@@ -97,3 +97,5 @@ export const sortGroups: { text: string; items: SortItem[] }[] = [
     items: [{ text: "Series Order", Icon: LibraryIcon, value: "SERIES_ORDER" }],
   },
 ] as const;
+
+export const RECOMMENDATIONS_MODEL = "claude-haiku-4-5-20251001" as const;

@@ -13,6 +13,7 @@ vi.mock("@/env", () => ({
     CLERK_WEBHOOK_SIGNING_SECRET: "test_webhook_secret",
     UPLOADTHING_TOKEN: "test_uploadthing_token",
     SCRAPFLY_API_KEY: "test_scrapfly_key",
+    ANTHROPIC_API_KEY: "test_anthropic_key",
     BETTERSTACK_TOKEN: undefined,
     BETTERSTACK_INGESTING_HOST: undefined,
     VERCEL_URL: undefined,
