@@ -1284,6 +1284,81 @@ describe("bookRouter", () => {
     });
   });
 
+  describe("updateRating", () => {
+    it("should set a rating successfully", async () => {
+      const { caller, mockDb } = createMockCaller(bookRouter);
+
+      const book = createFakeBook({ id: 1, userId: "test-user-123", rating: null });
+      const updatedBook = createFakeBook({ ...book, rating: 4 });
+
+      vi.mocked(mockDb.book.findUnique).mockResolvedValue(book);
+      vi.mocked(mockDb.book.update).mockResolvedValue(updatedBook);
+
+      const result = await caller.updateRating({ bookId: 1, rating: 4 });
+
+      expect(mockDb.book.update).toHaveBeenCalledWith({
+        where: { id: 1 },
+        data: { rating: 4 },
+      });
+      expect(result.book.rating).toBe(4);
+    });
+
+    it("should clear a rating by setting null", async () => {
+      const { caller, mockDb } = createMockCaller(bookRouter);
+
+      const book = createFakeBook({ id: 1, userId: "test-user-123", rating: 4 });
+      const updatedBook = createFakeBook({ ...book, rating: null });
+
+      vi.mocked(mockDb.book.findUnique).mockResolvedValue(book);
+      vi.mocked(mockDb.book.update).mockResolvedValue(updatedBook);
+
+      const result = await caller.updateRating({ bookId: 1, rating: null });
+
+      expect(mockDb.book.update).toHaveBeenCalledWith({
+        where: { id: 1 },
+        data: { rating: null },
+      });
+      expect(result.book.rating).toBeNull();
+    });
+
+    it("should throw FORBIDDEN when book belongs to another user", async () => {
+      const { caller, mockDb } = createMockCaller(bookRouter);
+
+      const book = createFakeBook({ id: 1, userId: "other-user-456" });
+      vi.mocked(mockDb.book.findUnique).mockResolvedValue(book);
+
+      await expect(
+        caller.updateRating({ bookId: 1, rating: 3 }),
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    });
+
+    it("should throw NOT_FOUND when book does not exist", async () => {
+      const { caller, mockDb } = createMockCaller(bookRouter);
+
+      vi.mocked(mockDb.book.findUnique).mockResolvedValue(null);
+
+      await expect(
+        caller.updateRating({ bookId: 999, rating: 3 }),
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    });
+
+    it("should reject a rating below 1", async () => {
+      const { caller } = createMockCaller(bookRouter);
+
+      await expect(
+        caller.updateRating({ bookId: 1, rating: 0 }),
+      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    });
+
+    it("should reject a rating above 5", async () => {
+      const { caller } = createMockCaller(bookRouter);
+
+      await expect(
+        caller.updateRating({ bookId: 1, rating: 6 }),
+      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    });
+  });
+
   describe("Edge Cases", () => {
     beforeEach(() => vi.clearAllMocks());
 

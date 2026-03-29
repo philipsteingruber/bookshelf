@@ -412,6 +412,64 @@ export const bookRouter = createTRPCRouter({
 
       return updatedBook;
     }),
+  updateRating: authedProcedure
+    .input(
+      z.object({
+        bookId: z.number().int().nonnegative(),
+        rating: z.number().int().min(1).max(5).nullable(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      ctx.logger.debug({ bookId: input.bookId }, "Updating book rating");
+
+      const fetchBookTimer = performanceLogger(
+        "DB: Fetch book for rating update",
+        500,
+        ctx.logger,
+      );
+
+      fetchBookTimer.start();
+      const book = await ctx.db.book.findUnique({
+        where: { id: input.bookId },
+      });
+      fetchBookTimer.end({ bookId: input.bookId });
+
+      if (!book) {
+        ctx.logger.warn({ bookId: input.bookId }, "Book not found for rating update");
+        throw new TRPCError({ code: "NOT_FOUND" });
+      }
+      if (book.userId !== ctx.currentUser.id) {
+        ctx.logger.warn(
+          {
+            bookId: input.bookId,
+            bookOwnerId: book.userId,
+            attemptedBy: ctx.currentUser.id,
+          },
+          "Permission denied: Attempted to update another user's book rating",
+        );
+        throw new TRPCError({ code: "FORBIDDEN" });
+      }
+
+      const updateRatingTimer = performanceLogger(
+        "DB: Update book rating",
+        500,
+        ctx.logger,
+      );
+
+      updateRatingTimer.start();
+      const updatedBook = await ctx.db.book.update({
+        where: { id: input.bookId },
+        data: { rating: input.rating },
+      });
+      updateRatingTimer.end({ bookId: input.bookId });
+
+      ctx.logger.info(
+        { bookId: input.bookId, oldRating: book.rating, newRating: input.rating },
+        "Book rating updated",
+      );
+
+      return { book: updatedBook };
+    }),
   deleteBook: authedProcedure
     .input(z.number().int().nonnegative())
     .mutation(async ({ input: bookId, ctx }) => {
