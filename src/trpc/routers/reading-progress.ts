@@ -1,5 +1,6 @@
 import { TRPCError } from "@trpc/server";
-import { startOfDay, subDays } from "date-fns";
+import { addDays, startOfDay, subDays } from "date-fns";
+import { fromZonedTime, toZonedTime } from "date-fns-tz";
 import z from "zod";
 
 import type { Book, ReadingProgress } from "@/generated/prisma/client";
@@ -150,7 +151,11 @@ export const readingProgressRouter = createTRPCRouter({
         });
       }
 
-      const todayStart = startOfDay(new Date());
+      const timezone = ctx.currentUser.timezone;
+      const todayStart = fromZonedTime(
+        startOfDay(toZonedTime(new Date(), timezone)),
+        timezone,
+      );
       const todayProgressInstances = await ctx.db.readingProgress.findMany({
         where: { userId: ctx.currentUser.id, createdAt: { gte: todayStart } },
         include: { book: { select: { pageCount: true } } },
@@ -404,13 +409,16 @@ export const readingProgressRouter = createTRPCRouter({
             });
           }
 
-          const entryDate = startOfDay(readingProgressToDelete.createdAt);
+          const timezone = ctx.currentUser.timezone;
+          const entryInTz = toZonedTime(readingProgressToDelete.createdAt, timezone);
+          const dayStartUTC = fromZonedTime(startOfDay(entryInTz), timezone);
+          const nextDayStartUTC = fromZonedTime(addDays(startOfDay(entryInTz), 1), timezone);
           const entriesOnSameDay = await tx.readingProgress.count({
             where: {
               userId: ctx.currentUser.id,
               createdAt: {
-                gte: entryDate,
-                lt: new Date(entryDate.getTime() + 24 * 60 * 60 * 1000),
+                gte: dayStartUTC,
+                lt: nextDayStartUTC,
               },
             },
           });
