@@ -293,6 +293,7 @@ export const calculateWeeklyStats = (
 export const calculateYearlyStats = (
   books: Book[],
   readingGoalThreshold: number,
+  timezone: string = "UTC",
 ): YearlyStats => {
   const validBooks = books.filter(
     (book): book is Book & { finishedAt: Date } =>
@@ -304,7 +305,7 @@ export const calculateYearlyStats = (
   const booksByYear = new Map<number, number>();
 
   validBooks.forEach((book) => {
-    const year = book.finishedAt.getFullYear();
+    const year = parseInt(formatInTimeZone(book.finishedAt, timezone, "yyyy"), 10);
     const current = booksByYear.get(year);
 
     if (!current) {
