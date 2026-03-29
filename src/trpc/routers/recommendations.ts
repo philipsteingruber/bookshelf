@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { TRPCError } from "@trpc/server";
 import z from "zod";
 
+import { env } from "@/env";
 import { ReadStatus } from "@/generated/prisma/enums";
 import { performanceLogger } from "@/lib/common/logger";
 import { RECOMMENDATIONS_MODEL } from "@/lib/constants";
@@ -52,17 +53,22 @@ const RECOMMENDATIONS_TOOL: Anthropic.Tool = {
   },
 };
 
-type RecommendedBook = {
-  title: string;
-  author: string;
-  reason: string;
-  type: "safe" | "standard" | "stretch" | "risky";
-};
+const recommendedBookSchema = z.object({
+  title: z.string(),
+  author: z.string(),
+  reason: z.string(),
+  type: z.enum(["safe", "standard", "stretch", "risky"]),
+});
 
-type ClaudeOutput = {
-  blurb: string;
-  books: RecommendedBook[];
-};
+const claudeOutputSchema = z.object({
+  blurb: z.string(),
+  books: z.array(recommendedBookSchema).length(5),
+});
+
+const ratingStars = (r: number | null): string =>
+  r ? "★".repeat(r) : "unrated";
+
+const anthropic = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
 
 export const recommendationsRouter = createTRPCRouter({
   getRecommendations: authedProcedure
@@ -77,7 +83,8 @@ export const recommendationsRouter = createTRPCRouter({
               content: z.string(),
             }),
           )
-          .max(20),
+          .max(20)
+          .default([]),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -113,9 +120,6 @@ export const recommendationsRouter = createTRPCRouter({
           totalCount: allBooks.length,
         });
 
-        const ratingStars = (r: number | null): string =>
-          r ? "★".repeat(r) : "unrated";
-
         readBooksContext = readBooks
           .map((b) => `- ${b.title} by ${b.author} ${ratingStars(b.rating)}`)
           .join("\n");
@@ -129,10 +133,6 @@ export const recommendationsRouter = createTRPCRouter({
         input.includeHistory && readBooksContext
           ? `My reading history (highest rated first):\n${readBooksContext}\n\nBooks already in my library (do not recommend these):\n${allBooksContext}\n\n---\n${input.prompt}`
           : input.prompt;
-
-      const anthropic = new Anthropic({
-        apiKey: process.env.ANTHROPIC_API_KEY,
-      });
 
       const callClaudeTimer = performanceLogger(
         "Claude: Get book recommendations",
@@ -178,7 +178,18 @@ export const recommendationsRouter = createTRPCRouter({
         });
       }
 
-      const parsed = toolUseBlock.input as ClaudeOutput;
+      const parseResult = claudeOutputSchema.safeParse(toolUseBlock.input);
+      if (!parseResult.success) {
+        ctx.logger.error(
+          { error: parseResult.error, input: toolUseBlock.input },
+          "Claude returned malformed tool output",
+        );
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to parse recommendations",
+        });
+      }
+      const parsed = parseResult.data;
 
       const enrichBookTimer = performanceLogger(
         "Google Books: Enrich recommendations",
@@ -196,6 +207,9 @@ export const recommendationsRouter = createTRPCRouter({
             const response = await fetch(
               `https://www.googleapis.com/books/v1/volumes?q=${query}&maxResults=1`,
             );
+            if (!response.ok) {
+              throw new Error(`Google Books API returned ${response.status}`);
+            }
             const data = (await response.json()) as {
               items?: {
                 volumeInfo?: {
@@ -211,7 +225,11 @@ export const recommendationsRouter = createTRPCRouter({
               : null;
             const pageCount = volumeInfo?.pageCount ?? null;
             return { ...book, coverUrl, pageCount };
-          } catch {
+          } catch (error) {
+            ctx.logger.warn(
+              { error, title: book.title, author: book.author },
+              "Failed to enrich book from Google Books",
+            );
             return { ...book, coverUrl: null, pageCount: null };
           }
         }),
