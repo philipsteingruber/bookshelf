@@ -18,6 +18,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import { Spinner } from "@/components/ui/spinner";
+import { StarRating } from "@/components/ui/star-rating";
 import type { Book } from "@/generated/prisma/client";
 import type { ReadStatus } from "@/generated/prisma/enums";
 import { useDialogState } from "@/hooks/ui";
@@ -42,6 +43,9 @@ const ReadingStatusDialog = ({
 
   const [selectedStatus, setSelectedStatus] = useState<ReadStatus>(book.status);
   const [pageCountInput, setPageCountInput] = useState("");
+  const [localRating, setLocalRating] = useState<number | null>(
+    book.rating ?? null,
+  );
 
   const trpcUtils = trpc.useUtils();
   const { mutate: updateStatus, isPending: isUpdatingStatus } =
@@ -63,6 +67,9 @@ const ReadingStatusDialog = ({
     trpc.book.updatePageCount.useMutation({
       onSuccess: () => trpcUtils.book.getBook.invalidate(book.id),
     });
+  const { mutate: updateRating } = trpc.book.updateRating.useMutation({
+    onSuccess: () => trpcUtils.book.getBook.invalidate(book.id),
+  });
 
   const {
     isOpen: isReadingStatusDialogOpen,
@@ -78,6 +85,7 @@ const ReadingStatusDialog = ({
         if (!open) {
           setSelectedStatus(book.status);
           setPageCountInput("");
+          setLocalRating(book.rating ?? null);
         }
       }}
     >
@@ -128,6 +136,12 @@ const ReadingStatusDialog = ({
             </div>
           </div>
         )}
+        {selectedStatus === "READ" && (
+          <div className="flex items-center gap-x-2">
+            <Label>Rate this book (optional)</Label>
+            <StarRating value={localRating} onChange={setLocalRating} />
+          </div>
+        )}
         <DialogFooter>
           <DialogClose asChild>
             <Button variant={"outline"}>Cancel</Button>
@@ -140,6 +154,9 @@ const ReadingStatusDialog = ({
                   bookId: book.id,
                   newPageCount: parseInt(pageCountInput),
                 });
+              }
+              if (selectedStatus === "READ" && localRating !== (book.rating ?? null)) {
+                updateRating({ bookId: book.id, rating: localRating });
               }
               updateStatus({
                 bookId: book.id,
