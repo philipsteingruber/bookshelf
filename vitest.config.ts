@@ -13,7 +13,7 @@ export default defineConfig({
 
     include: ["**/*.{test,spec}.{ts,tsx}"],
 
-    exclude: ["node_modules", ".next", ".dist"],
+    exclude: ["node_modules", ".next", ".dist", ".worktrees"],
 
     coverage: {
       exclude: [
