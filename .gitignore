@@ -3,6 +3,9 @@
 # Superpowers brainstorming sessions
 .superpowers/
 
+# Git worktrees
+.worktrees/
+
 # dependencies
 /node_modules
 /.pnp
