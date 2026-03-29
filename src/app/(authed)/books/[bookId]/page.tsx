@@ -1,6 +1,8 @@
 "use client";
 
-import { use } from "react";
+import { use, useState } from "react";
+
+import { toast } from "sonner";
 
 import { RedirectToSignIn, useAuth } from "@clerk/nextjs";
 import type { TRPCError } from "@trpc/server";
@@ -16,6 +18,8 @@ import UpdateReadingProgressCard from "@/components/books/book-details/update-re
 import ErrorState from "@/components/error-state";
 import LoadingState from "@/components/loading-state";
 import { Progress } from "@/components/ui/progress";
+import { StarRating } from "@/components/ui/star-rating";
+import { trpc } from "@/trpc/client";
 import { useBook } from "@/hooks/book";
 import { useReadingHistory } from "@/hooks/reading";
 import {
@@ -59,6 +63,33 @@ const Page = ({
   const { isSignedIn, isLoaded } = useAuth();
 
   const averagePace = calculateAveragePace(readingHistory);
+
+  // undefined = user hasn't interacted yet; falls back to book.rating when displaying.
+  // This avoids a stale-init bug: useState(book?.rating) would be null during the
+  // loading phase and never re-initialize once book data arrives.
+  const [ratingOverride, setRatingOverride] = useState<
+    number | null | undefined
+  >(undefined);
+  const localRating =
+    ratingOverride !== undefined ? ratingOverride : (book?.rating ?? null);
+
+  const trpcUtils = trpc.useUtils();
+  const { mutate: updateRating } = trpc.book.updateRating.useMutation({
+    onSuccess: () => {
+      toast.success("Rating saved");
+      trpcUtils.book.getBook.invalidate(parseInt(bookId));
+    },
+    onError: () => {
+      toast.error("Failed to save rating");
+      setRatingOverride(undefined); // revert: display falls back to book.rating
+    },
+  });
+
+  const handleRatingChange = (newRating: number | null) => {
+    if (newRating === (book?.rating ?? null)) return;
+    setRatingOverride(newRating);
+    updateRating({ bookId: parseInt(bookId), rating: newRating });
+  };
 
   // Show loading state until Clerk has loaded - ensures server/client render the same thing
   if (!isLoaded || isPending) {
@@ -105,6 +136,12 @@ const Page = ({
                 <span className="text-sm font-semibold">
                   Unknown publishing year
                 </span>
+              )}
+              {(book.status === "READ" || book.status === "DNF") && (
+                <>
+                  <span className="text-secondary align-middle">•</span>
+                  <StarRating value={localRating} onChange={handleRatingChange} />
+                </>
               )}
             </div>
             {isReading && (
