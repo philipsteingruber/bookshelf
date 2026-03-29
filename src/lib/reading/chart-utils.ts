@@ -6,6 +6,7 @@ import {
   isYesterday,
   startOfDay,
 } from "date-fns";
+import { formatInTimeZone } from "date-fns-tz";
 
 import type {
   ChartDataPoint,
@@ -97,11 +98,12 @@ export const formatEstimatedDate = (date: Date): string => {
  */
 export const aggregateByDay = (
   readingHistory: ReadingProgressWithProgressSinceLast[],
+  timezone: string = "UTC",
 ): ReadingProgressWithProgressSinceLast[] => {
-  const byDay = new Map<number, ReadingProgressWithProgressSinceLast>();
+  const byDay = new Map<string, ReadingProgressWithProgressSinceLast>();
 
   readingHistory.forEach((entry) => {
-    const dayKey = startOfDay(entry.createdAt).getTime();
+    const dayKey = formatInTimeZone(entry.createdAt, timezone, "yyyy-MM-dd");
     const existing = byDay.get(dayKey);
 
     if (!existing || entry.createdAt > existing.createdAt) {
