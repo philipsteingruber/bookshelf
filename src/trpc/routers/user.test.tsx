@@ -50,6 +50,33 @@ describe("userRouter", () => {
         code: "BAD_REQUEST",
       });
     });
+
+    it("should use user local year, not UTC year, when setting reading goal", async () => {
+      // 1 AM UTC Jan 1 2026 = Dec 31 2025 in UTC-5 (America/New_York)
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date("2026-01-01T01:00:00Z"));
+
+      const mockUser = createFakeUser({ timezone: "America/New_York" });
+      const { mockDb, caller } = createMockCaller(userRouter, { mockUser });
+
+      const fakeGoal = createFakeReadingGoal({ year: 2025 });
+      vi.mocked(mockDb.readingGoal.upsert).mockResolvedValue(fakeGoal);
+
+      await caller.setReadingGoal(12);
+
+      expect(mockDb.readingGoal.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            userId_year: {
+              userId: mockUser.id,
+              year: 2025, // local year in EST, not 2026 (UTC year)
+            },
+          },
+        }),
+      );
+
+      vi.useRealTimers();
+    });
   });
 
   describe("getReadingGoal", () => {
@@ -173,6 +200,25 @@ describe("userRouter", () => {
         { year: 2025, count: 2 },
         { year: 2024, count: 1 },
       ]);
+    });
+
+    it("should assign a book to local year when finishedAt crosses UTC year boundary", async () => {
+      // Book finished at 2025-01-01T03:00:00Z = Dec 31 2024 in America/New_York
+      const mockUser = createFakeUser({ timezone: "America/New_York" });
+      const { mockDb, caller } = createMockCaller(userRouter, { mockUser });
+
+      const books = [
+        createFakeBook({
+          finishedAt: new Date("2025-01-01T03:00:00Z"),
+          pageCount: 300,
+        }),
+      ];
+
+      vi.mocked(mockDb.book.findMany).mockResolvedValue(books);
+
+      const result = await caller.getYearlyBookStats();
+
+      expect(result.booksFinishedByYear).toEqual([{ year: 2024, count: 1 }]);
     });
 
     it("should filter out books below page count threshold", async () => {
