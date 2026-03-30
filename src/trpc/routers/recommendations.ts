@@ -80,7 +80,7 @@ export const recommendationsRouter = createTRPCRouter({
           .array(
             z.object({
               role: z.enum(["user", "assistant"]),
-              content: z.string(),
+              content: z.string().max(5000),
             }),
           )
           .max(20)
