@@ -1,3 +1,4 @@
+import { formatInTimeZone } from "date-fns-tz";
 import {
   CartesianGrid,
   Line,
@@ -6,8 +7,6 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-
-import { formatInTimeZone } from "date-fns-tz";
 
 import {
   type ChartConfig,
