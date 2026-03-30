@@ -28,7 +28,12 @@ import { trpc } from "@/trpc/client";
 
 type ConversationMessage =
   | { id: string; role: "user"; content: string }
-  | { id: string; role: "assistant"; blurb: string; books: RecommendationBook[] };
+  | {
+      id: string;
+      role: "assistant";
+      blurb: string;
+      books: RecommendationBook[];
+    };
 
 type StoredConversation = {
   messages: ConversationMessage[];
@@ -236,14 +241,14 @@ const Page = (): React.ReactElement => {
         </AlertDialogContent>
       </AlertDialog>
 
-      <div className="flex h-full flex-col">
+      <div className="flex flex-1 flex-col">
         {/* Header */}
         <div className="flex items-center justify-between border-b px-6 py-4">
           <div className="flex items-center gap-3">
             <h1 className="text-xl font-semibold">Book Recommendations</h1>
             {messages.length > 0 && (
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
                 onClick={() => setPendingConfirm("startOver")}
                 className="text-muted-foreground gap-1.5 text-xs"
@@ -285,7 +290,10 @@ const Page = (): React.ReactElement => {
                     </div>
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                       {message.books.map((book) => (
-                        <RecommendationCard key={`${book.title}-${book.author}`} book={book} />
+                        <RecommendationCard
+                          key={`${book.title}-${book.author}`}
+                          book={book}
+                        />
                       ))}
                     </div>
                   </div>
@@ -318,6 +326,7 @@ const Page = (): React.ReactElement => {
               disabled={isPending}
               className="min-h-[42px] resize-none"
               rows={1}
+              autoFocus
             />
             <Button
               onClick={handleSubmit}

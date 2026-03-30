@@ -7,7 +7,10 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       new URL("https://3k01dt1q3i.ufs.sh/**/*"),
-      new URL("https://books.google.com/**/*"),
+      {
+        protocol: "https",
+        hostname: "books.google.com",
+      },
     ],
   },
   devIndicators: false,

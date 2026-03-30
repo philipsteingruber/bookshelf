@@ -16,7 +16,7 @@ const RootLayout = ({
     <>
       <AppSidebar />
       <SidebarInset className="min-w-0">
-        <div className="mb-6 flex flex-1 flex-col">{children}</div>
+        <div className="flex flex-1 flex-col">{children}</div>
       </SidebarInset>
     </>
   );

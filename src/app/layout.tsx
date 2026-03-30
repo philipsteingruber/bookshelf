@@ -50,7 +50,7 @@ const Layout = ({
                 defaultTheme="system"
                 enableSystem
               >
-                <SidebarProvider className="h-full w-full">
+                <SidebarProvider className="h-full w-full" style={{ "--sidebar-width": "13rem" } as React.CSSProperties}>
                   <NuqsAdapter>{children}</NuqsAdapter>
                 </SidebarProvider>
               </ThemeProvider>
