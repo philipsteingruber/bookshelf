@@ -226,7 +226,7 @@ const Page = (): React.ReactElement => {
             <h1 className="text-xl font-semibold">Book Recommendations</h1>
             {messages.length > 0 && (
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 onClick={() => setPendingConfirm("startOver")}
                 className="text-muted-foreground gap-1.5 text-xs"
