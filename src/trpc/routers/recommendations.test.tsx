@@ -148,7 +148,7 @@ describe("recommendationsRouter", () => {
       });
 
       expect(result.books[0].coverUrl).toBe(
-        "https://books.google.com/cover.jpg",
+        "https://books.google.com/cover.jpg&fife=w400",
       );
       expect(result.books[0].pageCount).toBe(250);
     });

@@ -55,7 +55,7 @@ export const userRouter = createTRPCRouter({
 
     const getReadingGoalTimer = performanceLogger(
       "DB: Get reading goal object (or create if it doesn't exist) for current year",
-      500,
+      1000,
       ctx.logger,
     );
 
@@ -82,7 +82,7 @@ export const userRouter = createTRPCRouter({
 
     const getReadingGoalHistoryTimer = performanceLogger(
       "DB: Get reading goal history",
-      500,
+      1000,
       ctx.logger,
     );
 
@@ -106,7 +106,7 @@ export const userRouter = createTRPCRouter({
 
       const setReadingGoalThresholdTimer = performanceLogger(
         "DB: Update default reading threshold on user",
-        500,
+        1000,
         ctx.logger,
       );
 
@@ -157,6 +157,7 @@ export const userRouter = createTRPCRouter({
       totalPagesRead: stats.totalPagesRead,
       totalActiveDays: stats.totalActiveDays,
       streakThreshold: ctx.currentUser.minimumPagesForStreak,
+      timezone,
     };
   }),
 
@@ -213,7 +214,7 @@ export const userRouter = createTRPCRouter({
 
     const exportDataTimer = performanceLogger(
       "DB: Fetch all export data",
-      500,
+      1000,
       ctx.logger,
     );
 

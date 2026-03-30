@@ -2,11 +2,10 @@
 
 import { use, useState } from "react";
 
-import { toast } from "sonner";
-
 import { RedirectToSignIn, useAuth } from "@clerk/nextjs";
 import type { TRPCError } from "@trpc/server";
 import { PenIcon } from "lucide-react";
+import { toast } from "sonner";
 
 import BookDetailsCover from "@/components/books/book-details/book-details-cover";
 import BookDetailsHeader from "@/components/books/book-details/book-details-header";
@@ -19,7 +18,6 @@ import ErrorState from "@/components/error-state";
 import LoadingState from "@/components/loading-state";
 import { Progress } from "@/components/ui/progress";
 import { StarRating } from "@/components/ui/star-rating";
-import { trpc } from "@/trpc/client";
 import { useBook } from "@/hooks/book";
 import { useReadingHistory } from "@/hooks/reading";
 import {
@@ -30,6 +28,7 @@ import {
 } from "@/lib/reading";
 import type { ChartDataPoint } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { trpc } from "@/trpc/client";
 
 const Page = ({
   params,

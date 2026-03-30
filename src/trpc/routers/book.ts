@@ -70,7 +70,7 @@ export const bookRouter = createTRPCRouter({
 
       const findBooksTimer = performanceLogger(
         "DB: Fetching books",
-        500,
+        1000,
         ctx.logger,
       );
 
@@ -96,7 +96,7 @@ export const bookRouter = createTRPCRouter({
 
       const fetchBookTimer = performanceLogger(
         "DB: Fetch book by ID",
-        500,
+        1000,
         ctx.logger,
       );
 
@@ -148,7 +148,7 @@ export const bookRouter = createTRPCRouter({
       if (normalizedSeries && input.seriesIndex) {
         const duplicateSeriesTimer = performanceLogger(
           "DB: Check for duplicate series index",
-          500,
+          1000,
           ctx.logger,
         );
 
@@ -184,7 +184,7 @@ export const bookRouter = createTRPCRouter({
       if (input.isbn) {
         const duplicateIsbnTimer = performanceLogger(
           "DB: Check for duplicate ISBN",
-          500,
+          1000,
           ctx.logger,
         );
 
@@ -216,7 +216,7 @@ export const bookRouter = createTRPCRouter({
 
       const createBookTimer = performanceLogger(
         "DB: Create book",
-        500,
+        1000,
         ctx.logger,
       );
       createBookTimer.start();
@@ -263,7 +263,7 @@ export const bookRouter = createTRPCRouter({
 
       const fetchBookTimer = performanceLogger(
         "DB: Fetch book for status update",
-        500,
+        1000,
         ctx.logger,
       );
 
@@ -359,7 +359,7 @@ export const bookRouter = createTRPCRouter({
 
       const fetchBookTimer = performanceLogger(
         "DB: Fetch book for pagecount update",
-        500,
+        1000,
         ctx.logger,
       );
 
@@ -390,7 +390,7 @@ export const bookRouter = createTRPCRouter({
 
       const updatePageCountTimer = performanceLogger(
         "DB: Update book pagecount",
-        500,
+        1000,
         ctx.logger,
       );
 
@@ -424,7 +424,7 @@ export const bookRouter = createTRPCRouter({
 
       const fetchBookTimer = performanceLogger(
         "DB: Fetch book for rating update",
-        500,
+        1000,
         ctx.logger,
       );
 
@@ -452,7 +452,7 @@ export const bookRouter = createTRPCRouter({
 
       const updateRatingTimer = performanceLogger(
         "DB: Update book rating",
-        500,
+        1000,
         ctx.logger,
       );
 
@@ -477,7 +477,7 @@ export const bookRouter = createTRPCRouter({
 
       const fetchBookTimer = performanceLogger(
         "DB: Fetch book for deletion",
-        500,
+        1000,
         ctx.logger,
       );
 
@@ -506,7 +506,7 @@ export const bookRouter = createTRPCRouter({
 
       const deleteBookTimer = performanceLogger(
         "DB: Delete book",
-        500,
+        1000,
         ctx.logger,
       );
 
@@ -554,7 +554,7 @@ export const bookRouter = createTRPCRouter({
 
       const fetchBookTimer = performanceLogger(
         "DB: Fetch book for update",
-        500,
+        1000,
         ctx.logger,
       );
 
@@ -593,7 +593,7 @@ export const bookRouter = createTRPCRouter({
         if (updatedSeriesState.series && updatedSeriesState.seriesIndex) {
           const seriesConflictTimer = performanceLogger(
             "DB: Check for series conflict during update",
-            500,
+            1000,
             ctx.logger,
           );
 
@@ -633,7 +633,7 @@ export const bookRouter = createTRPCRouter({
       if (data.isbn) {
         const isbnConflictTimer = performanceLogger(
           "DB: Check for ISBN conflict during update",
-          500,
+          1000,
           ctx.logger,
         );
 
@@ -699,7 +699,7 @@ export const bookRouter = createTRPCRouter({
 
       const updateBookTimer = performanceLogger(
         "DB: Update book",
-        500,
+        1000,
         ctx.logger,
       );
 

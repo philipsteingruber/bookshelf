@@ -25,7 +25,7 @@ export async function POST(req: NextRequest): Promise<Response> {
 
       const upsertUserTimer = performanceLogger(
         "DB: Upsert user from webhook",
-        500,
+        1000,
         logger,
       );
 

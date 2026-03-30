@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { TRPCError } from "@trpc/server";
+import { subMonths } from "date-fns";
 import z from "zod";
 
 import { env } from "@/env";
@@ -9,7 +10,9 @@ import { RECOMMENDATIONS_MODEL } from "@/lib/constants";
 
 import { authedProcedure, createTRPCRouter } from "../init";
 
-const RECOMMENDATIONS_SYSTEM_PROMPT = `You are a book recommendation assistant. When reading history is provided, analyze it for patterns — preferred genres, authors, themes, pacing, and series length. Weight 4–5 star books heavily as strong positive signals for what the user loves. Weight 1–2 star books as signals of what to avoid.
+const RECOMMENDATIONS_SYSTEM_PROMPT = `You are a book recommendation assistant. The user's explicit request is your primary directive — reading history is supplementary context to inform your selections, not to override what the user is asking for. If the user specifies constraints (e.g., lighter reads, a particular genre, something to break a rut), treat those as hard requirements that shape all 5 recommendations.
+
+When reading history is provided, analyze it for patterns — preferred genres, authors, themes, pacing, and series length. Weight 4–5 star books heavily as strong positive signals for what the user loves. Weight 1–2 star books as signals of what to avoid.
 
 Return exactly 5 recommendations. Vary them across this spectrum:
 - At least one safe pick — very similar in genre, style, or author to their highest-rated books
@@ -19,9 +22,15 @@ Return exactly 5 recommendations. Vary them across this spectrum:
 
 Each reason must be personalized — explain specifically why this user will enjoy the book based on their demonstrated tastes. Never write a generic plot summary.
 
+Book titles: The title field must contain the exact published title of a specific individual book — never a series name, never a combined "Series: Book Title" format. For example: use "The Blade Itself", not "The First Law" or "The First Law: The Blade Itself". Only recommend books you are certain exist as published works with that exact title. Never invent or approximate a title.
+
+Series guidance: Strongly prefer recommending the first book in a series. If you recommend a non-first entry, the reason field must explain why — for example: "this volume works as a standalone", "each book in the series is independent", or "the author recommends this as the best starting point". Never recommend a mid-series book without this explanation.
+
+Publication date: Strongly prefer books published after 2000. Only recommend older books when they are exceptionally well-suited to the user's tastes or nothing more recent fills that niche.
+
 Do not recommend any book already in the user's library.
 
-blurb is 2–3 sentences: a conversational intro summarizing your reasoning across the set.`;
+blurb is 2–3 sentences: a conversational intro summarizing your reasoning across the set and how the recommendations fulfill the request.`;
 
 const RECOMMENDATIONS_TOOL: Anthropic.Tool = {
   name: "recommend_books",
@@ -99,14 +108,18 @@ export const recommendationsRouter = createTRPCRouter({
       if (input.includeHistory) {
         const fetchHistoryTimer = performanceLogger(
           "DB: Fetch reading history for recommendations",
-          500,
+          1000,
           ctx.logger,
         );
         fetchHistoryTimer.start();
 
         const [readBooks, allBooks] = await Promise.all([
           ctx.db.book.findMany({
-            where: { userId: ctx.currentUser.id, status: ReadStatus.READ },
+            where: {
+              userId: ctx.currentUser.id,
+              status: ReadStatus.READ,
+              finishedAt: { gte: subMonths(new Date(), 6) },
+            },
             select: { title: true, author: true, rating: true },
             orderBy: { rating: { sort: "desc", nulls: "last" } },
           }),
@@ -221,7 +234,9 @@ export const recommendationsRouter = createTRPCRouter({
             const volumeInfo = data.items?.[0]?.volumeInfo;
             const rawThumbnail = volumeInfo?.imageLinks?.thumbnail ?? null;
             const coverUrl = rawThumbnail
-              ? rawThumbnail.replace("http://", "https://")
+              ? rawThumbnail
+                  .replace("http://", "https://")
+                  .replace("&edge=curl", "") + "&fife=w400"
               : null;
             const pageCount = volumeInfo?.pageCount ?? null;
             return { ...book, coverUrl, pageCount };

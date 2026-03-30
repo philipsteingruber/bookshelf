@@ -97,7 +97,7 @@ export const readingProgressRouter = createTRPCRouter({
 
       const readingProgressTimer = performanceLogger(
         "DB: Starting transaction - Create ReadingProgress, Update book progress/status",
-        500,
+        1000,
         ctx.logger,
       );
 
@@ -237,7 +237,7 @@ export const readingProgressRouter = createTRPCRouter({
 
       const fetchBookTimer = performanceLogger(
         "DB: Fetch book for reading progress history",
-        500,
+        1000,
         ctx.logger,
       );
 
@@ -267,7 +267,7 @@ export const readingProgressRouter = createTRPCRouter({
 
       const fetchReadingProgressHistoryTimer = performanceLogger(
         "DB: Fetch reading progress history",
-        500,
+        1000,
         ctx.logger,
       );
 
@@ -285,7 +285,7 @@ export const readingProgressRouter = createTRPCRouter({
 
     const fetchAllProgressTimer = performanceLogger(
       "DB: Fetch all reading progress",
-      500,
+      1000,
       ctx.logger,
     );
 
@@ -317,7 +317,7 @@ export const readingProgressRouter = createTRPCRouter({
 
       const fetchReadingProgressTimer = performanceLogger(
         "DB: Fetch reading progress for deletion",
-        500,
+        1000,
         ctx.logger,
       );
 
@@ -466,7 +466,7 @@ export const readingProgressRouter = createTRPCRouter({
 
       const fetchProgressTimer = performanceLogger(
         "DB: Fetch reading progress for update",
-        500,
+        1000,
         ctx.logger,
       );
 
@@ -508,7 +508,7 @@ export const readingProgressRouter = createTRPCRouter({
 
       const fetchConstraintsTimer = performanceLogger(
         "DB: Fetch previous/next reading progress for chronological validation",
-        500,
+        1000,
         ctx.logger,
       );
 
