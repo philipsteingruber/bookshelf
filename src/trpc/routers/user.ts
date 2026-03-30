@@ -1,5 +1,6 @@
 import z from "zod";
 
+import { formatInTimeZone } from "date-fns-tz";
 import type { Book } from "@/generated/prisma/client";
 import { performanceLogger } from "@/lib/common/logger";
 import { importFromCSV, importFromJSON } from "@/lib/import";
@@ -25,7 +26,10 @@ export const userRouter = createTRPCRouter({
     .mutation(async ({ ctx, input: newGoal }) => {
       ctx.logger.debug({ newGoal }, "Setting new yearly goal");
 
-      const currentYear = new Date().getFullYear();
+      const currentYear = parseInt(
+        formatInTimeZone(new Date(), ctx.currentUser.timezone, "yyyy"),
+        10,
+      );
 
       const upsertReadingGoalTimer = performanceLogger(
         "DB: Upsert new Reading Goal",
@@ -51,7 +55,10 @@ export const userRouter = createTRPCRouter({
   getReadingGoal: authedProcedure.query(async ({ ctx }) => {
     ctx.logger.debug("Getting yearly goal");
 
-    const currentYear = new Date().getFullYear();
+    const currentYear = parseInt(
+      formatInTimeZone(new Date(), ctx.currentUser.timezone, "yyyy"),
+      10,
+    );
 
     const getReadingGoalTimer = performanceLogger(
       "DB: Get reading goal object (or create if it doesn't exist) for current year",
@@ -130,7 +137,7 @@ export const userRouter = createTRPCRouter({
       where: { userId: ctx.currentUser.id, finishedAt: { not: null } },
     })) as Book[];
 
-    const stats = calculateYearlyStats(books, threshold);
+    const stats = calculateYearlyStats(books, threshold, ctx.currentUser.timezone);
 
     return { booksFinishedByYear: stats.booksFinishedByYear };
   }),

@@ -829,6 +829,24 @@ describe("reading-stats-utils", () => {
       expect(result.booksFinishedByYear.length).toEqual(1);
       expect(result.booksFinishedByYear[0].count).toEqual(1);
     });
+
+    it("should assign books to local year, not UTC year, when timezone is provided", () => {
+      // A book finished at 11 PM UTC-5 on Dec 31 is Jan 1 UTC — wrong year in UTC
+      // finishedAt = 2025-01-01T03:00:00Z = Dec 31 2024 at 10 PM EST
+      const fakeBook = createFakeBook({
+        finishedAt: new Date("2025-01-01T03:00:00Z"),
+        pageCount: 300,
+      });
+
+      const result = calculateYearlyStats(
+        [fakeBook],
+        READING_GOAL_DEFAULT_THRESHOLD,
+        "America/New_York",
+      );
+
+      // In America/New_York the book was finished on Dec 31 2024, not Jan 1 2025
+      expect(result.booksFinishedByYear).toEqual([{ year: 2024, count: 1 }]);
+    });
   });
   describe("calculateOverallStats", () => {
     beforeEach(() => {
