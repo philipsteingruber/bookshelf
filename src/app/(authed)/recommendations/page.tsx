@@ -27,8 +27,8 @@ import { trpc } from "@/trpc/client";
 // --- Types ---
 
 type ConversationMessage =
-  | { role: "user"; content: string }
-  | { role: "assistant"; blurb: string; books: RecommendationBook[] };
+  | { id: string; role: "user"; content: string }
+  | { id: string; role: "assistant"; blurb: string; books: RecommendationBook[] };
 
 type StoredConversation = {
   messages: ConversationMessage[];
@@ -69,6 +69,14 @@ function serializeForClaude(
   });
 }
 
+const CONFIRM_DESCRIPTIONS: Record<PendingConfirm, string> = {
+  startOver: "This will clear your conversation and start fresh. Continue?",
+  toggleOff:
+    "This will clear your conversation and turn off reading history context. Continue?",
+  toggleOn:
+    "This will clear your conversation and turn on reading history context. Continue?",
+};
+
 // --- Component ---
 
 const Page = (): React.ReactElement => {
@@ -91,9 +99,12 @@ const Page = (): React.ReactElement => {
       const stored = localStorage.getItem(storageKey);
       if (stored) {
         const parsed: StoredConversation = JSON.parse(stored);
+        // Backfill `id` for messages stored before this field was added
+        const withIds = (parsed.messages ?? []).map((m) =>
+          m.id ? m : { ...m, id: crypto.randomUUID() },
+        );
         // eslint-disable-next-line react-hooks/set-state-in-effect -- Reading from localStorage external system on mount
-        setMessages(parsed.messages ?? []);
-         
+        setMessages(withIds);
         setIncludeHistory(parsed.includeHistory ?? true);
       }
     } catch {
@@ -112,11 +123,6 @@ const Page = (): React.ReactElement => {
     }
   }, [messages, includeHistory, storageKey]);
 
-  // Auto-scroll to latest message
-  useEffect(() => {
-    conversationEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
   const clearConversation = useCallback(
     (newIncludeHistory?: boolean) => {
       setMessages([]);
@@ -130,12 +136,18 @@ const Page = (): React.ReactElement => {
     [storageKey],
   );
 
+  // Declare mutation before the scroll effect so isPending is in scope
   const { mutate: getRecommendations, isPending } =
     trpc.recommendations.getRecommendations.useMutation({
       onSuccess: (data) => {
         setMessages((prev) => [
           ...prev,
-          { role: "assistant", blurb: data.blurb, books: data.books },
+          {
+            id: crypto.randomUUID(),
+            role: "assistant",
+            blurb: data.blurb,
+            books: data.books,
+          },
         ]);
       },
       onError: () => {
@@ -145,13 +157,18 @@ const Page = (): React.ReactElement => {
       },
     });
 
-  const handleSubmit = () => {
+  // Auto-scroll to latest message or loading indicator
+  useEffect(() => {
+    conversationEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, isPending]);
+
+  const handleSubmit = useCallback(() => {
     const trimmed = prompt.trim();
     if (!trimmed || isPending) return;
 
     const updatedMessages: ConversationMessage[] = [
       ...messages,
-      { role: "user", content: trimmed },
+      { id: crypto.randomUUID(), role: "user", content: trimmed },
     ];
     setMessages(updatedMessages);
     setPrompt("");
@@ -162,7 +179,7 @@ const Page = (): React.ReactElement => {
     const priorMessages = serializeForClaude(updatedMessages.slice(drop, -1));
 
     getRecommendations({ prompt: trimmed, includeHistory, priorMessages });
-  };
+  }, [prompt, isPending, messages, includeHistory, getRecommendations]);
 
   const handleToggle = (checked: boolean) => {
     if (messages.length > 0) {
@@ -207,7 +224,7 @@ const Page = (): React.ReactElement => {
           <AlertDialogHeader>
             <AlertDialogTitle>Clear conversation?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will clear your conversation and start fresh. Continue?
+              {pendingConfirm && CONFIRM_DESCRIPTIONS[pendingConfirm]}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -238,7 +255,11 @@ const Page = (): React.ReactElement => {
           </div>
           <div className="flex items-center gap-2.5 text-sm text-neutral-500">
             <span>Include reading history</span>
-            <Switch checked={includeHistory} onCheckedChange={handleToggle} />
+            <Switch
+              checked={includeHistory}
+              onCheckedChange={handleToggle}
+              aria-label="Include reading history"
+            />
           </div>
         </div>
 
@@ -250,21 +271,21 @@ const Page = (): React.ReactElement => {
             </div>
           ) : (
             <div className="flex flex-col gap-5">
-              {messages.map((message, index) =>
+              {messages.map((message) =>
                 message.role === "user" ? (
-                  <div key={index} className="flex justify-end">
+                  <div key={message.id} className="flex justify-end">
                     <div className="max-w-[60%] rounded-2xl rounded-tr-sm bg-neutral-900 px-4 py-2.5 text-sm leading-relaxed text-white dark:bg-neutral-700">
                       {message.content}
                     </div>
                   </div>
                 ) : (
-                  <div key={index} className="flex flex-col gap-3">
+                  <div key={message.id} className="flex flex-col gap-3">
                     <div className="max-w-[75%] rounded-xl border bg-white px-4 py-3 text-sm leading-relaxed text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300">
                       {message.blurb}
                     </div>
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                      {message.books.map((book, bookIndex) => (
-                        <RecommendationCard key={bookIndex} book={book} />
+                      {message.books.map((book) => (
+                        <RecommendationCard key={book.title} book={book} />
                       ))}
                     </div>
                   </div>
@@ -301,6 +322,7 @@ const Page = (): React.ReactElement => {
             <Button
               onClick={handleSubmit}
               disabled={isPending || !prompt.trim()}
+              aria-label={isPending ? "Sending…" : "Send"}
               className="shrink-0"
             >
               {isPending ? (
