@@ -5,7 +5,10 @@ const nextConfig: NextConfig = {
   /* config options here */
   reactCompiler: true,
   images: {
-    remotePatterns: [new URL("https://3k01dt1q3i.ufs.sh/**/*")],
+    remotePatterns: [
+      new URL("https://3k01dt1q3i.ufs.sh/**/*"),
+      new URL("https://books.google.com/**/*"),
+    ],
   },
   devIndicators: false,
 };

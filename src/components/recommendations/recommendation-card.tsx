@@ -1,3 +1,6 @@
+"use client";
+
+import Image from "next/image";
 import Link from "next/link";
 
 export type RecommendationBook = {
@@ -20,10 +23,11 @@ const TYPE_STYLES: Record<
   }
 > = {
   safe: {
-    card: "bg-[#f0fdf4]",
-    border: "border-[#86efac]",
-    divider: "border-[#bbf7d0]",
-    badge: "text-[#16a34a] bg-[#dcfce7] border-[#86efac]",
+    card: "bg-[#f0fdf4] dark:bg-green-950/30",
+    border: "border-[#86efac] dark:border-green-800",
+    divider: "border-[#bbf7d0] dark:border-green-800",
+    badge:
+      "text-[#16a34a] bg-[#dcfce7] border-[#86efac] dark:text-green-400 dark:bg-green-950/50 dark:border-green-800",
     badgeLabel: "Safe pick",
   },
   standard: {
@@ -34,17 +38,19 @@ const TYPE_STYLES: Record<
     badgeLabel: null,
   },
   stretch: {
-    card: "bg-[#fffbeb]",
-    border: "border-[#fcd34d]",
-    divider: "border-[#fde68a]",
-    badge: "text-[#d97706] bg-[#fef3c7] border-[#fcd34d]",
+    card: "bg-[#fffbeb] dark:bg-amber-950/30",
+    border: "border-[#fcd34d] dark:border-amber-700",
+    divider: "border-[#fde68a] dark:border-amber-700",
+    badge:
+      "text-[#d97706] bg-[#fef3c7] border-[#fcd34d] dark:text-amber-400 dark:bg-amber-950/50 dark:border-amber-700",
     badgeLabel: "Stretch pick",
   },
   risky: {
-    card: "bg-[#fff7f7]",
-    border: "border-[#fca5a5]",
-    divider: "border-[#fecaca]",
-    badge: "text-[#dc2626] bg-[#fee2e2] border-[#fca5a5]",
+    card: "bg-[#fff7f7] dark:bg-red-950/30",
+    border: "border-[#fca5a5] dark:border-red-800",
+    divider: "border-[#fecaca] dark:border-red-800",
+    badge:
+      "text-[#dc2626] bg-[#fee2e2] border-[#fca5a5] dark:text-red-400 dark:bg-red-950/50 dark:border-red-800",
     badgeLabel: "Risky pick",
   },
 };
@@ -62,13 +68,21 @@ export const RecommendationCard = ({ book }: RecommendationCardProps) => {
       className={`flex flex-col overflow-hidden rounded-lg border ${styles.card} ${styles.border}`}
     >
       {book.coverUrl ? (
-        <img
-          src={book.coverUrl}
-          alt={`Cover of ${book.title}`}
-          className="h-36 w-full object-cover"
-        />
+        <div className="relative h-36 w-full">
+          <Image
+            src={book.coverUrl}
+            alt={`Cover of ${book.title}`}
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            className="object-cover"
+          />
+        </div>
       ) : (
-        <div className="h-36 w-full bg-neutral-200 dark:bg-neutral-700" />
+        <div
+          className="h-36 w-full bg-neutral-200 dark:bg-neutral-700"
+          aria-label="No cover available"
+          role="img"
+        />
       )}
       <div className="flex flex-1 flex-col gap-1 p-3">
         {styles.badge && styles.badgeLabel && (
@@ -100,4 +114,4 @@ export const RecommendationCard = ({ book }: RecommendationCardProps) => {
       </div>
     </div>
   );
-}
+};

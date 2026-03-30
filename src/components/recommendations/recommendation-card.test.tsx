@@ -78,11 +78,16 @@ describe("RecommendationCard", () => {
       />,
     );
     const img = screen.getByAltText("Cover of The Name of the Wind");
-    expect(img).toHaveAttribute("src", "https://example.com/cover.jpg");
+    expect(img).toHaveAttribute(
+      "src",
+      expect.stringContaining("example.com%2Fcover.jpg"),
+    );
   });
 
-  it("renders placeholder div (no img) when coverUrl is null", () => {
+  it("renders placeholder when coverUrl is null (no cover image)", () => {
     render(<RecommendationCard book={makeBook({ coverUrl: null })} />);
-    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+    expect(
+      screen.queryByAltText("Cover of The Name of the Wind"),
+    ).not.toBeInTheDocument();
   });
 });
