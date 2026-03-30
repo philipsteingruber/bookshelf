@@ -39,9 +39,11 @@ const Page = ({
   const { book, isPending, isForbidden, isNotFound, error, isReading } =
     useBook(bookId);
   const { result: readingHistory } = useReadingHistory(parseInt(bookId));
+  const { data: timezoneData } = trpc.user.getTimezone.useQuery();
+  const timezone = timezoneData?.timezone ?? "UTC";
 
   // Calculate chart data and estimates
-  const aggregatedData = aggregateByDay(readingHistory);
+  const aggregatedData = aggregateByDay(readingHistory, timezone);
   const chartData: ChartDataPoint[] = aggregatedData.map((entry) => ({
     date: entry.createdAt,
     displayDate: "", // Not needed for calculation
@@ -173,6 +175,7 @@ const Page = ({
           <ReadingProgressHistoryGraph
             readingHistory={readingHistory}
             className="hidden md:flex"
+            timezone={timezone}
           />
           <div className="flex h-auto w-full max-w-4xl flex-1 flex-col gap-4 lg:h-[368px] lg:flex-row">
             <ReadingProgressEstimateCard
@@ -186,6 +189,7 @@ const Page = ({
             <ReadingProgressHistory
               readingProgressHistory={readingHistory}
               book={book}
+              timezone={timezone}
             />
           </div>
         </div>

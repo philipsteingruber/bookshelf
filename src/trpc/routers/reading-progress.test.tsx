@@ -321,6 +321,60 @@ describe("readingProgressRouter", () => {
         where: { id: fakeBook.id },
       });
     });
+
+    it("should use user timezone when querying today's progress for streak calculation", async () => {
+      // 3 AM UTC on Jan 15 = 10 PM EST on Jan 14. The user's "today" in EST is Jan 14.
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date("2026-01-15T03:00:00Z"));
+
+      const mockUser = createFakeUser({ timezone: "America/New_York" });
+      const { mockDb, caller } = createMockCaller(readingProgressRouter, { mockUser });
+
+      const fakeBook = createFakeBook({ userId: mockUser.id });
+      const fakeReadingProgress = createFakeReadingProgress({
+        bookId: fakeBook.id,
+        progress: 50,
+      });
+      const fakeReadingProgressWithBook = createFakeReadingProgressWithBook({
+        bookId: fakeBook.id,
+        book: fakeBook,
+        progress: 50,
+      });
+      const fakeUserStats = createFakeUserStats();
+
+      vi.mocked(mockDb.book.findUnique).mockResolvedValue(fakeBook);
+      vi.mocked(mockDb.$transaction).mockImplementation(async (callback) => {
+        const fakeTxClient = {
+          readingProgress: {
+            create: vi.fn().mockResolvedValue(fakeReadingProgress),
+          },
+          book: {
+            update: vi.fn().mockResolvedValue({ ...fakeBook, progress: 50 }),
+          },
+        } as unknown as PrismaClient;
+        return callback(fakeTxClient);
+      });
+      vi.mocked(mockDb.readingProgress.findMany).mockResolvedValue([fakeReadingProgressWithBook]);
+      vi.mocked(mockDb.userStats.upsert).mockResolvedValue(fakeUserStats);
+      vi.mocked(mockDb.userStats.update).mockResolvedValue(fakeUserStats);
+
+      await caller.createReadingProgressInstance({
+        bookId: fakeBook.id,
+        newProgress: 50,
+      });
+
+      // At 3 AM UTC (= 10 PM EST Jan 14), user's "today" in EST is Jan 14.
+      // Start of Jan 14 EST = midnight EST Jan 14 = 2026-01-14T05:00:00.000Z
+      expect(mockDb.readingProgress.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            createdAt: { gte: new Date("2026-01-14T05:00:00.000Z") },
+          }),
+        }),
+      );
+
+      vi.useRealTimers();
+    });
   });
   describe("getProgressHistory", () => {
     beforeEach(() => vi.clearAllMocks());
@@ -728,6 +782,59 @@ describe("readingProgressRouter", () => {
       ).rejects.toMatchObject({ code: "FORBIDDEN" });
 
       expect(mockLogger.warn).toHaveBeenCalled();
+    });
+
+    it("should use user timezone when counting same-day entries during deletion", async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date("2026-01-15T12:00:00Z"));
+
+      const mockUser = createFakeUser({ timezone: "America/New_York" });
+      const { mockDb, caller } = createMockCaller(readingProgressRouter, { mockUser });
+
+      const fakeBook = createFakeBook({ userId: mockUser.id });
+      // createdAt = 4 AM UTC Jan 15 = 11 PM EST Jan 14
+      const fakeReadingProgress = createFakeReadingProgressWithBook({
+        createdAt: new Date("2026-01-15T04:00:00Z"),
+        bookId: fakeBook.id,
+        book: fakeBook,
+        progress: 50,
+      });
+      const fakeUserStats = createFakeUserStats();
+
+      vi.mocked(mockDb.readingProgress.findUnique).mockResolvedValue(fakeReadingProgress);
+
+      const mockCount = vi.fn().mockResolvedValue(1);
+      vi.mocked(mockDb.$transaction).mockImplementation(async (callback) => {
+        const fakeTxClient = {
+          readingProgress: {
+            delete: vi.fn().mockResolvedValue(fakeReadingProgress),
+            findFirst: vi.fn().mockResolvedValue(null),
+            count: mockCount,
+            findMany: vi.fn().mockResolvedValue([]),
+          },
+          book: { update: vi.fn().mockResolvedValue(fakeBook) },
+          userStats: { update: vi.fn().mockResolvedValue(fakeUserStats) },
+        } as unknown as PrismaClient;
+        return callback(fakeTxClient);
+      });
+
+      await caller.deleteReadingProgressInstance(fakeReadingProgress.id);
+
+      // Entry is on Jan 14 in EST. Day boundaries in EST:
+      // dayStart = Jan 14 midnight EST = 2026-01-14T05:00:00.000Z
+      // dayEnd   = Jan 15 midnight EST = 2026-01-15T05:00:00.000Z
+      expect(mockCount).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            createdAt: {
+              gte: new Date("2026-01-14T05:00:00.000Z"),
+              lt: new Date("2026-01-15T05:00:00.000Z"),
+            },
+          }),
+        }),
+      );
+
+      vi.useRealTimers();
     });
   });
 

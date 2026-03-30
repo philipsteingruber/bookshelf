@@ -36,12 +36,15 @@ import { trpc } from "@/trpc/client";
 const ReadingProgressHistory = ({
   readingProgressHistory,
   book,
+  timezone,
 }: {
   readingProgressHistory: ReadingProgressWithProgressSinceLast[];
   book: Book;
+  timezone: string;
 }): React.ReactElement => {
   const aggregatedHistory = aggregateByDay(
     readingProgressHistory.filter((entry) => entry.bookId === book.id),
+    timezone,
   );
 
   // Recalculate progressSinceLast based on aggregated data
