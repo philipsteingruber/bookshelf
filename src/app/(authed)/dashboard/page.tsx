@@ -1,6 +1,7 @@
 "use client";
 
 import { RedirectToSignIn, useAuth } from "@clerk/nextjs";
+import { formatInTimeZone } from "date-fns-tz";
 import {
   BookOpenIcon,
   CalendarIcon,
@@ -30,6 +31,7 @@ import {
   getDashboardMaxReadNextBooksCount,
   getDashboardRecentlyReadBooksCount,
 } from "@/lib/reading";
+import { trpc } from "@/trpc/client";
 
 const Page = (): React.ReactElement => {
   const {
@@ -92,6 +94,8 @@ const Page = (): React.ReactElement => {
     isOpen: isReadingGoalDialogOpen,
     setIsOpen: setIsReadingGoalDialogOpen,
   } = useDialogState();
+
+  const { data: timezoneData } = trpc.user.getTimezone.useQuery();
 
   const { isSignedIn } = useAuth();
 
@@ -214,7 +218,7 @@ const Page = (): React.ReactElement => {
                         />
                       </div>
                     </TooltipTrigger>
-                    <TooltipContent>{`Finished on ${book.finishedAt?.toLocaleDateString()}`}</TooltipContent>
+                    <TooltipContent>{`Finished on ${book.finishedAt ? formatInTimeZone(book.finishedAt, timezoneData?.timezone ?? "UTC", "PP") : ""}`}</TooltipContent>
                   </Tooltip>
                 );
               })}
