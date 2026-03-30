@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 
+import { useTimezone } from "@/hooks/ui";
 import { calculateDailyStats, calculateWeeklyStats } from "@/lib/reading";
 import type { DailyStats, WeeklyStats } from "@/lib/types";
 import { trpc } from "@/trpc/client";
@@ -34,7 +35,7 @@ export const useReadingStats = (): UseReadingStatsReturn => {
   const statsQuery = trpc.user.getUserStats.useQuery();
   const recentProgressQuery =
     trpc.readingProgress.getRecentReadingProgress.useQuery({ sinceDays: 90 });
-  const { data: timezoneData } = trpc.user.getTimezone.useQuery();
+  const timezone = useTimezone();
 
   const { daily, weekly } = useMemo(() => {
     if (!recentProgressQuery.data) {
@@ -45,16 +46,10 @@ export const useReadingStats = (): UseReadingStatsReturn => {
     }
 
     return {
-      daily: calculateDailyStats(
-        recentProgressQuery.data,
-        timezoneData?.timezone ?? "UTC",
-      ),
-      weekly: calculateWeeklyStats(
-        recentProgressQuery.data,
-        timezoneData?.timezone ?? "UTC",
-      ),
+      daily: calculateDailyStats(recentProgressQuery.data, timezone),
+      weekly: calculateWeeklyStats(recentProgressQuery.data, timezone),
     };
-  }, [recentProgressQuery.data, timezoneData?.timezone]);
+  }, [recentProgressQuery.data, timezone]);
 
   const avgPagesPerWeek = useMemo(() => {
     if (!statsQuery.data) return 0;

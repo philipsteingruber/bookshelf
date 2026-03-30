@@ -3,12 +3,11 @@ import { formatInTimeZone } from "date-fns-tz";
 
 import type { PrismaClient, User, UserStats } from "@/generated/prisma/client";
 import type { TransactionClient } from "@/generated/prisma/internal/prismaNamespace";
+import { DEFAULT_TIMEZONE } from "@/lib/constants";
 import {
   calculateStreakDetails,
   getQualifyingDays,
 } from "@/lib/reading/reading-stats-utils";
-
-const DEFAULT_TIMEZONE = "UTC";
 
 /**
  * Helper to parse a date key (YYYY-MM-DD) into a Date object (UTC midnight).

@@ -29,6 +29,7 @@ export {
   calculateWeeklyStats,
   calculateYearlyStats,
   getQualifyingDays,
+  getYearInTimezone,
   transformProgressHistory,
 } from "./reading-stats-utils";
 export {

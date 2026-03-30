@@ -8,6 +8,7 @@ import {
 } from "date-fns";
 import { formatInTimeZone } from "date-fns-tz";
 
+import { DEFAULT_TIMEZONE } from "@/lib/constants";
 import type {
   ChartDataPoint,
   ReadingProgressWithProgressSinceLast,
@@ -98,7 +99,7 @@ export const formatEstimatedDate = (date: Date): string => {
  */
 export const aggregateByDay = (
   readingHistory: ReadingProgressWithProgressSinceLast[],
-  timezone: string = "UTC",
+  timezone: string = DEFAULT_TIMEZONE,
 ): ReadingProgressWithProgressSinceLast[] => {
   const byDay = new Map<string, ReadingProgressWithProgressSinceLast>();
 

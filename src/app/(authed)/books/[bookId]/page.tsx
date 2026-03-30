@@ -20,6 +20,7 @@ import { Progress } from "@/components/ui/progress";
 import { StarRating } from "@/components/ui/star-rating";
 import { useBook } from "@/hooks/book";
 import { useReadingHistory } from "@/hooks/reading";
+import { useTimezone } from "@/hooks/ui";
 import {
   aggregateByDay,
   calculateAveragePace,
@@ -39,8 +40,7 @@ const Page = ({
   const { book, isPending, isForbidden, isNotFound, error, isReading } =
     useBook(bookId);
   const { result: readingHistory } = useReadingHistory(parseInt(bookId));
-  const { data: timezoneData } = trpc.user.getTimezone.useQuery();
-  const timezone = timezoneData?.timezone ?? "UTC";
+  const timezone = useTimezone();
 
   // Calculate chart data and estimates
   const aggregatedData = aggregateByDay(readingHistory, timezone);

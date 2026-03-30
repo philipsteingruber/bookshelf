@@ -3,6 +3,7 @@ import { formatInTimeZone, toZonedTime } from "date-fns-tz";
 
 import type { Book, ReadingProgress } from "@/generated/prisma/client";
 import { calculatePagesFromProgress } from "@/lib/book";
+import { DEFAULT_TIMEZONE } from "@/lib/constants";
 import type {
   DailyStats,
   OverallStats,
@@ -14,7 +15,8 @@ import type {
   YearlyStats,
 } from "@/lib/types/reading";
 
-const DEFAULT_TIMEZONE = "UTC";
+export const getYearInTimezone = (date: Date, timezone: string): number =>
+  parseInt(formatInTimeZone(date, timezone, "yyyy"), 10);
 
 /**
  * Gets today's date key in a specific timezone.
@@ -293,7 +295,7 @@ export const calculateWeeklyStats = (
 export const calculateYearlyStats = (
   books: Book[],
   readingGoalThreshold: number,
-  timezone: string = "UTC",
+  timezone: string = DEFAULT_TIMEZONE,
 ): YearlyStats => {
   const validBooks = books.filter(
     (book): book is Book & { finishedAt: Date } =>
@@ -305,7 +307,7 @@ export const calculateYearlyStats = (
   const booksByYear = new Map<number, number>();
 
   validBooks.forEach((book) => {
-    const year = parseInt(formatInTimeZone(book.finishedAt, timezone, "yyyy"), 10);
+    const year = getYearInTimezone(book.finishedAt, timezone);
     const current = booksByYear.get(year);
 
     if (!current) {
