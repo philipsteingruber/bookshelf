@@ -186,7 +186,7 @@ const Page = (): React.ReactElement => {
     getRecommendations({ prompt: trimmed, includeHistory, priorMessages });
   }, [prompt, isPending, messages, includeHistory, getRecommendations]);
 
-  const handleToggle = (checked: boolean) => {
+  const handleToggle = (checked: boolean): void => {
     if (messages.length > 0) {
       setPendingConfirm(checked ? "toggleOn" : "toggleOff");
     } else {
@@ -194,7 +194,7 @@ const Page = (): React.ReactElement => {
     }
   };
 
-  const handleConfirmAction = () => {
+  const handleConfirmAction = (): void => {
     if (pendingConfirm === "startOver") {
       clearConversation();
     } else if (pendingConfirm === "toggleOff") {

@@ -25,13 +25,12 @@ import {
 } from "@/components/ui/tooltip";
 import { useDashBoardData } from "@/hooks/book/use-dashboard-data";
 import { useReadingGoals, useReadingStats } from "@/hooks/reading";
-import { useBreakPoint, useDialogState } from "@/hooks/ui";
+import { useBreakPoint, useDialogState, useTimezone } from "@/hooks/ui";
 import {
   getDashboardMaxReadingBooksCount,
   getDashboardMaxReadNextBooksCount,
   getDashboardRecentlyReadBooksCount,
 } from "@/lib/reading";
-import { trpc } from "@/trpc/client";
 
 const Page = (): React.ReactElement => {
   const {
@@ -95,7 +94,7 @@ const Page = (): React.ReactElement => {
     setIsOpen: setIsReadingGoalDialogOpen,
   } = useDialogState();
 
-  const { data: timezoneData } = trpc.user.getTimezone.useQuery();
+  const timezone = useTimezone();
 
   const { isSignedIn } = useAuth();
 
@@ -218,7 +217,7 @@ const Page = (): React.ReactElement => {
                         />
                       </div>
                     </TooltipTrigger>
-                    <TooltipContent>{`Finished on ${book.finishedAt ? formatInTimeZone(book.finishedAt, timezoneData?.timezone ?? "UTC", "PP") : ""}`}</TooltipContent>
+                    <TooltipContent>{`Finished on ${book.finishedAt ? formatInTimeZone(book.finishedAt, timezone, "PP") : ""}`}</TooltipContent>
                   </Tooltip>
                 );
               })}
