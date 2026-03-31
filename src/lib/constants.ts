@@ -98,6 +98,7 @@ export const sortGroups: { text: string; items: SortItem[] }[] = [
   },
 ] as const;
 
-export const RECOMMENDATIONS_MODEL = "claude-haiku-4-5-20251001" as const;
+// export const RECOMMENDATIONS_MODEL = "claude-haiku-4-5-20251001" as const;
+export const RECOMMENDATIONS_MODEL = "claude-sonnet-4-6" as const;
 
 export const DEFAULT_TIMEZONE = "UTC" as const;

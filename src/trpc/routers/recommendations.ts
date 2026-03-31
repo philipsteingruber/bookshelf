@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { TRPCError } from "@trpc/server";
 import { subMonths } from "date-fns";
+import type { Logger } from "pino";
 import z from "zod";
 
 import { env } from "@/env";
@@ -12,7 +13,7 @@ import { authedProcedure, createTRPCRouter } from "../init";
 
 const RECOMMENDATIONS_SYSTEM_PROMPT = `You are a book recommendation assistant. The user's explicit request is your primary directive — reading history is supplementary context to inform your selections, not to override what the user is asking for. If the user specifies constraints (e.g., lighter reads, a particular genre, something to break a rut), treat those as hard requirements that shape all 5 recommendations.
 
-When reading history is provided, analyze it for patterns — preferred genres, authors, themes, pacing, and series length. Weight 4–5 star books heavily as strong positive signals for what the user loves. Weight 1–2 star books as signals of what to avoid.
+When reading history is provided, analyze it for patterns — preferred genres, authors, themes, pacing, and series length. Weight 4–5 star books heavily as strong positive signals for what the user loves. Weight 1–2 star books and DNFs as signals of what to avoid.
 
 Return exactly 5 recommendations. Vary them across this spectrum:
 - At least one safe pick — very similar in genre, style, or author to their highest-rated books
@@ -74,8 +75,7 @@ const claudeOutputSchema = z.object({
   books: z.array(recommendedBookSchema).length(5),
 });
 
-const ratingStars = (r: number | null): string =>
-  r ? "★".repeat(r) : "unrated";
+const ratingStars = (r: number | null): string => (r ? "★".repeat(r) : "unrated");
 
 const anthropic = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
 
@@ -97,129 +97,88 @@ export const recommendationsRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      ctx.logger.debug(
-        { includeHistory: input.includeHistory },
-        "Getting book recommendations",
-      );
+      ctx.logger.debug({ includeHistory: input.includeHistory }, "Getting book recommendations");
 
-      let readBooksContext = "";
-      let allBooksContext = "";
+      const fetchHistoryTimer = performanceLogger("DB: Fetch reading history for recommendations", 1000, ctx.logger);
+      fetchHistoryTimer.start();
 
-      if (input.includeHistory) {
-        const fetchHistoryTimer = performanceLogger(
-          "DB: Fetch reading history for recommendations",
-          1000,
-          ctx.logger,
-        );
-        fetchHistoryTimer.start();
+      const [readBooks, allBooks] = await Promise.all([
+        ctx.db.book.findMany({
+          where: {
+            userId: ctx.currentUser.id,
+            status: ReadStatus.READ,
+            finishedAt: { gte: subMonths(new Date(), 6) },
+          },
+          select: { title: true, author: true, rating: true },
+          orderBy: { rating: { sort: "desc", nulls: "last" } },
+        }),
+        ctx.db.book.findMany({
+          where: { userId: ctx.currentUser.id },
+          select: { title: true, author: true },
+        }),
+      ]);
+      fetchHistoryTimer.end({
+        readCount: readBooks.length,
+        totalCount: allBooks.length,
+      });
 
-        const [readBooks, allBooks] = await Promise.all([
-          ctx.db.book.findMany({
-            where: {
-              userId: ctx.currentUser.id,
-              status: ReadStatus.READ,
-              finishedAt: { gte: subMonths(new Date(), 6) },
-            },
-            select: { title: true, author: true, rating: true },
-            orderBy: { rating: { sort: "desc", nulls: "last" } },
-          }),
-          ctx.db.book.findMany({
-            where: { userId: ctx.currentUser.id },
-            select: { title: true, author: true },
-          }),
-        ]);
-        fetchHistoryTimer.end({
-          readCount: readBooks.length,
-          totalCount: allBooks.length,
-        });
-
-        readBooksContext = readBooks
-          .map((b) => `- ${b.title} by ${b.author} ${ratingStars(b.rating)}`)
-          .join("\n");
-
-        allBooksContext = allBooks
-          .map((b) => `${b.title} by ${b.author}`)
-          .join(", ");
-      }
+      const readBooksContext = readBooks.map((b) => `- ${b.title} by ${b.author} ${ratingStars(b.rating)}`).join("\n");
+      const allBooksContext = allBooks.map((b) => `${b.title} by ${b.author}`).join(", ");
 
       const userMessage =
         input.includeHistory && readBooksContext
           ? `My reading history (highest rated first):\n${readBooksContext}\n\nBooks already in my library (do not recommend these):\n${allBooksContext}\n\n---\n${input.prompt}`
-          : input.prompt;
-
-      const callClaudeTimer = performanceLogger(
-        "Claude: Get book recommendations",
-        15000,
-        ctx.logger,
-      );
-      callClaudeTimer.start();
+          : `Books already in my library (do not recommend these): ${allBooksContext}\n\n---\n${input.prompt}`;
 
       let claudeResponse: Anthropic.Message;
-      try {
-        claudeResponse = await anthropic.messages.create({
-          model: RECOMMENDATIONS_MODEL,
-          max_tokens: 2000,
-          system: RECOMMENDATIONS_SYSTEM_PROMPT,
-          tools: [RECOMMENDATIONS_TOOL],
-          tool_choice: { type: "tool", name: "recommend_books" },
-          messages: [
-            ...input.priorMessages,
-            { role: "user", content: userMessage },
-          ],
-        });
-      } catch (error) {
-        ctx.logger.error({ error }, "Failed to call Claude API");
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to get recommendations from AI",
-        });
-      }
-      callClaudeTimer.end();
-
-      const toolUseBlock = claudeResponse.content.find(
-        (c): c is Anthropic.ToolUseBlock => c.type === "tool_use",
-      );
-
-      if (!toolUseBlock) {
-        ctx.logger.error(
-          { content: claudeResponse.content },
-          "Claude did not return a tool use block",
-        );
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to parse recommendations",
-        });
-      }
-
-      const parseResult = claudeOutputSchema.safeParse(toolUseBlock.input);
-      if (!parseResult.success) {
-        ctx.logger.error(
-          { error: parseResult.error, input: toolUseBlock.input },
-          "Claude returned malformed tool output",
-        );
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to parse recommendations",
-        });
-      }
-      const parsed = parseResult.data;
-
-      const enrichBookTimer = performanceLogger(
-        "Google Books: Enrich recommendations",
-        5000,
+      claudeResponse = await callRecommendations(
+        [...input.priorMessages, { role: "user", content: userMessage }],
         ctx.logger,
       );
+
+      let parsed = parseResponse(claudeResponse, ctx.logger);
+
+      const duplicates: string[] = [];
+      for (const book of parsed.data.books) {
+        if (allBooks.find((b) => b.title.trim().toLowerCase() === book.title.trim().toLowerCase())) {
+          duplicates.push(book.title);
+        }
+      }
+
+      if (duplicates.length > 0) {
+        claudeResponse = await callRecommendations(
+          [
+            ...input.priorMessages,
+            { role: "user", content: userMessage },
+            { role: "assistant", content: claudeResponse.content },
+            {
+              role: "user",
+              content: [
+                {
+                  type: "tool_result",
+                  tool_use_id: parsed.toolId,
+                  content: "Received",
+                },
+                {
+                  type: "text",
+                  text: `The following books you recommended are already in my library: ${duplicates.join(", ")}. Please replace them with different books not in my library, keeping all other recommendations the same.`,
+                },
+              ],
+            },
+          ],
+          ctx.logger,
+        );
+        parsed = parseResponse(claudeResponse, ctx.logger);
+      }
+
+      const enrichBookTimer = performanceLogger("Google Books: Enrich recommendations", 5000, ctx.logger);
       enrichBookTimer.start();
 
       const enrichedBooks = await Promise.all(
-        parsed.books.map(async (book) => {
+        parsed.data.books.map(async (book) => {
           try {
-            const query = encodeURIComponent(
-              `intitle:${book.title}+inauthor:${book.author}`,
-            );
-            const response = await fetch(
-              `https://www.googleapis.com/books/v1/volumes?q=${query}&maxResults=1`,
-            );
+            const query = encodeURIComponent(`intitle:${book.title}+inauthor:${book.author}`);
+            const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${query}&maxResults=1`);
             if (!response.ok) {
               throw new Error(`Google Books API returned ${response.status}`);
             }
@@ -234,9 +193,7 @@ export const recommendationsRouter = createTRPCRouter({
             const volumeInfo = data.items?.[0]?.volumeInfo;
             const rawThumbnail = volumeInfo?.imageLinks?.thumbnail ?? null;
             const coverUrl = rawThumbnail
-              ? rawThumbnail
-                  .replace("http://", "https://")
-                  .replace("&edge=curl", "") + "&fife=w400"
+              ? rawThumbnail.replace("http://", "https://").replace("&edge=curl", "") + "&fife=w400"
               : null;
             const pageCount = volumeInfo?.pageCount ?? null;
             return { ...book, coverUrl, pageCount };
@@ -252,11 +209,64 @@ export const recommendationsRouter = createTRPCRouter({
 
       enrichBookTimer.end({ count: enrichedBooks.length });
 
-      ctx.logger.info(
-        { bookCount: enrichedBooks.length },
-        "Recommendations generated successfully",
-      );
+      ctx.logger.info({ bookCount: enrichedBooks.length }, "Recommendations generated successfully");
 
-      return { blurb: parsed.blurb, books: enrichedBooks };
+      return { blurb: parsed.data.blurb, books: enrichedBooks, retried: duplicates.length > 0 };
     }),
 });
+
+const callRecommendations = async (
+  messages: Anthropic.MessageParam[],
+  logger: Logger,
+): Promise<Anthropic.Messages.Message> => {
+  const callClaudeTimer = performanceLogger("Claude: Get book recommendations", 20000, logger);
+  callClaudeTimer.start();
+  try {
+    return await anthropic.messages.create({
+      model: RECOMMENDATIONS_MODEL,
+      max_tokens: 2000,
+      system: RECOMMENDATIONS_SYSTEM_PROMPT,
+      tools: [RECOMMENDATIONS_TOOL],
+      tool_choice: { type: "tool", name: "recommend_books" },
+      messages,
+    });
+  } catch (error) {
+    logger.error({ error }, "Failed to call Claude API");
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Failed to get recommendations from AI",
+    });
+  } finally {
+    callClaudeTimer.end();
+  }
+};
+
+const parseResponse = (
+  response: Anthropic.Messages.Message,
+  logger: Logger,
+): { data: RecommendationsResponse; toolId: string } => {
+  const toolUseBlock = response.content.find((c): c is Anthropic.ToolUseBlock => c.type === "tool_use");
+
+  if (!toolUseBlock) {
+    logger.error({ content: response.content }, "Claude did not return a tool use block");
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Failed to parse recommendations",
+    });
+  }
+
+  const parseResult = claudeOutputSchema.safeParse(toolUseBlock.input);
+  if (!parseResult.success) {
+    logger.error({ error: parseResult.error, input: toolUseBlock.input }, "Claude returned malformed tool output");
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Failed to parse recommendations",
+    });
+  }
+  return { data: parseResult.data, toolId: toolUseBlock.id };
+};
+
+type RecommendationsResponse = {
+  blurb: string;
+  books: { title: string; author: string; reason: string; type: "safe" | "standard" | "stretch" | "risky" }[];
+};

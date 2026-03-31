@@ -33,6 +33,7 @@ type ConversationMessage =
       role: "assistant";
       blurb: string;
       books: RecommendationBook[];
+      retried: boolean;
     };
 
 type StoredConversation = {
@@ -54,9 +55,7 @@ const STORAGE_KEY_PREFIX = "bookshelf-recommendations-";
  * Assistant turns are converted back to JSON strings (omitting coverUrl/pageCount)
  * to keep the context window lean.
  */
-function serializeForClaude(
-  messages: ConversationMessage[],
-): { role: "user" | "assistant"; content: string }[] {
+function serializeForClaude(messages: ConversationMessage[]): { role: "user" | "assistant"; content: string }[] {
   return messages.map((m) => {
     if (m.role === "user") return { role: "user", content: m.content };
     return {
@@ -76,10 +75,8 @@ function serializeForClaude(
 
 const CONFIRM_DESCRIPTIONS: Record<PendingConfirm, string> = {
   startOver: "This will clear your conversation and start fresh. Continue?",
-  toggleOff:
-    "This will clear your conversation and turn off reading history context. Continue?",
-  toggleOn:
-    "This will clear your conversation and turn on reading history context. Continue?",
+  toggleOff: "This will clear your conversation and turn off reading history context. Continue?",
+  toggleOn: "This will clear your conversation and turn on reading history context. Continue?",
 };
 
 // --- Component ---
@@ -90,9 +87,7 @@ const Page = (): React.ReactElement => {
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
   const [includeHistory, setIncludeHistory] = useState(true);
   const [prompt, setPrompt] = useState("");
-  const [pendingConfirm, setPendingConfirm] = useState<PendingConfirm | null>(
-    null,
-  );
+  const [pendingConfirm, setPendingConfirm] = useState<PendingConfirm | null>(null);
 
   const conversationEndRef = useRef<HTMLDivElement>(null);
   const storageKey = userId ? `${STORAGE_KEY_PREFIX}${userId}` : null;
@@ -105,10 +100,9 @@ const Page = (): React.ReactElement => {
       if (stored) {
         const parsed: StoredConversation = JSON.parse(stored);
         // Backfill `id` for messages stored before this field was added
-        const withIds = (parsed.messages ?? []).map((m) =>
-          m.id ? m : { ...m, id: crypto.randomUUID() },
-        );
-        // eslint-disable-next-line react-hooks/set-state-in-effect -- Reading from localStorage external system on mount
+        const withIds = (parsed.messages ?? []).map((m) => (m.id ? m : { ...m, id: crypto.randomUUID() }));
+
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setMessages(withIds);
         setIncludeHistory(parsed.includeHistory ?? true);
       }
@@ -142,25 +136,39 @@ const Page = (): React.ReactElement => {
   );
 
   // Declare mutation before the scroll effect so isPending is in scope
-  const { mutate: getRecommendations, isPending } =
-    trpc.recommendations.getRecommendations.useMutation({
-      onSuccess: (data) => {
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: crypto.randomUUID(),
-            role: "assistant",
-            blurb: data.blurb,
-            books: data.books,
-          },
-        ]);
-      },
-      onError: () => {
-        toast.error("Failed to get recommendations. Please try again.");
-        // Remove the optimistically-added user message
-        setMessages((prev) => prev.slice(0, -1));
-      },
-    });
+  const { mutate: getRecommendations, isPending } = trpc.recommendations.getRecommendations.useMutation({
+    onSuccess: (data) => {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          blurb: data.blurb,
+          books: data.books,
+          retried: data.retried,
+        },
+      ]);
+    },
+    onError: () => {
+      toast.error("Failed to get recommendations. Please try again.");
+      // Remove the optimistically-added user message
+      setMessages((prev) => prev.slice(0, -1));
+    },
+  });
+
+  const [isSlowQuery, setIsSlowQuery] = useState(false);
+  useEffect(() => {
+    if (!isPending) return;
+
+    const timer = setTimeout(() => {
+      setIsSlowQuery(true);
+    }, 10000);
+
+    return () => {
+      clearTimeout(timer);
+      setIsSlowQuery(false);
+    };
+  }, [isPending]);
 
   // Auto-scroll to latest message or loading indicator
   useEffect(() => {
@@ -228,15 +236,11 @@ const Page = (): React.ReactElement => {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Clear conversation?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {pendingConfirm && CONFIRM_DESCRIPTIONS[pendingConfirm]}
-            </AlertDialogDescription>
+            <AlertDialogDescription>{pendingConfirm && CONFIRM_DESCRIPTIONS[pendingConfirm]}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmAction}>
-              Continue
-            </AlertDialogAction>
+            <AlertDialogAction onClick={handleConfirmAction}>Continue</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -260,11 +264,7 @@ const Page = (): React.ReactElement => {
           </div>
           <div className="flex items-center gap-2.5 text-sm text-neutral-500">
             <span>Include reading history</span>
-            <Switch
-              checked={includeHistory}
-              onCheckedChange={handleToggle}
-              aria-label="Include reading history"
-            />
+            <Switch checked={includeHistory} onCheckedChange={handleToggle} aria-label="Include reading history" />
           </div>
         </div>
 
@@ -290,19 +290,21 @@ const Page = (): React.ReactElement => {
                     </div>
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                       {message.books.map((book) => (
-                        <RecommendationCard
-                          key={`${book.title}-${book.author}`}
-                          book={book}
-                        />
+                        <RecommendationCard key={`${book.title}-${book.author}`} book={book} />
                       ))}
                     </div>
+                    {message.retried && (
+                      <span className="text-muted-foreground text-sm">
+                        One or more recommendations were replaced because they were already in your library.
+                      </span>
+                    )}
                   </div>
                 ),
               )}
               {isPending && (
                 <div className="flex items-center gap-2 text-sm text-neutral-400">
                   <Spinner className="size-4" />
-                  Finding recommendations…
+                  {isSlowQuery ? "This is taking a bit longer than usual…" : "Finding recommendations…"}
                 </div>
               )}
               <div ref={conversationEndRef} />
@@ -334,11 +336,7 @@ const Page = (): React.ReactElement => {
               aria-label={isPending ? "Sending…" : "Send"}
               className="shrink-0"
             >
-              {isPending ? (
-                <Spinner className="size-4" />
-              ) : (
-                <SendIcon className="size-4" />
-              )}
+              {isPending ? <Spinner className="size-4" /> : <SendIcon className="size-4" />}
             </Button>
           </div>
         </div>
