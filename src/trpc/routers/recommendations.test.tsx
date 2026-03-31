@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { createFakeBook, createMockCaller } from "@/lib/test-utils";
+import type { PrismaClient } from "@/generated/prisma/client";
+import { createFakeBook, createMockCaller, createMockDb } from "@/lib/test-utils";
 
 import { recommendationsRouter } from "./recommendations";
 
@@ -63,8 +64,12 @@ const makeFetchResponse = (json: unknown) => ({
 
 describe("recommendationsRouter", () => {
   describe("getRecommendations", () => {
+    let mockDb: PrismaClient;
+
     beforeEach(() => {
       vi.clearAllMocks();
+      mockDb = createMockDb();
+      vi.mocked(mockDb.book.findMany).mockResolvedValue([]);
       mockFetch.mockResolvedValue(
         makeFetchResponse(
           makeGoogleBooksJson("http://books.google.com/cover.jpg", 300),
@@ -73,7 +78,7 @@ describe("recommendationsRouter", () => {
     });
 
     it("should return blurb and 5 enriched books", async () => {
-      const { caller } = createMockCaller(recommendationsRouter);
+      const { caller } = createMockCaller(recommendationsRouter, { mockDb });
       mockMessagesCreate.mockResolvedValue(makeClaudeResponse());
 
       const result = await caller.getRecommendations({
@@ -86,10 +91,11 @@ describe("recommendationsRouter", () => {
       expect(result.books).toHaveLength(5);
       expect(result.books[0].title).toBe("Book A");
       expect(result.books[0].type).toBe("safe");
+      expect(result.retried).toBe(false);
     });
 
     it("should include reading history context when includeHistory is true", async () => {
-      const { caller, mockDb } = createMockCaller(recommendationsRouter);
+      const { caller } = createMockCaller(recommendationsRouter, { mockDb });
       mockMessagesCreate.mockResolvedValue(makeClaudeResponse());
 
       const readBook = createFakeBook({
@@ -117,7 +123,7 @@ describe("recommendationsRouter", () => {
     });
 
     it("should not include reading history when includeHistory is false", async () => {
-      const { caller } = createMockCaller(recommendationsRouter);
+      const { caller } = createMockCaller(recommendationsRouter, { mockDb });
       mockMessagesCreate.mockResolvedValue(makeClaudeResponse());
 
       await caller.getRecommendations({
@@ -128,12 +134,12 @@ describe("recommendationsRouter", () => {
 
       const calledWith = mockMessagesCreate.mock.calls[0][0];
       const lastMessage = calledWith.messages[calledWith.messages.length - 1];
-      expect(lastMessage.content).toBe("Just give me something good");
-      expect(lastMessage.content).not.toContain("reading history");
+      expect(lastMessage.content).toContain("Just give me something good");
+      expect(lastMessage.content).not.toContain("My reading history");
     });
 
     it("should rewrite Google Books http thumbnail URL to https", async () => {
-      const { caller } = createMockCaller(recommendationsRouter);
+      const { caller } = createMockCaller(recommendationsRouter, { mockDb });
       mockMessagesCreate.mockResolvedValue(makeClaudeResponse());
       mockFetch.mockResolvedValue(
         makeFetchResponse(
@@ -154,7 +160,7 @@ describe("recommendationsRouter", () => {
     });
 
     it("should return null coverUrl and pageCount when Google Books returns no items", async () => {
-      const { caller } = createMockCaller(recommendationsRouter);
+      const { caller } = createMockCaller(recommendationsRouter, { mockDb });
       mockMessagesCreate.mockResolvedValue(makeClaudeResponse());
       mockFetch.mockResolvedValue(makeFetchResponse({ items: [] }));
 
@@ -169,7 +175,7 @@ describe("recommendationsRouter", () => {
     });
 
     it("should return null coverUrl and pageCount when Google Books fetch throws", async () => {
-      const { caller } = createMockCaller(recommendationsRouter);
+      const { caller } = createMockCaller(recommendationsRouter, { mockDb });
       mockMessagesCreate.mockResolvedValue(makeClaudeResponse());
       mockFetch.mockRejectedValue(new Error("Network error"));
 
@@ -184,7 +190,7 @@ describe("recommendationsRouter", () => {
     });
 
     it("should throw INTERNAL_SERVER_ERROR when Claude API throws", async () => {
-      const { caller } = createMockCaller(recommendationsRouter);
+      const { caller } = createMockCaller(recommendationsRouter, { mockDb });
       mockMessagesCreate.mockRejectedValue(new Error("Anthropic API error"));
 
       await expect(
@@ -197,7 +203,7 @@ describe("recommendationsRouter", () => {
     });
 
     it("should include priorMessages in the Claude call", async () => {
-      const { caller } = createMockCaller(recommendationsRouter);
+      const { caller } = createMockCaller(recommendationsRouter, { mockDb });
       mockMessagesCreate.mockResolvedValue(makeClaudeResponse());
 
       await caller.getRecommendations({
@@ -213,6 +219,34 @@ describe("recommendationsRouter", () => {
       expect(calledWith.messages).toHaveLength(3); // 2 prior + 1 new
       expect(calledWith.messages[0].role).toBe("user");
       expect(calledWith.messages[1].role).toBe("assistant");
+    });
+
+    it("should retry when a recommended book is already in the library", async () => {
+      const { caller } = createMockCaller(recommendationsRouter, { mockDb });
+
+      // "Book A" is in the user's library
+      vi.mocked(mockDb.book.findMany)
+        .mockResolvedValueOnce([]) // readBooks
+        .mockResolvedValueOnce([createFakeBook({ title: "Book A", author: "Author A" })]); // allBooks
+
+      const replacementBooks = [
+        { title: "Book F", author: "Author F", reason: "Reason F", type: "safe" },
+        ...DEFAULT_BOOKS.slice(1),
+      ];
+
+      mockMessagesCreate
+        .mockResolvedValueOnce(makeClaudeResponse()) // first call returns "Book A" — a duplicate
+        .mockResolvedValueOnce(makeClaudeResponse(replacementBooks)); // retry replaces it
+
+      const result = await caller.getRecommendations({
+        prompt: "Recommend me a book",
+        includeHistory: false,
+        priorMessages: [],
+      });
+
+      expect(mockMessagesCreate).toHaveBeenCalledTimes(2);
+      expect(result.retried).toBe(true);
+      expect(result.books[0].title).toBe("Book F");
     });
   });
 });
