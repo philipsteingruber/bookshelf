@@ -101,6 +101,13 @@ Updated to handle all assistant variants:
 
 ## Section 3 — UI Rendering
 
+### `BookCoverFallback` refactor
+
+`BookCoverFallback` currently accepts a full `Book` (Prisma model) but only uses `book.title`.
+Its prop is changed from `book: Book` to `title: string`. All existing callers (`BookCard`,
+`book-details-cover`, etc.) are updated to pass `book.title` instead — a mechanical change with
+no behaviour impact.
+
 ### `RecommendationCard` refactor
 
 - `type` is made optional. When absent, the card uses a blue-tinted style:
@@ -110,6 +117,13 @@ Updated to handle all assistant variants:
 - The badge row is **always rendered**. When `type` is absent or `standard` (which already has
   no badge), an invisible fixed-height placeholder occupies the badge row so all cards maintain
   consistent height regardless of type.
+- Cover image handling is replaced with the shared `BookCoverFallback` component and the
+  `useImageError` hook:
+  - When `coverUrl` is null: renders `BookCoverFallback` directly.
+  - When `coverUrl` is set but the image fails to load (detected via `useImageError`): also
+    renders `BookCoverFallback`. This fixes a latent bug where a broken Google Books URL shows
+    a broken image rather than a graceful fallback.
+  - `BookCoverFallback` receives the `title` prop (now a string after the refactor above).
 
 ### Conversation rendering
 
@@ -143,12 +157,12 @@ uninterrupted loading state.
 
 ## Section 4 — Error Handling
 
-| Failure point                               | Behavior                                                                                                                                                                |
-| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Intent classification call fails            | Inline error card added to conversation; user message kept                                                                                                              |
-| Generation call fails (recommendation path) | Inline error card added to conversation; user message kept                                                                                                              |
-| Generation call fails (answer path)         | Inline error card added to conversation; user message kept                                                                                                              |
-| Google Books enrichment fails per-book      | Graceful fallback to `coverUrl: null`, `pageCount: null`. The existing card already renders a gray placeholder div when `coverUrl` is null — no additional work needed. |
+| Failure point                               | Behavior                                                                                                                                                                      |
+| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Intent classification call fails            | Inline error card added to conversation; user message kept                                                                                                                    |
+| Generation call fails (recommendation path) | Inline error card added to conversation; user message kept                                                                                                                    |
+| Generation call fails (answer path)         | Inline error card added to conversation; user message kept                                                                                                                    |
+| Google Books enrichment fails per-book      | Graceful fallback to `coverUrl: null`, `pageCount: null`. The refactored card renders `BookCoverFallback` when `coverUrl` is null or the image fails to load (see Section 3). |
 
 Both a toast and an inline error card are shown on API failures. The toast provides immediate
 feedback if the user is in another window; the inline card is persistent so it cannot be missed
@@ -176,3 +190,5 @@ on return.
 
 - Renders correctly without a `type` (blue conversational style applied)
 - Badge placeholder renders and preserves layout height when badge is absent
+- Renders `BookCoverFallback` when `coverUrl` is null
+- Renders `BookCoverFallback` when image load fails (simulated via `onError`)
