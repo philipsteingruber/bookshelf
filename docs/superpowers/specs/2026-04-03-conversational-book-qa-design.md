@@ -143,14 +143,22 @@ uninterrupted loading state.
 
 ## Section 4 — Error Handling
 
-| Failure point                               | Behavior                                                             |
-| ------------------------------------------- | -------------------------------------------------------------------- |
-| Intent classification call fails            | Inline error card added to conversation; user message kept           |
-| Generation call fails (recommendation path) | Inline error card added to conversation; user message kept           |
-| Generation call fails (answer path)         | Inline error card added to conversation; user message kept           |
-| Google Books enrichment fails per-book      | Graceful fallback to `coverUrl: null`, `pageCount: null` (unchanged) |
+| Failure point                               | Behavior                                                                                                                                                                |
+| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Intent classification call fails            | Inline error card added to conversation; user message kept                                                                                                              |
+| Generation call fails (recommendation path) | Inline error card added to conversation; user message kept                                                                                                              |
+| Generation call fails (answer path)         | Inline error card added to conversation; user message kept                                                                                                              |
+| Google Books enrichment fails per-book      | Graceful fallback to `coverUrl: null`, `pageCount: null`. The existing card already renders a gray placeholder div when `coverUrl` is null — no additional work needed. |
 
-Toasts are removed from the API error path for this feature.
+Both a toast and an inline error card are shown on API failures. The toast provides immediate
+feedback if the user is in another window; the inline card is persistent so it cannot be missed
+on return.
+
+**Error messages by failure point:**
+
+- Intent classification fails: "Couldn't figure out what you're asking for. Try rephrasing your
+  question more clearly." (The implication is that retrying with a clearer prompt will fix it.)
+- All other failures (generation call, either path): "Something went wrong. Please try again."
 
 ---
 
