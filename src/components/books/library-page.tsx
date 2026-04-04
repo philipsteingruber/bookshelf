@@ -21,33 +21,21 @@ import LibraryPagination from "@/components/library/library-pagination";
 import LoadingState from "@/components/loading-state";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger } from "@/components/ui/select";
 import type { ReadStatus } from "@/generated/prisma/enums";
 import type { BookScalarFieldEnum } from "@/generated/prisma/internal/prismaNamespace";
 import { useBooks } from "@/hooks/book";
-import {
-  DEBOUNCE_INTERVAL,
-  DEFAULT_FILTER,
-  DEFAULT_SORTING,
-  sortGroups,
-} from "@/lib/constants";
+import { DEBOUNCE_INTERVAL, DEFAULT_FILTER, DEFAULT_SORTING, sortGroups } from "@/lib/constants";
 import { librarySearchParams } from "@/lib/schemas/url-state";
 import type { SortItem, SortOptions, StatusFilterOption } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-const SORT_CONFIG: Record<
-  SortOptions,
-  { sortBy: BookScalarFieldEnum; sortDirection: "asc" | "desc" }
-> = {
+const SORT_CONFIG: Record<SortOptions, { sortBy: BookScalarFieldEnum; sortDirection: "asc" | "desc" }> = {
   RECENTLY_UPDATED: { sortBy: "updatedAt", sortDirection: "desc" },
   RECENTLY_ADDED: { sortBy: "createdAt", sortDirection: "desc" },
+  RECENTLY_FINISHED: { sortBy: "finishedAt", sortDirection: "desc" },
   TITLE_AZ: { sortBy: "title", sortDirection: "asc" },
   TITLE_ZA: { sortBy: "title", sortDirection: "desc" },
   AUTHOR_AZ: { sortBy: "author", sortDirection: "asc" },
@@ -87,9 +75,7 @@ const statusFilterOptions: StatusFilterOption[] = [
   },
 ];
 
-const parseSelectedSort = (
-  value: string,
-): { sortBy: BookScalarFieldEnum; sortDirection: "asc" | "desc" } => {
+const parseSelectedSort = (value: string): { sortBy: BookScalarFieldEnum; sortDirection: "asc" | "desc" } => {
   return (
     SORT_CONFIG[value as SortOptions] ?? {
       sortBy: "title" as BookScalarFieldEnum,
@@ -97,9 +83,7 @@ const parseSelectedSort = (
     }
   );
 };
-const parseSelectedFilter = (
-  value: ReadStatus | "ALL_BOOKS",
-): ReadStatus | undefined => {
+const parseSelectedFilter = (value: ReadStatus | "ALL_BOOKS"): ReadStatus | undefined => {
   if (value === "ALL_BOOKS") {
     return undefined;
   }
@@ -135,16 +119,15 @@ const LibraryPage = (): React.ReactElement => {
   const { sortBy, sortDirection } = parseSelectedSort(params.sort);
 
   // Custom hooks (depends on derived values)
-  const { books, isPending, isError, error, totalPages, totalCount } = useBooks(
-    {
-      sortBy,
-      sortDirection,
-      search: params.q,
-      status: parseSelectedFilter(params.status),
-      page: params.page,
-      limit: params.pageSize,
-    },
-  );
+  const { books, isPending, isError, error, totalPages, totalCount } = useBooks({
+    sortBy,
+    sortDirection,
+    unrated: params.unrated,
+    search: params.q,
+    status: parseSelectedFilter(params.status),
+    page: params.page,
+    limit: params.pageSize,
+  });
 
   // Callbacks
   const handleSearchChange = (e: ChangeEvent<HTMLInputElement>): void => {
@@ -164,17 +147,8 @@ const LibraryPage = (): React.ReactElement => {
   if (isPending) {
     return <LoadingState />;
   }
-  if (
-    !books &&
-    !isPending &&
-    (params.q || parseSelectedFilter(params.status))
-  ) {
-    return (
-      <ErrorState
-        code="NOT_FOUND"
-        message="No books match your selected filter/search terms"
-      />
-    );
+  if (!books && !isPending && (params.q || parseSelectedFilter(params.status))) {
+    return <ErrorState code="NOT_FOUND" message="No books match your selected filter/search terms" />;
   }
   if (!books && !isPending) {
     return (
@@ -195,15 +169,15 @@ const LibraryPage = (): React.ReactElement => {
         inputSearch={params.q}
         onSearchChange={handleSearchChange}
         selectedFilter={params.status}
-        onFilterChange={(newFilter) =>
-          setParams({ status: newFilter, page: null })
-        }
+        onFilterChange={(newFilter) => setParams({ status: newFilter, page: null })}
         onClearFilters={handleClearFilters}
+        unrated={params.unrated}
+        onUnratedChange={(val) => setParams({ unrated: val, page: null })}
         className="w-full md:w-5/6"
       />
       <div className="grid w-full grid-cols-2 items-center gap-4 px-4 pt-4 sm:grid-cols-3 md:w-5/6 md:grid-cols-4 md:px-0 xl:grid-cols-5 2xl:grid-cols-6">
         {books.map((book) => (
-          <BookCard key={book.id} book={book} showStatusButton />
+          <BookCard key={book.id} book={book} showStatusButton showRating />
         ))}
       </div>
       {books.length > 0 && (
@@ -230,6 +204,8 @@ const LibraryFilterPicker = ({
   selectedFilter,
   onFilterChange,
   onClearFilters,
+  unrated,
+  onUnratedChange,
   className,
 }: {
   selectedSorting: SortOptions;
@@ -239,31 +215,24 @@ const LibraryFilterPicker = ({
   selectedFilter: ReadStatus | "ALL_BOOKS";
   onFilterChange: (value: ReadStatus | "ALL_BOOKS") => void;
   onClearFilters: () => void;
+  unrated: boolean;
+  onUnratedChange: (val: boolean) => void;
   className?: string;
 }): React.ReactElement => {
   // Derived values
   const hasActiveFilters =
-    inputSearch !== "" ||
-    selectedFilter !== DEFAULT_FILTER ||
-    selectedSorting !== DEFAULT_SORTING;
+    inputSearch !== "" || selectedFilter !== DEFAULT_FILTER || selectedSorting !== DEFAULT_SORTING || unrated;
 
   // Callbacks
   const getSelectedSort = (): SortItem | undefined => {
-    return sortGroups
-      .flatMap((group) => group.items)
-      .find((item) => item.value === selectedSorting);
+    return sortGroups.flatMap((group) => group.items).find((item) => item.value === selectedSorting);
   };
   const getSelectedFilter = (): StatusFilterOption | undefined => {
     return statusFilterOptions.find((item) => item.value === selectedFilter);
   };
 
   return (
-    <Card
-      className={cn(
-        "flex flex-col items-center justify-center rounded-md px-4 py-4 md:px-6",
-        className,
-      )}
-    >
+    <Card className={cn("flex flex-col items-center justify-center rounded-md px-4 py-4 md:px-6", className)}>
       <div className="flex w-full flex-col items-center gap-y-4 sm:gap-y-2 md:flex-row md:justify-between">
         <span className="flex items-center gap-x-2 text-sm">
           <FilterIcon className="size-6" />
@@ -280,11 +249,7 @@ const LibraryFilterPicker = ({
             {sortGroups.map((sortGroup) => (
               <SelectGroup key={sortGroup.text}>
                 {sortGroup.items.map((item) => (
-                  <SelectItem
-                    value={item.value}
-                    key={item.text}
-                    className="flex items-center justify-between gap-x-2"
-                  >
+                  <SelectItem value={item.value} key={item.text} className="flex items-center justify-between gap-x-2">
                     <span className="flex items-center gap-x-1">
                       <item.Icon />
                       {item.text}
@@ -309,26 +274,25 @@ const LibraryFilterPicker = ({
         </div>
       </div>
       <div className="flex flex-col items-center gap-y-4 md:flex-row md:gap-x-4 md:gap-y-0">
-        <Select
-          value={selectedFilter ?? undefined}
-          onValueChange={onFilterChange}
-        >
+        <Select value={selectedFilter ?? undefined} onValueChange={onFilterChange}>
           <SelectTrigger>
             <FilterIcon /> {getSelectedFilter()?.text}
           </SelectTrigger>
           <SelectContent position="popper">
             {statusFilterOptions.map((item) => (
-              <SelectItem
-                className="flex items-center gap-x-1"
-                key={item.text}
-                value={item.value}
-              >
+              <SelectItem className="flex items-center gap-x-1" key={item.text} value={item.value}>
                 <item.Icon />
                 {item.text}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
+        <div className="flex items-center gap-x-2">
+          <Checkbox id="unrated" checked={unrated} onCheckedChange={onUnratedChange} />
+          <label htmlFor="unrated" className="cursor-pointer text-sm">
+            Unrated Only
+          </label>
+        </div>
         <Button onClick={onClearFilters} disabled={!hasActiveFilters}>
           Reset Filters
         </Button>

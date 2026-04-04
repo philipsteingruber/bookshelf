@@ -12,12 +12,14 @@ import { cn } from "@/lib/utils";
 import { trpc } from "@/trpc/client";
 
 import { Card, CardContent } from "../ui/card";
+import { StarRating } from "../ui/star-rating";
 
 import ReadStatusButton from "./readstatus-button";
 
 interface BookCardProps {
   book: Book;
   showStatusButton: boolean;
+  showRating?: boolean;
   className?: string;
   wrapperClassName?: string;
   priority?: boolean;
@@ -27,6 +29,7 @@ interface BookCardProps {
 const BookCard = ({
   book,
   showStatusButton,
+  showRating = false,
   className,
   wrapperClassName,
   priority,
@@ -68,7 +71,7 @@ const BookCard = ({
               />
             )}
           </div>
-          <div className="mt-2 flex min-h-[88px] flex-col gap-y-1 px-2 pb-4">
+          <div className="mt-2 flex min-h-[108px] flex-col gap-y-1 px-2 pb-4">
             <p className="truncate text-base font-semibold">{`${book.title} ${book.title !== book.titleSort ? `(${book.titleSort})` : ""}`}</p>
             <p className="truncate font-serif text-sm">{book.author}</p>
             <p
@@ -79,6 +82,13 @@ const BookCard = ({
             >
               {book.series && book.seriesIndex ? `${book.series} #${formatSeriesIndex(book.seriesIndex)}` : "\u00A0"}
             </p>
+            {showRating && (
+              <div className="h-[20px]">
+                {book.rating !== null && (
+                  <StarRating value={book.rating} onChange={() => {}} readOnly />
+                )}
+              </div>
+            )}
             {showStatusButton && <ReadStatusButton book={book} />}
           </div>
         </CardContent>

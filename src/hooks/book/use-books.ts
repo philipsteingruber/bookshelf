@@ -23,13 +23,12 @@ interface UseBooksReturn {
   count: number;
 }
 
-export const useBooks = (
-  options?: BookFilters & { enabled?: boolean },
-): UseBooksReturn => {
+export const useBooks = (options?: BookFilters & { enabled?: boolean }): UseBooksReturn => {
   const {
     status,
     rating,
     search,
+    unrated,
     sortBy = "title",
     sortDirection = "asc",
     limit = 50,
@@ -37,7 +36,7 @@ export const useBooks = (
     page = 1,
   } = options || {};
 
-  const hasFilters = !!(status || rating || search);
+  const hasFilters = !!(status || rating || search || unrated);
 
   const [debouncedSearch] = useDebounce(search, DEBOUNCE_INTERVAL);
 
@@ -46,15 +45,11 @@ export const useBooks = (
       status,
       rating,
       search: debouncedSearch,
-      sortBy:
-        sortBy === "title"
-          ? "titleSort"
-          : sortBy === "author"
-            ? "authorSort"
-            : sortBy,
+      sortBy: sortBy === "title" ? "titleSort" : sortBy === "author" ? "authorSort" : sortBy,
       sortDirection,
       limit,
       page,
+      unrated,
     },
     { enabled, placeholderData: (prev) => prev },
   );

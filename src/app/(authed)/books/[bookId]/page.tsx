@@ -21,24 +21,14 @@ import { StarRating } from "@/components/ui/star-rating";
 import { useBook } from "@/hooks/book";
 import { useReadingHistory } from "@/hooks/reading";
 import { useTimezone } from "@/hooks/ui";
-import {
-  aggregateByDay,
-  calculateAveragePace,
-  calculateTrendline,
-  estimateCompletion,
-} from "@/lib/reading";
+import { aggregateByDay, calculateAveragePace, calculateTrendline, estimateCompletion } from "@/lib/reading";
 import type { ChartDataPoint } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/trpc/client";
 
-const Page = ({
-  params,
-}: {
-  params: Promise<{ bookId: string }>;
-}): React.ReactElement => {
+const Page = ({ params }: { params: Promise<{ bookId: string }> }): React.ReactElement => {
   const { bookId } = use(params);
-  const { book, isPending, isForbidden, isNotFound, error, isReading } =
-    useBook(bookId);
+  const { book, isPending, isForbidden, isNotFound, error, isReading } = useBook(bookId);
   const { result: readingHistory } = useReadingHistory(parseInt(bookId));
   const timezone = useTimezone();
 
@@ -68,11 +58,8 @@ const Page = ({
   // undefined = user hasn't interacted yet; falls back to book.rating when displaying.
   // This avoids a stale-init bug: useState(book?.rating) would be null during the
   // loading phase and never re-initialize once book data arrives.
-  const [ratingOverride, setRatingOverride] = useState<
-    number | null | undefined
-  >(undefined);
-  const localRating =
-    ratingOverride !== undefined ? ratingOverride : (book?.rating ?? null);
+  const [ratingOverride, setRatingOverride] = useState<number | null | undefined>(undefined);
+  const localRating = ratingOverride !== undefined ? ratingOverride : (book?.rating ?? null);
 
   const trpcUtils = trpc.useUtils();
   const { mutate: updateRating } = trpc.book.updateRating.useMutation({
@@ -86,7 +73,7 @@ const Page = ({
     },
   });
 
-  const handleRatingChange = (newRating: number | null) => {
+  const handleRatingChange = (newRating: number | null): void => {
     if (newRating === (book?.rating ?? null)) return;
     setRatingOverride(newRating);
     updateRating({ bookId: parseInt(bookId), rating: newRating });
@@ -128,15 +115,10 @@ const Page = ({
               <span className="text-secondary align-middle">•</span>
               {book.publishedYear ? (
                 <span className="text-sm">
-                  Published{" "}
-                  <span className="text-sm font-semibold">
-                    {book.publishedYear}
-                  </span>
+                  Published <span className="text-sm font-semibold">{book.publishedYear}</span>
                 </span>
               ) : (
-                <span className="text-sm font-semibold">
-                  Unknown publishing year
-                </span>
+                <span className="text-sm font-semibold">Unknown publishing year</span>
               )}
               {(book.status === "READ" || book.status === "DNF") && (
                 <>
@@ -149,8 +131,7 @@ const Page = ({
               <div className="relative w-full lg:w-3/4">
                 <Progress value={book.progress} className="h-6 rounded-md" />
                 <span className="absolute inset-0 flex items-center justify-center text-sm text-white">
-                  {book.progress}% /{" "}
-                  {`${Math.round((book.progress / 100) * book.pageCount)}/${book.pageCount} pages`}
+                  {book.progress}% / {`${Math.round((book.progress / 100) * book.pageCount)}/${book.pageCount} pages`}
                 </span>
               </div>
             )}
@@ -170,13 +151,9 @@ const Page = ({
           </div>
         </div>
       </div>
-      {book.status !== "READ_NEXT" && book.status !== "TO_READ" && (
+      {book.status !== "READ_NEXT" && book.status !== "TO_READ" && (isReading || readingHistory.length > 0) && (
         <div className="mt-4 flex w-full flex-col items-center justify-center gap-4 px-4 lg:flex-row">
-          <ReadingProgressHistoryGraph
-            readingHistory={readingHistory}
-            className="hidden md:flex"
-            timezone={timezone}
-          />
+          <ReadingProgressHistoryGraph readingHistory={readingHistory} className="hidden md:flex" timezone={timezone} />
           <div className="flex h-auto w-full max-w-4xl flex-1 flex-col gap-4 lg:h-[368px] lg:flex-row">
             <ReadingProgressEstimateCard
               currentProgress={book.progress}
@@ -186,11 +163,7 @@ const Page = ({
               pageCount={book.pageCount}
               averagePace={averagePace}
             />
-            <ReadingProgressHistory
-              readingProgressHistory={readingHistory}
-              book={book}
-              timezone={timezone}
-            />
+            <ReadingProgressHistory readingProgressHistory={readingHistory} book={book} timezone={timezone} />
           </div>
         </div>
       )}

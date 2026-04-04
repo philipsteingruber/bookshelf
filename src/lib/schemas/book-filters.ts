@@ -14,5 +14,6 @@ export const bookFiltersSchema = z
     sortDirection: z.enum(["asc", "desc"]).optional(),
     limit: z.number().min(1).max(VALIDATION_LIMITS.BOOKS_QUERY_MAX).optional(),
     page: z.number().int().min(1).optional(),
+    unrated: z.boolean().optional(),
   })
   .optional();
