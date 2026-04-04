@@ -14,28 +14,14 @@ import { trpc } from "@/trpc/client";
 
 import { Button } from "../ui/button";
 import { Card, CardContent } from "../ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  DialogTrigger,
-} from "../ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "../ui/dialog";
 import { Progress } from "../ui/progress";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 
-const ReadingProgressCard = ({
-  book,
-  className,
-}: {
-  book: Book;
-  className?: string;
-}): React.ReactElement => {
+const ReadingProgressCard = ({ book, className }: { book: Book; className?: string }): React.ReactElement => {
   const { imageError, handleImageError } = useImageError(book.coverUrl);
   const coverUrl = book.coverUrl || BOOK_COVER_PLACEHOLDER_URL;
-  const {
-    isOpen: readingProgressDialogOpen,
-    setIsOpen: setReadingProgressDialogOpen,
-  } = useDialogState();
+  const { isOpen: readingProgressDialogOpen, setIsOpen: setReadingProgressDialogOpen } = useDialogState();
 
   const utils = trpc.useUtils();
   const handleMouseEnter = (): void => {
@@ -49,16 +35,13 @@ const ReadingProgressCard = ({
 
   return (
     <Card
-      className={cn(
-        "hover:bg-card/80 h-48 overflow-hidden rounded-md py-0",
-        className,
-      )}
+      className={cn("hover:bg-card/80 h-48 overflow-hidden rounded-md py-0", className)}
       onMouseEnter={handleMouseEnter}
     >
       <CardContent className="flex h-full w-full p-0">
         <div className="relative aspect-2/3 h-full shrink-0 bg-linear-to-br from-gray-100 to-gray-200">
           {imageError ? (
-            <BookCoverFallback size="sm" book={book} />
+            <BookCoverFallback size="sm" title={book.title} />
           ) : (
             <Link href={`/books/${book.id}`}>
               <Image
@@ -76,18 +59,11 @@ const ReadingProgressCard = ({
           )}
         </div>
         <div className="relative flex w-full min-w-0 flex-1 gap-x-2 p-1">
-          <Link
-            href={`/books/${book.id}`}
-            className="flex w-full min-w-0 flex-1"
-          >
+          <Link href={`/books/${book.id}`} className="flex w-full min-w-0 flex-1">
             <div className="flex w-full min-w-0 flex-col justify-center gap-y-1 px-2">
               <div className="flex w-full min-w-0 flex-col gap-y-1">
-                <span className="w-full truncate font-semibold">
-                  {book.title}
-                </span>
-                <span className="w-full truncate font-serif">
-                  {book.author}
-                </span>
+                <span className="w-full truncate font-semibold">{book.title}</span>
+                <span className="w-full truncate font-serif">{book.author}</span>
               </div>
               <div className="flex w-full items-center gap-x-2">
                 <span className="text-sm">{book.progress}%</span>
@@ -98,10 +74,7 @@ const ReadingProgressCard = ({
           <div className="flex items-end pb-0">
             <Tooltip>
               <TooltipTrigger asChild>
-                <Dialog
-                  open={readingProgressDialogOpen}
-                  onOpenChange={setReadingProgressDialogOpen}
-                >
+                <Dialog open={readingProgressDialogOpen} onOpenChange={setReadingProgressDialogOpen}>
                   <DialogTrigger asChild>
                     <Button
                       variant={"ghost"}
@@ -112,8 +85,7 @@ const ReadingProgressCard = ({
                   </DialogTrigger>
                   <DialogContent className="flex flex-col items-center">
                     <DialogTitle className="flex items-center gap-x-1">
-                      Update reading progress for{" "}
-                      <span className="italic">{book.title}</span>
+                      Update reading progress for <span className="italic">{book.title}</span>
                     </DialogTitle>
                   </DialogContent>
                 </Dialog>

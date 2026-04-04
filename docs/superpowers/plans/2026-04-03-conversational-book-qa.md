@@ -31,10 +31,12 @@
 **Files:**
 
 - Modify: `src/components/books/book-cover-fallback.tsx`
+
 - Modify: `src/components/books/book-card.tsx`
+
 - Modify: `src/components/books/book-details/book-details-cover.tsx`
 
-- [ ] **Step 1: Update `BookCoverFallback` component**
+- [x] **Step 1: Update `BookCoverFallback` component**
 
 Replace the entire file content:
 
@@ -102,7 +104,7 @@ const BookCoverFallback = ({
 export default BookCoverFallback;
 ```
 
-- [ ] **Step 2: Update `BookCard` caller**
+- [x] **Step 2: Update `BookCard` caller**
 
 In `src/components/books/book-card.tsx`, change:
 
@@ -114,7 +116,7 @@ In `src/components/books/book-card.tsx`, change:
 <BookCoverFallback size="md" title={book.title} />
 ```
 
-- [ ] **Step 3: Update `BookDetailsCover` caller**
+- [x] **Step 3: Update `BookDetailsCover` caller**
 
 In `src/components/books/book-details/book-details-cover.tsx`, change:
 
@@ -126,7 +128,7 @@ In `src/components/books/book-details/book-details-cover.tsx`, change:
 <BookCoverFallback size="lg" title={book.title} />
 ```
 
-- [ ] **Step 4: Verify no TypeScript errors**
+- [x] **Step 4: Verify no TypeScript errors**
 
 ```bash
 pnpm tsc --noEmit
@@ -134,7 +136,7 @@ pnpm tsc --noEmit
 
 Expected: no errors.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/components/books/book-cover-fallback.tsx src/components/books/book-card.tsx src/components/books/book-details/book-details-cover.tsx
@@ -148,6 +150,7 @@ git commit -m "refactor(book-cover-fallback): accept title string instead of ful
 **Files:**
 
 - Modify: `src/components/recommendations/recommendation-card.tsx`
+
 - Modify: `src/components/recommendations/recommendation-card.test.tsx`
 
 - [ ] **Step 1: Write failing tests**
@@ -312,9 +315,7 @@ export const RecommendationCard = ({ book }: RecommendationCardProps) => {
             aria-hidden
             data-testid="badge-placeholder"
             className="invisible self-start rounded border px-1.5 py-0.5 text-[0.65rem]"
-          >
-            &nbsp;
-          </span>
+          ></span>
         )}
         <Link
           href={goodreadsUrl}
@@ -359,7 +360,9 @@ git commit -m "feat(recommendation-card): support optional type, blue conversati
 **Files:**
 
 - Modify: `src/lib/constants.ts`
+
 - Modify: `src/trpc/routers/recommendations.ts`
+
 - Modify: `src/trpc/routers/recommendations.test.tsx`
 
 - [ ] **Step 1: Add `CLASSIFICATION_MODEL` constant**
