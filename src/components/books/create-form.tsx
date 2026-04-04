@@ -12,7 +12,7 @@ import CoverDropzone from "@/components/books/create-form/form-sections/cover-dr
 import GoodreadsImportPanel from "@/components/books/create-form/goodreads-import-panel";
 import { useUploadThing } from "@/components/uploadthing";
 import { handleTRPCError, handleUploadError } from "@/lib/common";
-import { createFormSchema } from "@/lib/schemas/book";
+import { createBookInputSchema } from "@/lib/schemas/book";
 import type { ScrapeData } from "@/lib/types";
 import { trpc } from "@/trpc/client";
 
@@ -31,6 +31,7 @@ import { Spinner } from "../ui/spinner";
 
 import { BasicInfoSection } from "./create-form/form-sections/basic-info-section";
 import { OptionalInfoSection } from "./create-form/form-sections/optional-info-section";
+import { ReadingHistorySection } from "./create-form/form-sections/reading-history-section";
 
 const CreateBookForm = (): React.ReactElement => {
   const [pendingCoverFile, setPendingCoverFile] = useState<File | null>(null);
@@ -43,8 +44,8 @@ const CreateBookForm = (): React.ReactElement => {
     },
   });
 
-  const form = useForm<z.infer<typeof createFormSchema>>({
-    resolver: zodResolver(createFormSchema),
+  const form = useForm<z.infer<typeof createBookInputSchema>>({
+    resolver: zodResolver(createBookInputSchema),
     defaultValues: {
       title: "",
       author: "",
@@ -55,6 +56,10 @@ const CreateBookForm = (): React.ReactElement => {
       series: "",
       seriesIndex: undefined,
       coverUrl: "",
+      alreadyRead: false,
+      finishedAt: undefined,
+      startedAt: undefined,
+      rating: undefined,
     },
   });
 
@@ -97,7 +102,7 @@ const CreateBookForm = (): React.ReactElement => {
     });
 
   const onSubmit = async (
-    data: z.infer<typeof createFormSchema>,
+    data: z.infer<typeof createBookInputSchema>,
   ): Promise<void> => {
     let coverUrl = data.coverUrl;
 
@@ -141,6 +146,11 @@ const CreateBookForm = (): React.ReactElement => {
           />
           <Separator className="my-4" />
           <OptionalInfoSection
+            form={form}
+            disabled={isUploading || isCreatingBook}
+          />
+          <Separator className="my-4" />
+          <ReadingHistorySection
             form={form}
             disabled={isUploading || isCreatingBook}
           />
