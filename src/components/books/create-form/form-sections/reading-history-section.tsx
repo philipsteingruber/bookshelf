@@ -2,7 +2,7 @@
 
 import { format } from "date-fns";
 import type { UseFormReturn } from "react-hook-form";
-import { Controller } from "react-hook-form";
+import { Controller, useWatch } from "react-hook-form";
 import type z from "zod";
 
 import { Checkbox } from "@/components/ui/checkbox";
@@ -21,9 +21,12 @@ export const ReadingHistorySection = ({
   form,
   disabled = false,
 }: ReadingHistorySectionProps): React.ReactElement => {
-  const alreadyRead = form.watch("alreadyRead");
+  const alreadyRead = useWatch({ control: form.control, name: "alreadyRead" });
   const today = format(new Date(), "yyyy-MM-dd");
-  const finishedAtValue = form.watch("finishedAt");
+  const finishedAtValue = useWatch({
+    control: form.control,
+    name: "finishedAt",
+  });
   const startedAtMax = finishedAtValue
     ? format(finishedAtValue, "yyyy-MM-dd")
     : today;
