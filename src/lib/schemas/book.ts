@@ -53,3 +53,37 @@ export const createFormSchema = z.object({
   summary: z.string().max(VALIDATION_LIMITS.SUMMARY_MAX_LENGTH).optional(),
   coverUrl: z.url().optional().or(z.literal("")),
 });
+
+export const createBookInputSchema = createFormSchema
+  .extend({
+    alreadyRead: z.boolean().optional(),
+    finishedAt: z.date().optional(),
+    startedAt: z.date().optional(),
+    rating: z.number().int().min(1).max(5).optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.alreadyRead) {
+      if (!data.finishedAt) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Finished date is required",
+          path: ["finishedAt"],
+        });
+        return;
+      }
+      if (data.finishedAt > new Date()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Finished date cannot be in the future",
+          path: ["finishedAt"],
+        });
+      }
+      if (data.startedAt && data.startedAt > data.finishedAt) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Started date must be before the finished date",
+          path: ["startedAt"],
+        });
+      }
+    }
+  });
