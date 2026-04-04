@@ -121,12 +121,13 @@ const ANSWER_TOOL: Anthropic.Tool = {
 
 // --- Zod schemas ---
 
-const recommendedBookSchema = z.object({
+const bookBaseSchema = z.object({
   title: z.string(),
   author: z.string(),
   reason: z.string(),
-  type: z.enum(["safe", "standard", "stretch", "risky"]),
 });
+
+const recommendedBookSchema = bookBaseSchema.extend({ type: z.enum(["safe", "standard", "stretch", "risky"]) });
 
 const claudeRecommendOutputSchema = z.object({
   blurb: z.string(),
@@ -135,16 +136,7 @@ const claudeRecommendOutputSchema = z.object({
 
 const claudeAnswerOutputSchema = z.object({
   text: z.string(),
-  books: z
-    .array(
-      z.object({
-        title: z.string(),
-        author: z.string(),
-        reason: z.string(),
-      }),
-    )
-    .max(3)
-    .default([]),
+  books: z.array(bookBaseSchema).max(3).default([]),
 });
 
 const claudeClassifyOutputSchema = z.object({
@@ -219,6 +211,7 @@ const classifyIntent = async (prompt: string, logger: Logger): Promise<"recommen
 
     return parsed.data.intent;
   } catch (error) {
+    if (error instanceof TRPCError) throw error;
     logger.error({ error }, "Failed to classify intent");
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
@@ -355,15 +348,11 @@ export const recommendationsRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       ctx.logger.debug({ includeHistory: input.includeHistory }, "Processing chat message");
 
-      // Step 1: Classify intent
-      const intent = await classifyIntent(input.prompt, ctx.logger);
-      ctx.logger.debug({ intent }, "Intent classified");
-
-      // Step 2: Fetch reading history (needed for both paths)
-      const fetchHistoryTimer = performanceLogger("DB: Fetch reading history", 1000, ctx.logger);
+      const fetchHistoryTimer = performanceLogger("DB: Fetch reading history and classify intent", 1000, ctx.logger);
       fetchHistoryTimer.start();
 
-      const [readBooks, allBooks] = await Promise.all([
+      const [intent, readBooks, allBooks] = await Promise.all([
+        classifyIntent(input.prompt, ctx.logger),
         ctx.db.book.findMany({
           where: {
             userId: ctx.currentUser.id,
@@ -393,7 +382,6 @@ export const recommendationsRouter = createTRPCRouter({
         { role: "user", content: userMessage },
       ];
 
-      // Step 3: Route to recommendation or answer path
       if (intent === "recommendation") {
         let claudeResponse = await callRecommendations(conversationMessages, ctx.logger);
         let parsed = parseRecommendResponse(claudeResponse, ctx.logger);

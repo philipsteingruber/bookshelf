@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { RedirectToSignIn, useAuth } from "@clerk/nextjs";
 import { RotateCcwIcon, SendIcon } from "lucide-react";
-import { toast } from "sonner";
 
 import type { RecommendationBook } from "@/components/recommendations/recommendation-card";
 import { RecommendationCard } from "@/components/recommendations/recommendation-card";
@@ -22,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { assertNever } from "@/lib/utils";
 import { trpc } from "@/trpc/client";
 
 // --- Types ---
@@ -63,7 +63,10 @@ const GENERIC_ERROR_MESSAGE = "Something went wrong. Please try again.";
  */
 function serializeForClaude(messages: ConversationMessage[]): { role: "user" | "assistant"; content: string }[] {
   return messages
-    .filter((m) => !(m.role === "assistant" && m.type === "error"))
+    .filter(
+      (m): m is Exclude<ConversationMessage, { role: "assistant"; type: "error" }> =>
+        !(m.role === "assistant" && m.type === "error"),
+    )
     .map((m) => {
       if (m.role === "user") return { role: "user", content: m.content };
       if (m.type === "recommendations") {
@@ -80,8 +83,10 @@ function serializeForClaude(messages: ConversationMessage[]): { role: "user" | "
           }),
         };
       }
-      // type === "answer"
-      return { role: "assistant", content: m.text };
+      if (m.type === "answer") {
+        return { role: "assistant", content: m.text };
+      }
+      return assertNever(m);
     });
 }
 
@@ -183,7 +188,6 @@ const Page = (): React.ReactElement => {
     onError: (error) => {
       const text =
         error.message === "intent_classification_failed" ? CLASSIFICATION_ERROR_MESSAGE : GENERIC_ERROR_MESSAGE;
-      toast.error(text);
       setMessages((prev) => [...prev, { id: crypto.randomUUID(), role: "assistant", type: "error", text }]);
     },
   });

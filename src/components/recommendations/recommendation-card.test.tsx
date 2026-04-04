@@ -18,7 +18,7 @@ const makeBook = (
 
 describe("RecommendationCard", () => {
   it("renders title as a Goodreads search link opening in new tab", () => {
-    render(<RecommendationCard book={makeBook()} />);
+    render(<RecommendationCard recommendation={makeBook()} />);
     const link = screen.getByRole("link", { name: "The Name of the Wind" });
     expect(link).toHaveAttribute(
       "href",
@@ -28,22 +28,22 @@ describe("RecommendationCard", () => {
   });
 
   it("renders author name", () => {
-    render(<RecommendationCard book={makeBook()} />);
+    render(<RecommendationCard recommendation={makeBook()} />);
     expect(screen.getByText("Patrick Rothfuss")).toBeInTheDocument();
   });
 
   it("renders page count when provided", () => {
-    render(<RecommendationCard book={makeBook({ pageCount: 662 })} />);
+    render(<RecommendationCard recommendation={makeBook({ pageCount: 662 })} />);
     expect(screen.getByText("662 pages")).toBeInTheDocument();
   });
 
   it("omits page count when null", () => {
-    render(<RecommendationCard book={makeBook({ pageCount: null })} />);
+    render(<RecommendationCard recommendation={makeBook({ pageCount: null })} />);
     expect(screen.queryByText(/pages/)).not.toBeInTheDocument();
   });
 
   it("renders reason text", () => {
-    render(<RecommendationCard book={makeBook()} />);
+    render(<RecommendationCard recommendation={makeBook()} />);
     expect(
       screen.getByText(
         "A lyrical coming-of-age with a brilliant magic system.",
@@ -52,29 +52,29 @@ describe("RecommendationCard", () => {
   });
 
   it("renders 'Safe pick' badge for safe type", () => {
-    render(<RecommendationCard book={makeBook({ type: "safe" })} />);
+    render(<RecommendationCard recommendation={makeBook({ type: "safe" })} />);
     expect(screen.getByText("Safe pick")).toBeInTheDocument();
   });
 
   it("renders 'Stretch pick' badge for stretch type", () => {
-    render(<RecommendationCard book={makeBook({ type: "stretch" })} />);
+    render(<RecommendationCard recommendation={makeBook({ type: "stretch" })} />);
     expect(screen.getByText("Stretch pick")).toBeInTheDocument();
   });
 
   it("renders 'Risky pick' badge for risky type", () => {
-    render(<RecommendationCard book={makeBook({ type: "risky" })} />);
+    render(<RecommendationCard recommendation={makeBook({ type: "risky" })} />);
     expect(screen.getByText("Risky pick")).toBeInTheDocument();
   });
 
   it("renders no badge for standard type", () => {
-    render(<RecommendationCard book={makeBook({ type: "standard" })} />);
+    render(<RecommendationCard recommendation={makeBook({ type: "standard" })} />);
     expect(screen.queryByText(/pick/i)).not.toBeInTheDocument();
   });
 
   it("renders cover image with alt text when coverUrl provided", () => {
     render(
       <RecommendationCard
-        book={makeBook({ coverUrl: "https://example.com/cover.jpg" })}
+        recommendation={makeBook({ coverUrl: "https://example.com/cover.jpg" })}
       />,
     );
     const img = screen.getByAltText("Cover of The Name of the Wind");
@@ -85,7 +85,7 @@ describe("RecommendationCard", () => {
   });
 
   it("renders placeholder when coverUrl is null (no cover image)", () => {
-    render(<RecommendationCard book={makeBook({ coverUrl: null })} />);
+    render(<RecommendationCard recommendation={makeBook({ coverUrl: null })} />);
     expect(
       screen.queryByAltText("Cover of The Name of the Wind"),
     ).not.toBeInTheDocument();
