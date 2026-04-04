@@ -365,7 +365,7 @@ git commit -m "feat(recommendation-card): support optional type, blue conversati
 
 - Modify: `src/trpc/routers/recommendations.test.tsx`
 
-- [ ] **Step 1: Add `CLASSIFICATION_MODEL` constant**
+- [x] **Step 1: Add `CLASSIFICATION_MODEL` constant**
 
 In `src/lib/constants.ts`, add after `RECOMMENDATIONS_MODEL`:
 
@@ -704,7 +704,7 @@ describe("recommendationsRouter", () => {
 });
 ```
 
-- [ ] **Step 3: Run tests to verify they fail**
+- [x] **Step 3: Run tests to verify they fail**
 
 ```bash
 pnpm vitest run src/trpc/routers/recommendations.test.tsx
@@ -712,7 +712,7 @@ pnpm vitest run src/trpc/routers/recommendations.test.tsx
 
 Expected: all tests fail (procedure `chat` does not exist yet).
 
-- [ ] **Step 4: Replace `recommendations.ts` with full implementation**
+- [x] **Step 4: Replace `recommendations.ts` with full implementation**
 
 Replace the entire file content:
 
@@ -1178,7 +1178,7 @@ export const recommendationsRouter = createTRPCRouter({
 });
 ```
 
-- [ ] **Step 5: Run tests to verify they pass**
+- [x] **Step 5: Run tests to verify they pass**
 
 ```bash
 pnpm vitest run src/trpc/routers/recommendations.test.tsx

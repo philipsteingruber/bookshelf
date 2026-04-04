@@ -30,13 +30,35 @@ const DEFAULT_BOOKS = [
   { title: "Book E", author: "Author E", reason: "Reason E", type: "risky" },
 ];
 
-const makeClaudeResponse = (books = DEFAULT_BOOKS) => ({
+const makeClassifyResponse = (intent: "recommendation" | "question") => ({
   content: [
     {
       type: "tool_use",
-      id: "tu_test",
+      id: "tu_classify",
+      name: "classify_intent",
+      input: { intent },
+    },
+  ],
+});
+
+const makeRecommendResponse = (books = DEFAULT_BOOKS) => ({
+  content: [
+    {
+      type: "tool_use",
+      id: "tu_recommend",
       name: "recommend_books",
       input: { blurb: "Here are 5 picks.", books },
+    },
+  ],
+});
+
+const makeAnswerResponse = (text: string, books: { title: string; author: string; reason: string }[] = []) => ({
+  content: [
+    {
+      type: "tool_use",
+      id: "tu_answer",
+      name: "answer_question",
+      input: { text, books },
     },
   ],
 });
@@ -63,30 +85,32 @@ const makeFetchResponse = (json: unknown) => ({
 // --- Tests ---
 
 describe("recommendationsRouter", () => {
-  describe("getRecommendations", () => {
+  describe("chat", () => {
     let mockDb: PrismaClient;
 
     beforeEach(() => {
       vi.clearAllMocks();
       mockDb = createMockDb();
       vi.mocked(mockDb.book.findMany).mockResolvedValue([]);
-      mockFetch.mockResolvedValue(
-        makeFetchResponse(
-          makeGoogleBooksJson("http://books.google.com/cover.jpg", 300),
-        ),
-      );
+      mockFetch.mockResolvedValue(makeFetchResponse(makeGoogleBooksJson("http://books.google.com/cover.jpg", 300)));
     });
 
-    it("should return blurb and 5 enriched books", async () => {
-      const { caller } = createMockCaller(recommendationsRouter, { mockDb });
-      mockMessagesCreate.mockResolvedValue(makeClaudeResponse());
+    // --- Recommendation path ---
 
-      const result = await caller.getRecommendations({
+    it("routes to recommendation path and returns 5 enriched books", async () => {
+      const { caller } = createMockCaller(recommendationsRouter, { mockDb });
+      mockMessagesCreate
+        .mockResolvedValueOnce(makeClassifyResponse("recommendation"))
+        .mockResolvedValueOnce(makeRecommendResponse());
+
+      const result = await caller.chat({
         prompt: "Recommend me a fantasy book",
         includeHistory: false,
         priorMessages: [],
       });
 
+      expect(result.type).toBe("recommendations");
+      if (result.type !== "recommendations") return;
       expect(result.blurb).toBe("Here are 5 picks.");
       expect(result.books).toHaveLength(5);
       expect(result.books[0].title).toBe("Book A");
@@ -94,9 +118,11 @@ describe("recommendationsRouter", () => {
       expect(result.retried).toBe(false);
     });
 
-    it("should include reading history context when includeHistory is true", async () => {
+    it("includes reading history in recommendation path when includeHistory is true", async () => {
       const { caller } = createMockCaller(recommendationsRouter, { mockDb });
-      mockMessagesCreate.mockResolvedValue(makeClaudeResponse());
+      mockMessagesCreate
+        .mockResolvedValueOnce(makeClassifyResponse("recommendation"))
+        .mockResolvedValueOnce(makeRecommendResponse());
 
       const readBook = createFakeBook({
         title: "The Way of Kings",
@@ -109,122 +135,23 @@ describe("recommendationsRouter", () => {
         .mockResolvedValueOnce([readBook]) // readBooks
         .mockResolvedValueOnce([readBook]); // allBooks
 
-      await caller.getRecommendations({
+      await caller.chat({
         prompt: "I like epic fantasy",
         includeHistory: true,
         priorMessages: [],
       });
 
-      const calledWith = mockMessagesCreate.mock.calls[0][0];
-      const lastMessage = calledWith.messages[calledWith.messages.length - 1];
+      // Second call is the recommendation call — check its messages
+      const recommendCall = mockMessagesCreate.mock.calls[1][0];
+      const lastMessage = recommendCall.messages[recommendCall.messages.length - 1];
       expect(lastMessage.content).toContain("My reading history");
       expect(lastMessage.content).toContain("The Way of Kings");
       expect(lastMessage.content).toContain("★★★★★");
     });
 
-    it("should not include reading history when includeHistory is false", async () => {
-      const { caller } = createMockCaller(recommendationsRouter, { mockDb });
-      mockMessagesCreate.mockResolvedValue(makeClaudeResponse());
-
-      await caller.getRecommendations({
-        prompt: "Just give me something good",
-        includeHistory: false,
-        priorMessages: [],
-      });
-
-      const calledWith = mockMessagesCreate.mock.calls[0][0];
-      const lastMessage = calledWith.messages[calledWith.messages.length - 1];
-      expect(lastMessage.content).toContain("Just give me something good");
-      expect(lastMessage.content).not.toContain("My reading history");
-    });
-
-    it("should rewrite Google Books http thumbnail URL to https", async () => {
-      const { caller } = createMockCaller(recommendationsRouter, { mockDb });
-      mockMessagesCreate.mockResolvedValue(makeClaudeResponse());
-      mockFetch.mockResolvedValue(
-        makeFetchResponse(
-          makeGoogleBooksJson("http://books.google.com/cover.jpg", 250),
-        ),
-      );
-
-      const result = await caller.getRecommendations({
-        prompt: "Fantasy books",
-        includeHistory: false,
-        priorMessages: [],
-      });
-
-      expect(result.books[0].coverUrl).toBe(
-        "https://books.google.com/cover.jpg&fife=w400",
-      );
-      expect(result.books[0].pageCount).toBe(250);
-    });
-
-    it("should return null coverUrl and pageCount when Google Books returns no items", async () => {
-      const { caller } = createMockCaller(recommendationsRouter, { mockDb });
-      mockMessagesCreate.mockResolvedValue(makeClaudeResponse());
-      mockFetch.mockResolvedValue(makeFetchResponse({ items: [] }));
-
-      const result = await caller.getRecommendations({
-        prompt: "Fantasy",
-        includeHistory: false,
-        priorMessages: [],
-      });
-
-      expect(result.books[0].coverUrl).toBeNull();
-      expect(result.books[0].pageCount).toBeNull();
-    });
-
-    it("should return null coverUrl and pageCount when Google Books fetch throws", async () => {
-      const { caller } = createMockCaller(recommendationsRouter, { mockDb });
-      mockMessagesCreate.mockResolvedValue(makeClaudeResponse());
-      mockFetch.mockRejectedValue(new Error("Network error"));
-
-      const result = await caller.getRecommendations({
-        prompt: "Fantasy",
-        includeHistory: false,
-        priorMessages: [],
-      });
-
-      expect(result.books[0].coverUrl).toBeNull();
-      expect(result.books[0].pageCount).toBeNull();
-    });
-
-    it("should throw INTERNAL_SERVER_ERROR when Claude API throws", async () => {
-      const { caller } = createMockCaller(recommendationsRouter, { mockDb });
-      mockMessagesCreate.mockRejectedValue(new Error("Anthropic API error"));
-
-      await expect(
-        caller.getRecommendations({
-          prompt: "Fantasy",
-          includeHistory: false,
-          priorMessages: [],
-        }),
-      ).rejects.toMatchObject({ code: "INTERNAL_SERVER_ERROR" });
-    });
-
-    it("should include priorMessages in the Claude call", async () => {
-      const { caller } = createMockCaller(recommendationsRouter, { mockDb });
-      mockMessagesCreate.mockResolvedValue(makeClaudeResponse());
-
-      await caller.getRecommendations({
-        prompt: "More like the first one",
-        includeHistory: false,
-        priorMessages: [
-          { role: "user", content: "Give me fantasy" },
-          { role: "assistant", content: '{"blurb":"Great picks","books":[]}' },
-        ],
-      });
-
-      const calledWith = mockMessagesCreate.mock.calls[0][0];
-      expect(calledWith.messages).toHaveLength(3); // 2 prior + 1 new
-      expect(calledWith.messages[0].role).toBe("user");
-      expect(calledWith.messages[1].role).toBe("assistant");
-    });
-
-    it("should retry when a recommended book is already in the library", async () => {
+    it("retries when a recommended book is already in the library", async () => {
       const { caller } = createMockCaller(recommendationsRouter, { mockDb });
 
-      // "Book A" is in the user's library
       vi.mocked(mockDb.book.findMany)
         .mockResolvedValueOnce([]) // readBooks
         .mockResolvedValueOnce([createFakeBook({ title: "Book A", author: "Author A" })]); // allBooks
@@ -235,18 +162,163 @@ describe("recommendationsRouter", () => {
       ];
 
       mockMessagesCreate
-        .mockResolvedValueOnce(makeClaudeResponse()) // first call returns "Book A" — a duplicate
-        .mockResolvedValueOnce(makeClaudeResponse(replacementBooks)); // retry replaces it
+        .mockResolvedValueOnce(makeClassifyResponse("recommendation"))
+        .mockResolvedValueOnce(makeRecommendResponse()) // first attempt — returns "Book A"
+        .mockResolvedValueOnce(makeRecommendResponse(replacementBooks)); // retry
 
-      const result = await caller.getRecommendations({
+      const result = await caller.chat({
         prompt: "Recommend me a book",
         includeHistory: false,
         priorMessages: [],
       });
 
-      expect(mockMessagesCreate).toHaveBeenCalledTimes(2);
+      expect(result.type).toBe("recommendations");
+      if (result.type !== "recommendations") return;
       expect(result.retried).toBe(true);
       expect(result.books[0].title).toBe("Book F");
+    });
+
+    it("enriches recommendation books with Google Books data", async () => {
+      const { caller } = createMockCaller(recommendationsRouter, { mockDb });
+      mockMessagesCreate
+        .mockResolvedValueOnce(makeClassifyResponse("recommendation"))
+        .mockResolvedValueOnce(makeRecommendResponse());
+      mockFetch.mockResolvedValue(makeFetchResponse(makeGoogleBooksJson("http://books.google.com/cover.jpg", 250)));
+
+      const result = await caller.chat({
+        prompt: "Fantasy books",
+        includeHistory: false,
+        priorMessages: [],
+      });
+
+      if (result.type !== "recommendations") return;
+      expect(result.books[0].coverUrl).toBe("https://books.google.com/cover.jpg&fife=w400");
+      expect(result.books[0].pageCount).toBe(250);
+    });
+
+    // --- Question path ---
+
+    it("routes to answer path and returns text with no books", async () => {
+      const { caller } = createMockCaller(recommendationsRouter, { mockDb });
+      mockMessagesCreate
+        .mockResolvedValueOnce(makeClassifyResponse("question"))
+        .mockResolvedValueOnce(makeAnswerResponse("That's a great question about the series."));
+
+      const result = await caller.chat({
+        prompt: "Why did you pick Book A?",
+        includeHistory: false,
+        priorMessages: [],
+      });
+
+      expect(result.type).toBe("answer");
+      if (result.type !== "answer") return;
+      expect(result.text).toBe("That's a great question about the series.");
+      expect(result.books).toHaveLength(0);
+    });
+
+    it("routes to answer path and returns text with 1-3 enriched books", async () => {
+      const { caller } = createMockCaller(recommendationsRouter, { mockDb });
+      mockMessagesCreate
+        .mockResolvedValueOnce(makeClassifyResponse("question"))
+        .mockResolvedValueOnce(
+          makeAnswerResponse("The next book in the series is Book X.", [
+            { title: "Book X", author: "Author X", reason: "Next in series" },
+          ]),
+        );
+
+      const result = await caller.chat({
+        prompt: "What's next in the series?",
+        includeHistory: false,
+        priorMessages: [],
+      });
+
+      expect(result.type).toBe("answer");
+      if (result.type !== "answer") return;
+      expect(result.text).toBe("The next book in the series is Book X.");
+      expect(result.books).toHaveLength(1);
+      expect(result.books[0].title).toBe("Book X");
+      expect(result.books[0].coverUrl).toBe("https://books.google.com/cover.jpg&fife=w400");
+    });
+
+    it("includes reading history in answer path when includeHistory is true", async () => {
+      const { caller } = createMockCaller(recommendationsRouter, { mockDb });
+      mockMessagesCreate
+        .mockResolvedValueOnce(makeClassifyResponse("question"))
+        .mockResolvedValueOnce(makeAnswerResponse("Based on your tastes, yes."));
+
+      const readBook = createFakeBook({
+        title: "Dune",
+        author: "Frank Herbert",
+        status: "READ",
+        rating: 4,
+      });
+
+      vi.mocked(mockDb.book.findMany)
+        .mockResolvedValueOnce([readBook]) // readBooks
+        .mockResolvedValueOnce([readBook]); // allBooks
+
+      await caller.chat({
+        prompt: "Does this fit my tastes?",
+        includeHistory: true,
+        priorMessages: [],
+      });
+
+      // Second call is the answer call — check its messages
+      const answerCall = mockMessagesCreate.mock.calls[1][0];
+      const lastMessage = answerCall.messages[answerCall.messages.length - 1];
+      expect(lastMessage.content).toContain("My reading history");
+      expect(lastMessage.content).toContain("Dune");
+    });
+
+    // --- Error paths ---
+
+    it("throws INTERNAL_SERVER_ERROR when classification call fails", async () => {
+      const { caller } = createMockCaller(recommendationsRouter, { mockDb });
+      mockMessagesCreate.mockRejectedValueOnce(new Error("Anthropic API error"));
+
+      await expect(
+        caller.chat({
+          prompt: "Recommend something",
+          includeHistory: false,
+          priorMessages: [],
+        }),
+      ).rejects.toMatchObject({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "intent_classification_failed",
+      });
+    });
+
+    it("throws INTERNAL_SERVER_ERROR when generation call fails", async () => {
+      const { caller } = createMockCaller(recommendationsRouter, { mockDb });
+      mockMessagesCreate
+        .mockResolvedValueOnce(makeClassifyResponse("recommendation"))
+        .mockRejectedValueOnce(new Error("Anthropic API error"));
+
+      await expect(
+        caller.chat({
+          prompt: "Recommend something",
+          includeHistory: false,
+          priorMessages: [],
+        }),
+      ).rejects.toMatchObject({ code: "INTERNAL_SERVER_ERROR" });
+    });
+
+    it("returns null coverUrl and pageCount when Google Books fetch throws", async () => {
+      const { caller } = createMockCaller(recommendationsRouter, { mockDb });
+      mockMessagesCreate
+        .mockResolvedValueOnce(makeClassifyResponse("recommendation"))
+        .mockResolvedValueOnce(makeRecommendResponse());
+      mockFetch.mockRejectedValue(new Error("Network error"));
+
+      const result = await caller.chat({
+        prompt: "Fantasy",
+        includeHistory: false,
+        priorMessages: [],
+      });
+
+      if (result.type !== "recommendations") return;
+      expect(result.books[0].coverUrl).toBeNull();
+      expect(result.books[0].pageCount).toBeNull();
     });
   });
 });
