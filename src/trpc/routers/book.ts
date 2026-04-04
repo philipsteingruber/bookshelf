@@ -12,7 +12,7 @@ import { createAuthorSort, createTitleSort } from "@/lib/book";
 import { extractFileKeyFromUrl } from "@/lib/common";
 import { performanceLogger } from "@/lib/common/logger";
 import { VALIDATION_LIMITS } from "@/lib/constants";
-import { createFormSchema } from "@/lib/schemas/book";
+import { createBookInputSchema, createFormSchema } from "@/lib/schemas/book";
 import { bookFiltersSchema } from "@/lib/schemas/book-filters";
 
 import { authedProcedure, createTRPCRouter } from "../init";
@@ -127,7 +127,7 @@ export const bookRouter = createTRPCRouter({
       return { book };
     }),
   createBook: authedProcedure
-    .input(createFormSchema)
+    .input(createBookInputSchema)
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.currentUser.id;
 
@@ -214,6 +214,16 @@ export const bookRouter = createTRPCRouter({
         }
       }
 
+      const alreadyReadData = input.alreadyRead
+        ? {
+            status: "READ" as const,
+            progress: 100,
+            finishedAt: input.finishedAt,
+            startedAt: input.startedAt ?? null,
+            rating: input.rating ?? null,
+          }
+        : {};
+
       const createBookTimer = performanceLogger(
         "DB: Create book",
         1000,
@@ -234,6 +244,7 @@ export const bookRouter = createTRPCRouter({
           summary: input.summary,
           coverUrl: input.coverUrl,
           userId,
+          ...alreadyReadData,
         },
       });
       createBookTimer.end({ bookId: book.id });
