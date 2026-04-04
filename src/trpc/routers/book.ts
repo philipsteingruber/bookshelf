@@ -4,10 +4,7 @@ import { UTApi } from "uploadthing/server";
 import z from "zod";
 
 import { ReadStatus } from "@/generated/prisma/enums";
-import {
-  type BookOrderByWithRelationInput,
-  type BookWhereInput,
-} from "@/generated/prisma/internal/prismaNamespace";
+import { type BookOrderByWithRelationInput, type BookWhereInput } from "@/generated/prisma/internal/prismaNamespace";
 import { createAuthorSort, createTitleSort } from "@/lib/book";
 import { extractFileKeyFromUrl } from "@/lib/common";
 import { performanceLogger } from "@/lib/common/logger";
@@ -18,248 +15,220 @@ import { bookFiltersSchema } from "@/lib/schemas/book-filters";
 import { authedProcedure, createTRPCRouter } from "../init";
 
 export const bookRouter = createTRPCRouter({
-  getBooks: authedProcedure
-    .input(bookFiltersSchema)
-    .query(async ({ ctx, input: filters }) => {
-      const userId = ctx.currentUser.id;
+  getBooks: authedProcedure.input(bookFiltersSchema).query(async ({ ctx, input: filters }) => {
+    const userId = ctx.currentUser.id;
 
-      ctx.logger.debug(filters, "Querying books with filters");
+    ctx.logger.debug(filters, "Querying books with filters");
 
-      const where: BookWhereInput = { userId };
+    const where: BookWhereInput = { userId };
 
-      if (filters?.status) {
-        where.status = filters.status;
-      }
-      if (filters?.rating) {
-        where.rating = { gte: filters.rating };
-      }
-      if (filters?.search) {
-        where.OR = [
-          { title: { contains: filters.search, mode: "insensitive" } },
-          { author: { contains: filters.search, mode: "insensitive" } },
-          { series: { contains: filters.search, mode: "insensitive" } },
-          { isbn: { contains: filters.search, mode: "insensitive" } },
-        ];
-      }
+    if (filters?.status) {
+      where.status = filters.status;
+    }
+    if (filters?.rating) {
+      where.rating = { gte: filters.rating };
+    }
+    if (filters?.search) {
+      where.OR = [
+        { title: { contains: filters.search, mode: "insensitive" } },
+        { author: { contains: filters.search, mode: "insensitive" } },
+        { series: { contains: filters.search, mode: "insensitive" } },
+        { isbn: { contains: filters.search, mode: "insensitive" } },
+      ];
+    }
+    if (filters?.unrated) {
+      where.rating = null;
+    }
 
-      const sortDirection = filters?.sortDirection || "asc";
-      let orderBy:
-        | BookOrderByWithRelationInput
-        | BookOrderByWithRelationInput[];
-      if (filters?.sortBy) {
-        if (filters.sortBy === "series") {
-          orderBy = [
-            { series: { sort: "asc", nulls: "last" } },
-            { seriesIndex: "asc" },
-            { titleSort: "asc" },
-          ];
-        } else {
-          orderBy = { [filters.sortBy]: sortDirection };
-        }
+    const sortDirection = filters?.sortDirection || "asc";
+    let orderBy: BookOrderByWithRelationInput | BookOrderByWithRelationInput[];
+    if (filters?.sortBy) {
+      if (filters.sortBy === "series") {
+        orderBy = [{ series: { sort: "asc", nulls: "last" } }, { seriesIndex: "asc" }, { titleSort: "asc" }];
+      } else if (filters.sortBy === "finishedAt") {
+        orderBy = [{ finishedAt: { sort: sortDirection, nulls: "last" } }, { titleSort: "asc" }];
       } else {
-        orderBy = { title: "asc" };
+        orderBy = { [filters.sortBy]: sortDirection };
       }
+    } else {
+      orderBy = { title: "asc" };
+    }
 
-      const limit = filters?.limit || VALIDATION_LIMITS.BOOKS_QUERY_DEFAULT;
-      let skip: number;
-      if (filters?.page) {
-        skip = (filters.page - 1) * limit;
-      } else {
-        skip = 0;
-      }
+    const limit = filters?.limit || VALIDATION_LIMITS.BOOKS_QUERY_DEFAULT;
+    let skip: number;
+    if (filters?.page) {
+      skip = (filters.page - 1) * limit;
+    } else {
+      skip = 0;
+    }
 
-      const findBooksTimer = performanceLogger(
-        "DB: Fetching books",
-        1000,
-        ctx.logger,
-      );
+    const findBooksTimer = performanceLogger("DB: Fetching books", 1000, ctx.logger);
 
-      findBooksTimer.start();
-      const [books, totalCount] = await Promise.all([
-        ctx.db.book.findMany({
-          where,
-          orderBy,
-          skip,
-          take: limit,
-        }),
-        ctx.db.book.count({ where }),
-      ]);
-      findBooksTimer.end({ ...filters, count: books.length });
+    findBooksTimer.start();
+    const [books, totalCount] = await Promise.all([
+      ctx.db.book.findMany({
+        where,
+        orderBy,
+        skip,
+        take: limit,
+      }),
+      ctx.db.book.count({ where }),
+    ]);
+    findBooksTimer.end({ ...filters, count: books.length });
 
-      ctx.logger.debug({ count: books.length }, "Books query completed");
-      return { books, totalCount };
-    }),
-  getBook: authedProcedure
-    .input(z.number().min(0))
-    .query(async ({ ctx, input: bookId }) => {
-      ctx.logger.debug({ bookId }, "Fetching book by ID");
+    ctx.logger.debug({ count: books.length }, "Books query completed");
+    return { books, totalCount };
+  }),
+  getBook: authedProcedure.input(z.number().min(0)).query(async ({ ctx, input: bookId }) => {
+    ctx.logger.debug({ bookId }, "Fetching book by ID");
 
-      const fetchBookTimer = performanceLogger(
-        "DB: Fetch book by ID",
-        1000,
-        ctx.logger,
-      );
+    const fetchBookTimer = performanceLogger("DB: Fetch book by ID", 1000, ctx.logger);
 
-      fetchBookTimer.start();
-      const book = await ctx.db.book.findUnique({
-        where: { id: bookId },
-      });
-      fetchBookTimer.end({ bookId });
+    fetchBookTimer.start();
+    const book = await ctx.db.book.findUnique({
+      where: { id: bookId },
+    });
+    fetchBookTimer.end({ bookId });
 
-      if (!book) {
-        ctx.logger.warn({ bookId }, "Book not found");
-        throw new TRPCError({ code: "NOT_FOUND" });
-      }
+    if (!book) {
+      ctx.logger.warn({ bookId }, "Book not found");
+      throw new TRPCError({ code: "NOT_FOUND" });
+    }
 
-      if (book.userId !== ctx.currentUser.id) {
-        ctx.logger.warn(
-          {
-            bookId: book.id,
-            bookOwnerId: book.userId,
-            attemptedBy: ctx.currentUser.id,
-          },
-          "Permission denied: Attempted to access another user's book",
-        );
-        throw new TRPCError({ code: "FORBIDDEN" });
-      }
-
-      ctx.logger.debug({ bookId }, "Successfully fetched book");
-      return { book };
-    }),
-  createBook: authedProcedure
-    .input(createBookInputSchema)
-    .mutation(async ({ ctx, input }) => {
-      const userId = ctx.currentUser.id;
-
-      // Normalize series: empty string to null
-      const normalizedSeries =
-        input.series && input.series.trim() !== "" ? input.series : null;
-
-      ctx.logger.info(
-        {
-          title: input.title,
-          author: input.author,
-          isbn: input.isbn,
-        },
-        "Creating book",
-      );
-
-      // Check for duplicate series entry
-      if (normalizedSeries && input.seriesIndex) {
-        const duplicateSeriesTimer = performanceLogger(
-          "DB: Check for duplicate series index",
-          1000,
-          ctx.logger,
-        );
-
-        duplicateSeriesTimer.start();
-        const duplicateSeries = await ctx.db.book.findFirst({
-          where: {
-            userId,
-            series: { equals: normalizedSeries, mode: "insensitive" },
-            seriesIndex: input.seriesIndex,
-          },
-        });
-        duplicateSeriesTimer.end();
-
-        if (duplicateSeries) {
-          ctx.logger.warn(
-            {
-              series: normalizedSeries,
-              seriesIndex: input.seriesIndex,
-              existingBookId: duplicateSeries.id,
-              existingBookTitle: duplicateSeries.title,
-            },
-            "Duplicate series entry detected",
-          );
-
-          throw new TRPCError({
-            code: "CONFLICT",
-            message: `You already have "${duplicateSeries.title}" at position ${input.seriesIndex} in ${normalizedSeries}`,
-          });
-        }
-      }
-
-      // Check for duplicate ISBN
-      if (input.isbn) {
-        const duplicateIsbnTimer = performanceLogger(
-          "DB: Check for duplicate ISBN",
-          1000,
-          ctx.logger,
-        );
-
-        duplicateIsbnTimer.start();
-        const duplicateIsbn = await ctx.db.book.findFirst({
-          where: {
-            userId,
-            isbn: input.isbn,
-          },
-        });
-        duplicateIsbnTimer.end({ isbn: input.isbn });
-
-        if (duplicateIsbn) {
-          ctx.logger.warn(
-            {
-              isbn: input.isbn,
-              existingBookId: duplicateIsbn.id,
-              existingBookTitle: duplicateIsbn.title,
-            },
-            "Duplicate ISBN detected",
-          );
-
-          throw new TRPCError({
-            code: "CONFLICT",
-            message: `You already have "${duplicateIsbn.title}" with ISBN ${input.isbn}`,
-          });
-        }
-      }
-
-      const alreadyReadData = input.alreadyRead
-        ? {
-            status: "READ" as const,
-            progress: 100,
-            finishedAt: input.finishedAt,
-            startedAt: input.startedAt ?? null,
-            rating: input.rating ?? null,
-          }
-        : {};
-
-      const createBookTimer = performanceLogger(
-        "DB: Create book",
-        1000,
-        ctx.logger,
-      );
-      createBookTimer.start();
-      const book = await ctx.db.book.create({
-        data: {
-          title: input.title,
-          titleSort: createTitleSort(input.title),
-          author: input.author,
-          authorSort: createAuthorSort(input.author),
-          pageCount: input.pageCount,
-          isbn: input.isbn || null,
-          series: normalizedSeries,
-          seriesIndex: input.seriesIndex,
-          publishedYear: input.publishedYear,
-          summary: input.summary,
-          coverUrl: input.coverUrl,
-          userId,
-          ...alreadyReadData,
-        },
-      });
-      createBookTimer.end({ bookId: book.id });
-
-      ctx.logger.info(
+    if (book.userId !== ctx.currentUser.id) {
+      ctx.logger.warn(
         {
           bookId: book.id,
-          title: book.title,
-          author: book.author,
-          isbn: book.isbn,
+          bookOwnerId: book.userId,
+          attemptedBy: ctx.currentUser.id,
         },
-        "Book created successfully",
+        "Permission denied: Attempted to access another user's book",
       );
-      return { book };
-    }),
+      throw new TRPCError({ code: "FORBIDDEN" });
+    }
+
+    ctx.logger.debug({ bookId }, "Successfully fetched book");
+    return { book };
+  }),
+  createBook: authedProcedure.input(createBookInputSchema).mutation(async ({ ctx, input }) => {
+    const userId = ctx.currentUser.id;
+
+    // Normalize series: empty string to null
+    const normalizedSeries = input.series && input.series.trim() !== "" ? input.series : null;
+
+    ctx.logger.info(
+      {
+        title: input.title,
+        author: input.author,
+        isbn: input.isbn,
+      },
+      "Creating book",
+    );
+
+    // Check for duplicate series entry
+    if (normalizedSeries && input.seriesIndex) {
+      const duplicateSeriesTimer = performanceLogger("DB: Check for duplicate series index", 1000, ctx.logger);
+
+      duplicateSeriesTimer.start();
+      const duplicateSeries = await ctx.db.book.findFirst({
+        where: {
+          userId,
+          series: { equals: normalizedSeries, mode: "insensitive" },
+          seriesIndex: input.seriesIndex,
+        },
+      });
+      duplicateSeriesTimer.end();
+
+      if (duplicateSeries) {
+        ctx.logger.warn(
+          {
+            series: normalizedSeries,
+            seriesIndex: input.seriesIndex,
+            existingBookId: duplicateSeries.id,
+            existingBookTitle: duplicateSeries.title,
+          },
+          "Duplicate series entry detected",
+        );
+
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: `You already have "${duplicateSeries.title}" at position ${input.seriesIndex} in ${normalizedSeries}`,
+        });
+      }
+    }
+
+    // Check for duplicate ISBN
+    if (input.isbn) {
+      const duplicateIsbnTimer = performanceLogger("DB: Check for duplicate ISBN", 1000, ctx.logger);
+
+      duplicateIsbnTimer.start();
+      const duplicateIsbn = await ctx.db.book.findFirst({
+        where: {
+          userId,
+          isbn: input.isbn,
+        },
+      });
+      duplicateIsbnTimer.end({ isbn: input.isbn });
+
+      if (duplicateIsbn) {
+        ctx.logger.warn(
+          {
+            isbn: input.isbn,
+            existingBookId: duplicateIsbn.id,
+            existingBookTitle: duplicateIsbn.title,
+          },
+          "Duplicate ISBN detected",
+        );
+
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: `You already have "${duplicateIsbn.title}" with ISBN ${input.isbn}`,
+        });
+      }
+    }
+
+    const alreadyReadData = input.alreadyRead
+      ? {
+          status: "READ" as const,
+          progress: 100,
+          finishedAt: input.finishedAt,
+          startedAt: input.startedAt ?? null,
+          rating: input.rating ?? null,
+        }
+      : {};
+
+    const createBookTimer = performanceLogger("DB: Create book", 1000, ctx.logger);
+    createBookTimer.start();
+    const book = await ctx.db.book.create({
+      data: {
+        title: input.title,
+        titleSort: createTitleSort(input.title),
+        author: input.author,
+        authorSort: createAuthorSort(input.author),
+        pageCount: input.pageCount,
+        isbn: input.isbn || null,
+        series: normalizedSeries,
+        seriesIndex: input.seriesIndex,
+        publishedYear: input.publishedYear,
+        summary: input.summary,
+        coverUrl: input.coverUrl,
+        userId,
+        ...alreadyReadData,
+      },
+    });
+    createBookTimer.end({ bookId: book.id });
+
+    ctx.logger.info(
+      {
+        bookId: book.id,
+        title: book.title,
+        author: book.author,
+        isbn: book.isbn,
+      },
+      "Book created successfully",
+    );
+    return { book };
+  }),
   updateReadingStatus: authedProcedure
     .input(
       z.object({
@@ -272,11 +241,7 @@ export const bookRouter = createTRPCRouter({
 
       ctx.logger.debug({ bookId, newStatus }, "Updating reading status");
 
-      const fetchBookTimer = performanceLogger(
-        "DB: Fetch book for status update",
-        1000,
-        ctx.logger,
-      );
+      const fetchBookTimer = performanceLogger("DB: Fetch book for status update", 1000, ctx.logger);
 
       fetchBookTimer.start();
       const book = await ctx.db.book.findUnique({
@@ -318,11 +283,7 @@ export const bookRouter = createTRPCRouter({
         updateData.startedAt = new Date();
       }
 
-      const transactionTimer = performanceLogger(
-        "DB: Update reading status transaction",
-        1000,
-        ctx.logger,
-      );
+      const transactionTimer = performanceLogger("DB: Update reading status transaction", 1000, ctx.logger);
 
       transactionTimer.start();
       const updatedBook = await ctx.db.$transaction(async (tx) => {
@@ -330,10 +291,7 @@ export const bookRouter = createTRPCRouter({
           const deleted = await tx.readingProgress.deleteMany({
             where: { bookId },
           });
-          ctx.logger.debug(
-            { bookId, deletedCount: deleted.count },
-            "Deleted reading progress entries",
-          );
+          ctx.logger.debug({ bookId, deletedCount: deleted.count }, "Deleted reading progress entries");
         } else if (newStatus === "READING") {
           const existing = await tx.readingProgress.findFirst({
             where: { bookId, progress: 0 },
@@ -368,11 +326,7 @@ export const bookRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       ctx.logger.debug({ bookId: input.bookId }, "Updating book pagecount");
 
-      const fetchBookTimer = performanceLogger(
-        "DB: Fetch book for pagecount update",
-        1000,
-        ctx.logger,
-      );
+      const fetchBookTimer = performanceLogger("DB: Fetch book for pagecount update", 1000, ctx.logger);
 
       fetchBookTimer.start();
       const book = await ctx.db.book.findUnique({
@@ -381,10 +335,7 @@ export const bookRouter = createTRPCRouter({
       fetchBookTimer.end({ bookId: input.bookId });
 
       if (!book) {
-        ctx.logger.warn(
-          { bookId: input.bookId },
-          `No book with ID ${input.bookId} found for pagecount update`,
-        );
+        ctx.logger.warn({ bookId: input.bookId }, `No book with ID ${input.bookId} found for pagecount update`);
         throw new TRPCError({ code: "NOT_FOUND" });
       }
       if (book.userId !== ctx.currentUser.id) {
@@ -399,11 +350,7 @@ export const bookRouter = createTRPCRouter({
         throw new TRPCError({ code: "FORBIDDEN" });
       }
 
-      const updatePageCountTimer = performanceLogger(
-        "DB: Update book pagecount",
-        1000,
-        ctx.logger,
-      );
+      const updatePageCountTimer = performanceLogger("DB: Update book pagecount", 1000, ctx.logger);
 
       updatePageCountTimer.start();
       const updatedBook = await ctx.db.book.update({
@@ -433,11 +380,7 @@ export const bookRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       ctx.logger.debug({ bookId: input.bookId }, "Updating book rating");
 
-      const fetchBookTimer = performanceLogger(
-        "DB: Fetch book for rating update",
-        1000,
-        ctx.logger,
-      );
+      const fetchBookTimer = performanceLogger("DB: Fetch book for rating update", 1000, ctx.logger);
 
       fetchBookTimer.start();
       const book = await ctx.db.book.findUnique({
@@ -461,11 +404,7 @@ export const bookRouter = createTRPCRouter({
         throw new TRPCError({ code: "FORBIDDEN" });
       }
 
-      const updateRatingTimer = performanceLogger(
-        "DB: Update book rating",
-        1000,
-        ctx.logger,
-      );
+      const updateRatingTimer = performanceLogger("DB: Update book rating", 1000, ctx.logger);
 
       updateRatingTimer.start();
       const updatedBook = await ctx.db.book.update({
@@ -474,85 +413,63 @@ export const bookRouter = createTRPCRouter({
       });
       updateRatingTimer.end({ bookId: input.bookId });
 
-      ctx.logger.info(
-        { bookId: input.bookId, oldRating: book.rating, newRating: input.rating },
-        "Book rating updated",
-      );
+      ctx.logger.info({ bookId: input.bookId, oldRating: book.rating, newRating: input.rating }, "Book rating updated");
 
       return { book: updatedBook };
     }),
-  deleteBook: authedProcedure
-    .input(z.number().int().nonnegative())
-    .mutation(async ({ input: bookId, ctx }) => {
-      ctx.logger.debug({ bookId }, "Deleting book");
+  deleteBook: authedProcedure.input(z.number().int().nonnegative()).mutation(async ({ input: bookId, ctx }) => {
+    ctx.logger.debug({ bookId }, "Deleting book");
 
-      const fetchBookTimer = performanceLogger(
-        "DB: Fetch book for deletion",
-        1000,
-        ctx.logger,
-      );
+    const fetchBookTimer = performanceLogger("DB: Fetch book for deletion", 1000, ctx.logger);
 
-      fetchBookTimer.start();
-      const book = await ctx.db.book.findUnique({ where: { id: bookId } });
-      fetchBookTimer.end({ bookId });
+    fetchBookTimer.start();
+    const book = await ctx.db.book.findUnique({ where: { id: bookId } });
+    fetchBookTimer.end({ bookId });
 
-      if (!book) {
-        ctx.logger.warn(
-          { bookId },
-          `No book with ID ${bookId} found for deletion`,
-        );
-        throw new TRPCError({ code: "NOT_FOUND" });
-      }
-      if (book.userId !== ctx.currentUser.id) {
-        ctx.logger.warn(
-          {
-            bookId,
-            bookOwnerId: book.userId,
-            attemptedBy: ctx.currentUser.id,
-          },
-          "Permission denied: Attempted to access another user's book",
-        );
-        throw new TRPCError({ code: "FORBIDDEN" });
-      }
-
-      const deleteBookTimer = performanceLogger(
-        "DB: Delete book",
-        1000,
-        ctx.logger,
-      );
-
-      deleteBookTimer.start();
-      await ctx.db.book.delete({ where: { id: bookId } });
-      deleteBookTimer.end({ bookId });
-
-      if (book.coverUrl) {
-        const fileKey = extractFileKeyFromUrl(book.coverUrl);
-        if (fileKey) {
-          try {
-            const utApi = new UTApi();
-            await utApi.deleteFiles(fileKey);
-            ctx.logger.info(
-              { fileKey, bookId },
-              "Cover image deleted from UploadThing",
-            );
-          } catch (error) {
-            ctx.logger.error(
-              { fileKey, bookId, error },
-              "Failed to delete cover from UploadThing",
-            );
-          }
-        }
-      }
-
-      ctx.logger.info(
+    if (!book) {
+      ctx.logger.warn({ bookId }, `No book with ID ${bookId} found for deletion`);
+      throw new TRPCError({ code: "NOT_FOUND" });
+    }
+    if (book.userId !== ctx.currentUser.id) {
+      ctx.logger.warn(
         {
           bookId,
-          title: book.title,
-          author: book.author,
+          bookOwnerId: book.userId,
+          attemptedBy: ctx.currentUser.id,
         },
-        "Book deleted",
+        "Permission denied: Attempted to access another user's book",
       );
-    }),
+      throw new TRPCError({ code: "FORBIDDEN" });
+    }
+
+    const deleteBookTimer = performanceLogger("DB: Delete book", 1000, ctx.logger);
+
+    deleteBookTimer.start();
+    await ctx.db.book.delete({ where: { id: bookId } });
+    deleteBookTimer.end({ bookId });
+
+    if (book.coverUrl) {
+      const fileKey = extractFileKeyFromUrl(book.coverUrl);
+      if (fileKey) {
+        try {
+          const utApi = new UTApi();
+          await utApi.deleteFiles(fileKey);
+          ctx.logger.info({ fileKey, bookId }, "Cover image deleted from UploadThing");
+        } catch (error) {
+          ctx.logger.error({ fileKey, bookId, error }, "Failed to delete cover from UploadThing");
+        }
+      }
+    }
+
+    ctx.logger.info(
+      {
+        bookId,
+        title: book.title,
+        author: book.author,
+      },
+      "Book deleted",
+    );
+  }),
   updateBook: authedProcedure
     .input(
       z.object({
@@ -563,11 +480,7 @@ export const bookRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       ctx.logger.debug({ bookId: input.bookId }, "Updating book");
 
-      const fetchBookTimer = performanceLogger(
-        "DB: Fetch book for update",
-        1000,
-        ctx.logger,
-      );
+      const fetchBookTimer = performanceLogger("DB: Fetch book for update", 1000, ctx.logger);
 
       fetchBookTimer.start();
       const book = await ctx.db.book.findUnique({
@@ -576,10 +489,7 @@ export const bookRouter = createTRPCRouter({
       fetchBookTimer.end({ bookId: input.bookId });
 
       if (!book) {
-        ctx.logger.warn(
-          { bookId: input.bookId },
-          `No book with ID ${input.bookId} found for update`,
-        );
+        ctx.logger.warn({ bookId: input.bookId }, `No book with ID ${input.bookId} found for update`);
         throw new TRPCError({ code: "NOT_FOUND" });
       }
       if (book.userId !== ctx.currentUser.id) {
@@ -642,11 +552,7 @@ export const bookRouter = createTRPCRouter({
       }
 
       if (data.isbn) {
-        const isbnConflictTimer = performanceLogger(
-          "DB: Check for ISBN conflict during update",
-          1000,
-          ctx.logger,
-        );
+        const isbnConflictTimer = performanceLogger("DB: Check for ISBN conflict during update", 1000, ctx.logger);
 
         isbnConflictTimer.start();
         const isbnDuplicate = await ctx.db.book.findFirst({
@@ -675,11 +581,7 @@ export const bookRouter = createTRPCRouter({
         }
       }
 
-      if (
-        book.coverUrl &&
-        data.coverUrl !== undefined &&
-        data.coverUrl !== book.coverUrl
-      ) {
+      if (book.coverUrl && data.coverUrl !== undefined && data.coverUrl !== book.coverUrl) {
         const fileKeyToDelete = extractFileKeyFromUrl(book.coverUrl);
         const utAPI = new UTApi();
 
@@ -708,11 +610,7 @@ export const bookRouter = createTRPCRouter({
         authorSort = createAuthorSort(data.author);
       }
 
-      const updateBookTimer = performanceLogger(
-        "DB: Update book",
-        1000,
-        ctx.logger,
-      );
+      const updateBookTimer = performanceLogger("DB: Update book", 1000, ctx.logger);
 
       updateBookTimer.start();
       const updatedBook = await ctx.db.book.update({
@@ -762,13 +660,7 @@ export const bookRouter = createTRPCRouter({
     };
   }),
   getDashBoardBooks: authedProcedure.query(async ({ ctx }) => {
-    const [
-      readingBooks,
-      readingBooksCount,
-      readNextBooks,
-      readNextBooksCount,
-      recentlyReadBooks,
-    ] = await Promise.all([
+    const [readingBooks, readingBooksCount, readNextBooks, readNextBooksCount, recentlyReadBooks] = await Promise.all([
       ctx.db.book.findMany({
         where: { status: "READING", userId: ctx.currentUser.id },
         orderBy: { updatedAt: "desc" },
