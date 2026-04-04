@@ -153,7 +153,7 @@ git commit -m "refactor(book-cover-fallback): accept title string instead of ful
 
 - Modify: `src/components/recommendations/recommendation-card.test.tsx`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Add these cases to `src/components/recommendations/recommendation-card.test.tsx`. Add `fireEvent` to the import from `@testing-library/react`:
 
@@ -200,7 +200,7 @@ it("renders BookCoverFallback when image fails to load", () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 ```bash
 pnpm vitest run src/components/recommendations/recommendation-card.test.tsx
@@ -208,7 +208,7 @@ pnpm vitest run src/components/recommendations/recommendation-card.test.tsx
 
 Expected: the 5 new tests fail. Existing tests pass.
 
-- [ ] **Step 3: Replace `recommendation-card.tsx` with updated implementation**
+- [x] **Step 3: Replace `recommendation-card.tsx` with updated implementation**
 
 ```tsx
 "use client";
@@ -338,7 +338,7 @@ export const RecommendationCard = ({ book }: RecommendationCardProps) => {
 };
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 ```bash
 pnpm vitest run src/components/recommendations/recommendation-card.test.tsx
