@@ -46,26 +46,14 @@ const BookCard = ({
   };
 
   return (
-    <Link
-      href={`/books/${book.id}`}
-      onMouseEnter={handleMouseEnter}
-      className={wrapperClassName}
-    >
-      <Card
-        className={cn(
-          "hover:bg-card/80 overflow-hidden rounded-md border-2 p-0",
-          className,
-        )}
-      >
+    <Link href={`/books/${book.id}`} onMouseEnter={handleMouseEnter} className={wrapperClassName}>
+      <Card className={cn("hover:bg-card/80 overflow-hidden rounded-md border-2 p-0", className)}>
         <CardContent
-          className={cn(
-            "m-0 flex h-full w-full gap-y-2 p-0",
-            orientation === "vertical" ? "flex-col" : null,
-          )}
+          className={cn("m-0 flex h-full w-full gap-y-2 p-0", orientation === "vertical" ? "flex-col" : null)}
         >
           <div className="relative aspect-10/16 w-full bg-linear-to-br from-gray-100 to-gray-200">
             {imageError ? (
-              <BookCoverFallback size="md" book={book} />
+              <BookCoverFallback size="md" title={book.title} />
             ) : (
               <Image
                 src={coverUrl}
@@ -89,9 +77,7 @@ const BookCard = ({
                 showStatusButton && "h-[25px]",
               )}
             >
-              {book.series && book.seriesIndex
-                ? `${book.series} #${formatSeriesIndex(book.seriesIndex)}`
-                : "\u00A0"}
+              {book.series && book.seriesIndex ? `${book.series} #${formatSeriesIndex(book.seriesIndex)}` : "\u00A0"}
             </p>
             {showStatusButton && <ReadStatusButton book={book} />}
           </div>

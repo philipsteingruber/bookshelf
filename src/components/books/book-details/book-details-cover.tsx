@@ -12,10 +12,7 @@ interface BookDetailsCoverProps {
   className?: string;
 }
 
-const BookDetailsCover = ({
-  book,
-  className,
-}: BookDetailsCoverProps): React.ReactElement => {
+const BookDetailsCover = ({ book, className }: BookDetailsCoverProps): React.ReactElement => {
   const coverUrl = book?.coverUrl || BOOK_COVER_PLACEHOLDER_URL;
   const { imageError, handleImageError } = useImageError(book.coverUrl ?? null);
 
@@ -24,14 +21,11 @@ const BookDetailsCover = ({
       href={coverUrl}
       target="_blank"
       prefetch={false}
-      className={cn(
-        "h-[450px] w-[300px] lg:h-[500px] lg:w-[333px] xl:h-[600px] xl:w-[400px]",
-        className,
-      )}
+      className={cn("h-[450px] w-[300px] lg:h-[500px] lg:w-[333px] xl:h-[600px] xl:w-[400px]", className)}
     >
       <div className="relative h-full w-full overflow-hidden rounded-md bg-linear-to-br from-gray-100 to-gray-200">
         {imageError ? (
-          <BookCoverFallback size="lg" book={book} />
+          <BookCoverFallback size="lg" title={book.title} />
         ) : (
           <Image
             src={coverUrl}
