@@ -90,6 +90,99 @@ describe("bookRouter", () => {
         code: "CONFLICT",
       });
     });
+
+    it("should create book with READ status when alreadyRead is true", async () => {
+      const { caller, mockDb } = createMockCaller(bookRouter);
+
+      const finishedAt = new Date("2024-06-01T12:00:00");
+      const startedAt = new Date("2024-05-01T12:00:00");
+
+      const bookData = {
+        title: "Old Book",
+        author: "Test Author",
+        publishedYear: 2020,
+        alreadyRead: true as const,
+        finishedAt,
+        startedAt,
+        rating: 4,
+      };
+
+      const createdBook = createFakeBook({
+        title: bookData.title,
+        status: "READ" as ReadStatus,
+        progress: 100,
+        finishedAt,
+        startedAt,
+        rating: 4,
+      });
+
+      vi.mocked(mockDb.book.create).mockResolvedValue(createdBook);
+      vi.mocked(mockDb.book.findFirst).mockResolvedValue(null);
+
+      await caller.createBook(bookData);
+
+      const createCall = vi.mocked(mockDb.book.create).mock.calls[0][0];
+      expect(createCall.data.status).toBe("READ");
+      expect(createCall.data.progress).toBe(100);
+      expect(createCall.data.finishedAt).toEqual(finishedAt);
+      expect(createCall.data.startedAt).toEqual(startedAt);
+      expect(createCall.data.rating).toBe(4);
+    });
+
+    it("should create book with null startedAt and rating when only finishedAt is provided", async () => {
+      const { caller, mockDb } = createMockCaller(bookRouter);
+
+      const finishedAt = new Date("2024-06-01T12:00:00");
+
+      const bookData = {
+        title: "Old Book",
+        author: "Test Author",
+        publishedYear: 2020,
+        alreadyRead: true as const,
+        finishedAt,
+      };
+
+      const createdBook = createFakeBook({
+        status: "READ" as ReadStatus,
+        progress: 100,
+        finishedAt,
+        startedAt: null,
+        rating: null,
+      });
+
+      vi.mocked(mockDb.book.create).mockResolvedValue(createdBook);
+      vi.mocked(mockDb.book.findFirst).mockResolvedValue(null);
+
+      await caller.createBook(bookData);
+
+      const createCall = vi.mocked(mockDb.book.create).mock.calls[0][0];
+      expect(createCall.data.status).toBe("READ");
+      expect(createCall.data.startedAt).toBeNull();
+      expect(createCall.data.rating).toBeNull();
+    });
+
+    it("should not set status when alreadyRead is absent", async () => {
+      const { caller, mockDb } = createMockCaller(bookRouter);
+
+      const bookData = {
+        title: "Future Book",
+        author: "Test Author",
+        publishedYear: 2026,
+      };
+
+      const createdBook = createFakeBook({
+        ...bookData,
+        status: "TO_READ" as ReadStatus,
+      });
+
+      vi.mocked(mockDb.book.create).mockResolvedValue(createdBook);
+      vi.mocked(mockDb.book.findFirst).mockResolvedValue(null);
+
+      await caller.createBook(bookData);
+
+      const createCall = vi.mocked(mockDb.book.create).mock.calls[0][0];
+      expect(createCall.data.status).toBeUndefined();
+    });
   });
   describe("updateReadingStatus", () => {
     beforeEach(() => vi.clearAllMocks());
