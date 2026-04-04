@@ -1,13 +1,20 @@
 "use client";
 
 import { format } from "date-fns";
+import { CalendarIcon } from "lucide-react";
 import type { UseFormReturn } from "react-hook-form";
 import { Controller, useWatch } from "react-hook-form";
 import type z from "zod";
 
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { StarRating } from "@/components/ui/star-rating";
 import type { createBookInputSchema } from "@/lib/schemas/book";
 import { cn } from "@/lib/utils";
@@ -22,14 +29,11 @@ export const ReadingHistorySection = ({
   disabled = false,
 }: ReadingHistorySectionProps): React.ReactElement => {
   const alreadyRead = useWatch({ control: form.control, name: "alreadyRead" });
-  const today = format(new Date(), "yyyy-MM-dd");
   const finishedAtValue = useWatch({
     control: form.control,
     name: "finishedAt",
   });
-  const startedAtMax = finishedAtValue
-    ? format(finishedAtValue, "yyyy-MM-dd")
-    : today;
+  const today = new Date();
 
   return (
     <div className="rounded-md border p-4">
@@ -59,29 +63,40 @@ export const ReadingHistorySection = ({
           <Controller
             name="finishedAt"
             control={form.control}
-            disabled={disabled}
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid} className="gap-y-1">
-                <FieldLabel htmlFor="create-book-form-finishedAt">
-                  Finished Date{" "}
-                  <span className="text-destructive">*</span>
+                <FieldLabel>
+                  Finished Date <span className="text-destructive">*</span>
                 </FieldLabel>
-                <Input
-                  id="create-book-form-finishedAt"
-                  type="date"
-                  max={today}
-                  disabled={disabled}
-                  aria-invalid={fieldState.invalid}
-                  value={
-                    field.value ? format(field.value, "yyyy-MM-dd") : ""
-                  }
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    field.onChange(
-                      val ? new Date(`${val}T12:00:00`) : undefined,
-                    );
-                  }}
-                />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={disabled}
+                      aria-invalid={fieldState.invalid}
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !field.value && "text-muted-foreground",
+                        fieldState.invalid && "border-destructive",
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {field.value
+                        ? format(field.value, "d MMMM yyyy")
+                        : "Pick a date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={field.value}
+                      onSelect={(date) => field.onChange(date ?? undefined)}
+                      disabled={(date) => date > today}
+                      autoFocus
+                    />
+                  </PopoverContent>
+                </Popover>
                 <p
                   className={cn(
                     "text-sm text-destructive",
@@ -96,31 +111,45 @@ export const ReadingHistorySection = ({
           <Controller
             name="startedAt"
             control={form.control}
-            disabled={disabled}
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid} className="gap-y-1">
-                <FieldLabel htmlFor="create-book-form-startedAt">
+                <FieldLabel>
                   Started Date{" "}
                   <span className="text-muted-foreground text-xs">
                     (optional)
                   </span>
                 </FieldLabel>
-                <Input
-                  id="create-book-form-startedAt"
-                  type="date"
-                  max={startedAtMax}
-                  disabled={disabled}
-                  aria-invalid={fieldState.invalid}
-                  value={
-                    field.value ? format(field.value, "yyyy-MM-dd") : ""
-                  }
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    field.onChange(
-                      val ? new Date(`${val}T12:00:00`) : undefined,
-                    );
-                  }}
-                />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={disabled}
+                      aria-invalid={fieldState.invalid}
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !field.value && "text-muted-foreground",
+                        fieldState.invalid && "border-destructive",
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {field.value
+                        ? format(field.value, "d MMMM yyyy")
+                        : "Pick a date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={field.value}
+                      onSelect={(date) => field.onChange(date ?? undefined)}
+                      disabled={(date) =>
+                        date > (finishedAtValue ?? today)
+                      }
+                      autoFocus
+                    />
+                  </PopoverContent>
+                </Popover>
                 <p
                   className={cn(
                     "text-sm text-destructive",
