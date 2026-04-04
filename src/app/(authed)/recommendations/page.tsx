@@ -290,7 +290,7 @@ const Page = (): React.ReactElement => {
                     </div>
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                       {message.books.map((book) => (
-                        <RecommendationCard key={`${book.title}-${book.author}`} book={book} />
+                        <RecommendationCard key={`${book.title}-${book.author}`} recommendation={book} />
                       ))}
                     </div>
                     {message.retried && (
