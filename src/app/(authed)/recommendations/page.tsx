@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { RedirectToSignIn, useAuth } from "@clerk/nextjs";
 import { RotateCcwIcon, SendIcon } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 
 import type { RecommendationBook } from "@/components/recommendations/recommendation-card";
 import { RecommendationCard } from "@/components/recommendations/recommendation-card";
@@ -337,7 +338,17 @@ const Page = (): React.ReactElement => {
                   return (
                     <div key={message.id} className="flex flex-col gap-3">
                       <div className="max-w-[75%] rounded-xl border bg-white px-4 py-3 text-sm leading-relaxed text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300">
-                        {message.text}
+                        <ReactMarkdown
+                          components={{
+                            p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                            strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                            ul: ({ children }) => <ul className="mb-2 list-disc pl-4 last:mb-0">{children}</ul>,
+                            ol: ({ children }) => <ol className="mb-2 list-decimal pl-4 last:mb-0">{children}</ol>,
+                            li: ({ children }) => <li className="mb-0.5">{children}</li>,
+                          }}
+                        >
+                          {message.text}
+                        </ReactMarkdown>
                       </div>
                       {message.books.length > 0 && (
                         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
