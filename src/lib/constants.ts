@@ -43,13 +43,7 @@ export const VALIDATION_LIMITS = {
  * Available reading status options in order of typical reading flow
  * Used for dropdowns, filters, and status updates
  */
-export const READ_STATUS_OPTIONS: ReadStatus[] = [
-  "TO_READ",
-  "READ_NEXT",
-  "READING",
-  "READ",
-  "DNF",
-] as const;
+export const READ_STATUS_OPTIONS: ReadStatus[] = ["TO_READ", "READ_NEXT", "READING", "READ", "DNF"] as const;
 
 export const READING_GOAL_DEFAULT_THRESHOLD = 200 as const;
 
@@ -98,7 +92,7 @@ export const sortGroups: { text: string; items: SortItem[] }[] = [
   },
 ] as const;
 
-// export const RECOMMENDATIONS_MODEL = "claude-haiku-4-5-20251001" as const;
 export const RECOMMENDATIONS_MODEL = "claude-sonnet-4-6" as const;
+export const CLASSIFICATION_MODEL = "claude-haiku-4-5-20251001" as const;
 
 export const DEFAULT_TIMEZONE = "UTC" as const;
