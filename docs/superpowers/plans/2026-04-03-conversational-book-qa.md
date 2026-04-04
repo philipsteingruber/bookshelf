@@ -153,7 +153,7 @@ git commit -m "refactor(book-cover-fallback): accept title string instead of ful
 
 - Modify: `src/components/recommendations/recommendation-card.test.tsx`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Add these cases to `src/components/recommendations/recommendation-card.test.tsx`. Add `fireEvent` to the import from `@testing-library/react`:
 
@@ -200,7 +200,7 @@ it("renders BookCoverFallback when image fails to load", () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 ```bash
 pnpm vitest run src/components/recommendations/recommendation-card.test.tsx
@@ -208,7 +208,7 @@ pnpm vitest run src/components/recommendations/recommendation-card.test.tsx
 
 Expected: the 5 new tests fail. Existing tests pass.
 
-- [ ] **Step 3: Replace `recommendation-card.tsx` with updated implementation**
+- [x] **Step 3: Replace `recommendation-card.tsx` with updated implementation**
 
 ```tsx
 "use client";
@@ -338,7 +338,7 @@ export const RecommendationCard = ({ book }: RecommendationCardProps) => {
 };
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 ```bash
 pnpm vitest run src/components/recommendations/recommendation-card.test.tsx
@@ -365,7 +365,7 @@ git commit -m "feat(recommendation-card): support optional type, blue conversati
 
 - Modify: `src/trpc/routers/recommendations.test.tsx`
 
-- [ ] **Step 1: Add `CLASSIFICATION_MODEL` constant**
+- [x] **Step 1: Add `CLASSIFICATION_MODEL` constant**
 
 In `src/lib/constants.ts`, add after `RECOMMENDATIONS_MODEL`:
 
@@ -704,7 +704,7 @@ describe("recommendationsRouter", () => {
 });
 ```
 
-- [ ] **Step 3: Run tests to verify they fail**
+- [x] **Step 3: Run tests to verify they fail**
 
 ```bash
 pnpm vitest run src/trpc/routers/recommendations.test.tsx
@@ -712,7 +712,7 @@ pnpm vitest run src/trpc/routers/recommendations.test.tsx
 
 Expected: all tests fail (procedure `chat` does not exist yet).
 
-- [ ] **Step 4: Replace `recommendations.ts` with full implementation**
+- [x] **Step 4: Replace `recommendations.ts` with full implementation**
 
 Replace the entire file content:
 
@@ -1178,7 +1178,7 @@ export const recommendationsRouter = createTRPCRouter({
 });
 ```
 
-- [ ] **Step 5: Run tests to verify they pass**
+- [x] **Step 5: Run tests to verify they pass**
 
 ```bash
 pnpm vitest run src/trpc/routers/recommendations.test.tsx
@@ -1186,7 +1186,7 @@ pnpm vitest run src/trpc/routers/recommendations.test.tsx
 
 Expected: all tests pass.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/lib/constants.ts src/trpc/routers/recommendations.ts src/trpc/routers/recommendations.test.tsx
@@ -1201,7 +1201,7 @@ git commit -m "feat(recommendations): replace getRecommendations with chat mutat
 
 - Modify: `src/app/(authed)/recommendations/page.tsx`
 
-- [ ] **Step 1: Replace the entire page with updated implementation**
+- [x] **Step 1: Replace the entire page with updated implementation**
 
 ```tsx
 "use client";
@@ -1618,7 +1618,7 @@ const Page = (): React.ReactElement => {
 export default Page;
 ```
 
-- [ ] **Step 2: Verify no TypeScript errors**
+- [x] **Step 2: Verify no TypeScript errors**
 
 ```bash
 pnpm tsc --noEmit
@@ -1626,7 +1626,7 @@ pnpm tsc --noEmit
 
 Expected: no errors.
 
-- [ ] **Step 3: Run all tests**
+- [x] **Step 3: Run all tests**
 
 ```bash
 pnpm vitest run
@@ -1634,7 +1634,7 @@ pnpm vitest run
 
 Expected: all tests pass.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/app/(authed)/recommendations/page.tsx
