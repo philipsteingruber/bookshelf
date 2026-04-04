@@ -3,25 +3,27 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import BookCoverFallback from "@/components/books/book-cover-fallback";
+import { useImageError } from "@/hooks/ui";
+
 export type RecommendationBook = {
   title: string;
   author: string;
   reason: string;
-  type: "safe" | "standard" | "stretch" | "risky";
+  type?: "safe" | "standard" | "stretch" | "risky";
   coverUrl: string | null;
   pageCount: number | null;
 };
 
-const TYPE_STYLES: Record<
-  RecommendationBook["type"],
-  {
-    card: string;
-    border: string;
-    divider: string;
-    badge: string | null;
-    badgeLabel: string | null;
-  }
-> = {
+type StyleConfig = {
+  card: string;
+  border: string;
+  divider: string;
+  badge: string | null;
+  badgeLabel: string | null;
+};
+
+const TYPE_STYLES: Record<NonNullable<RecommendationBook["type"]>, StyleConfig> = {
   safe: {
     card: "bg-[#f0fdf4] dark:bg-green-950/30",
     border: "border-[#86efac] dark:border-green-800",
@@ -49,48 +51,58 @@ const TYPE_STYLES: Record<
     card: "bg-[#fff7f7] dark:bg-red-950/30",
     border: "border-[#fca5a5] dark:border-red-800",
     divider: "border-[#fecaca] dark:border-red-800",
-    badge:
-      "text-[#dc2626] bg-[#fee2e2] border-[#fca5a5] dark:text-red-400 dark:bg-red-950/50 dark:border-red-800",
+    badge: "text-[#dc2626] bg-[#fee2e2] border-[#fca5a5] dark:text-red-400 dark:bg-red-950/50 dark:border-red-800",
     badgeLabel: "Risky pick",
   },
 };
 
+const CONVERSATIONAL_STYLE: StyleConfig = {
+  card: "bg-[#eff6ff] dark:bg-blue-950/30",
+  border: "border-[#93c5fd] dard: border-blue-800",
+  divider: "border-[#bfdbfe] dark:border-blue-800",
+  badge: null,
+  badgeLabel: null,
+};
+
 interface RecommendationCardProps {
-  book: RecommendationBook;
+  recommendation: RecommendationBook;
 }
 
-export const RecommendationCard = ({ book }: RecommendationCardProps) => {
-  const styles = TYPE_STYLES[book.type];
-  const goodreadsUrl = `https://www.goodreads.com/search?utf8=%E2%9C%93&q=${encodeURIComponent(book.title)}+${encodeURIComponent(book.author)}&search_type=books&search%5Bfield%5D=on`;
+export const RecommendationCard = ({ recommendation }: RecommendationCardProps) => {
+  const styles = recommendation.type ? TYPE_STYLES[recommendation.type] : CONVERSATIONAL_STYLE;
+  const { imageError, handleImageError } = useImageError(recommendation.coverUrl);
+  const showFallback = !recommendation.coverUrl || imageError;
+  const goodreadsUrl = `https://www.goodreads.com/search?utf8=%E2%9C%93&q=${encodeURIComponent(recommendation.title)}+${encodeURIComponent(recommendation.author)}&search_type=books&search%5Bfield%5D=on`;
 
   return (
-    <div
-      className={`flex flex-col overflow-hidden rounded-lg border ${styles.card} ${styles.border}`}
-    >
-      {book.coverUrl ? (
-        <div className="relative h-36 w-full">
+    <div className={`flex flex-col overflow-hidden rounded-lg border ${styles.card} ${styles.border}`}>
+      <div className="relative h-36 w-full">
+        {showFallback ? (
+          <BookCoverFallback size="sm" title={recommendation.title} />
+        ) : (
           <Image
-            src={book.coverUrl}
-            alt={`Cover of ${book.title}`}
+            src={recommendation.coverUrl!}
+            alt={`Cover of ${recommendation.title}`}
             fill
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
             className="object-cover"
+            onError={handleImageError}
           />
-        </div>
-      ) : (
-        <div
-          className="h-36 w-full bg-neutral-200 dark:bg-neutral-700"
-          aria-label="No cover available"
-          role="img"
-        />
-      )}
+        )}
+      </div>
       <div className="flex flex-1 flex-col gap-1 p-3">
-        {styles.badge && styles.badgeLabel && (
+        {styles.badge && styles.badgeLabel ? (
           <span
             className={`self-start rounded border px-1.5 py-0.5 text-[0.65rem] font-semibold tracking-wide uppercase ${styles.badge}`}
           >
             {styles.badgeLabel}
           </span>
+        ) : (
+          <span
+            aria-hidden
+            data-testid="badge-placeholder"
+            className="invisible self-start rounded border px-1.5 py-0.5 text-[0.65rem]"
+          ></span>
         )}
         <Link
           href={goodreadsUrl}
@@ -98,18 +110,16 @@ export const RecommendationCard = ({ book }: RecommendationCardProps) => {
           rel="noopener noreferrer"
           className="text-sm leading-tight font-semibold text-blue-700 underline hover:text-blue-900 dark:text-blue-400"
         >
-          {book.title}
+          {recommendation.title}
         </Link>
-        <span className="text-xs text-neutral-500">{book.author}</span>
-        {book.pageCount !== null && (
-          <span className="text-xs text-neutral-400">
-            {book.pageCount} pages
-          </span>
+        <span className="text-xs text-neutral-500">{recommendation.author}</span>
+        {recommendation.pageCount !== null && (
+          <span className="text-xs text-neutral-400">{`${recommendation.pageCount} pages`}</span>
         )}
         <p
           className={`mt-auto border-t pt-2 text-xs leading-relaxed text-neutral-600 dark:text-neutral-400 ${styles.divider}`}
         >
-          {book.reason}
+          {recommendation.reason}
         </p>
       </div>
     </div>
