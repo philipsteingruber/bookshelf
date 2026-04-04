@@ -23,6 +23,10 @@ export const ReadingHistorySection = ({
 }: ReadingHistorySectionProps): React.ReactElement => {
   const alreadyRead = form.watch("alreadyRead");
   const today = format(new Date(), "yyyy-MM-dd");
+  const finishedAtValue = form.watch("finishedAt");
+  const startedAtMax = finishedAtValue
+    ? format(finishedAtValue, "yyyy-MM-dd")
+    : today;
 
   return (
     <div className="rounded-md border p-4">
@@ -71,7 +75,7 @@ export const ReadingHistorySection = ({
                   onChange={(e) => {
                     const val = e.target.value;
                     field.onChange(
-                      val ? new Date(`${val}T00:00:00`) : undefined,
+                      val ? new Date(`${val}T12:00:00`) : undefined,
                     );
                   }}
                 />
@@ -101,7 +105,7 @@ export const ReadingHistorySection = ({
                 <Input
                   id="create-book-form-startedAt"
                   type="date"
-                  max={today}
+                  max={startedAtMax}
                   disabled={disabled}
                   aria-invalid={fieldState.invalid}
                   value={
@@ -110,7 +114,7 @@ export const ReadingHistorySection = ({
                   onChange={(e) => {
                     const val = e.target.value;
                     field.onChange(
-                      val ? new Date(`${val}T00:00:00`) : undefined,
+                      val ? new Date(`${val}T12:00:00`) : undefined,
                     );
                   }}
                 />
