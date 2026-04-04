@@ -1186,7 +1186,7 @@ pnpm vitest run src/trpc/routers/recommendations.test.tsx
 
 Expected: all tests pass.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/lib/constants.ts src/trpc/routers/recommendations.ts src/trpc/routers/recommendations.test.tsx
@@ -1201,7 +1201,7 @@ git commit -m "feat(recommendations): replace getRecommendations with chat mutat
 
 - Modify: `src/app/(authed)/recommendations/page.tsx`
 
-- [ ] **Step 1: Replace the entire page with updated implementation**
+- [x] **Step 1: Replace the entire page with updated implementation**
 
 ```tsx
 "use client";
@@ -1618,7 +1618,7 @@ const Page = (): React.ReactElement => {
 export default Page;
 ```
 
-- [ ] **Step 2: Verify no TypeScript errors**
+- [x] **Step 2: Verify no TypeScript errors**
 
 ```bash
 pnpm tsc --noEmit
@@ -1626,7 +1626,7 @@ pnpm tsc --noEmit
 
 Expected: no errors.
 
-- [ ] **Step 3: Run all tests**
+- [x] **Step 3: Run all tests**
 
 ```bash
 pnpm vitest run
@@ -1634,7 +1634,7 @@ pnpm vitest run
 
 Expected: all tests pass.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/app/(authed)/recommendations/page.tsx

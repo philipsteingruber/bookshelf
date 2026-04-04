@@ -31,10 +31,13 @@ type ConversationMessage =
   | {
       id: string;
       role: "assistant";
+      type: "recommendations";
       blurb: string;
       books: RecommendationBook[];
       retried: boolean;
-    };
+    }
+  | { id: string; role: "assistant"; type: "answer"; text: string; books: RecommendationBook[] }
+  | { id: string; role: "assistant"; type: "error"; text: string };
 
 type StoredConversation = {
   messages: ConversationMessage[];
@@ -48,29 +51,38 @@ type PendingConfirm = "startOver" | "toggleOff" | "toggleOn";
 const MAX_EXCHANGES = 10;
 const STORAGE_KEY_PREFIX = "bookshelf-recommendations-";
 
+const CLASSIFICATION_ERROR_MESSAGE =
+  "Couldn't figure out what you're asking for. Try rephrasing your question more clearly.";
+const GENERIC_ERROR_MESSAGE = "Something went wrong. Please try again.";
+
 // --- Helpers ---
 
 /**
  * Serializes conversation messages for the Claude API.
- * Assistant turns are converted back to JSON strings (omitting coverUrl/pageCount)
- * to keep the context window lean.
+ * Error turns are omitted. Assistant turns are serialized to their text form.
  */
 function serializeForClaude(messages: ConversationMessage[]): { role: "user" | "assistant"; content: string }[] {
-  return messages.map((m) => {
-    if (m.role === "user") return { role: "user", content: m.content };
-    return {
-      role: "assistant",
-      content: JSON.stringify({
-        blurb: m.blurb,
-        books: m.books.map(({ title, author, reason, type }) => ({
-          title,
-          author,
-          reason,
-          type,
-        })),
-      }),
-    };
-  });
+  return messages
+    .filter((m) => !(m.role === "assistant" && m.type === "error"))
+    .map((m) => {
+      if (m.role === "user") return { role: "user", content: m.content };
+      if (m.type === "recommendations") {
+        return {
+          role: "assistant",
+          content: JSON.stringify({
+            blurb: m.blurb,
+            books: m.books.map(({ title, author, reason, type }) => ({
+              title,
+              author,
+              reason,
+              type,
+            })),
+          }),
+        };
+      }
+      // type === "answer"
+      return { role: "assistant", content: m.text };
+    });
 }
 
 const CONFIRM_DESCRIPTIONS: Record<PendingConfirm, string> = {
@@ -99,11 +111,17 @@ const Page = (): React.ReactElement => {
       const stored = localStorage.getItem(storageKey);
       if (stored) {
         const parsed: StoredConversation = JSON.parse(stored);
-        // Backfill `id` for messages stored before this field was added
-        const withIds = (parsed.messages ?? []).map((m) => (m.id ? m : { ...m, id: crypto.randomUUID() }));
+        const withIds = (parsed.messages ?? []).map((m) => {
+          const withId = m.id ? m : { ...m, id: crypto.randomUUID() };
+          // Backfill type for old assistant messages stored before this field was added
+          if (withId.role === "assistant" && !("type" in withId)) {
+            return { ...(withId as Record<string, unknown>), type: "recommendations" as const };
+          }
+          return withId;
+        });
 
         // eslint-disable-next-line react-hooks/set-state-in-effect
-        setMessages(withIds);
+        setMessages(withIds as ConversationMessage[]);
         setIncludeHistory(parsed.includeHistory ?? true);
       }
     } catch {
@@ -135,24 +153,38 @@ const Page = (): React.ReactElement => {
     [storageKey],
   );
 
-  // Declare mutation before the scroll effect so isPending is in scope
-  const { mutate: getRecommendations, isPending } = trpc.recommendations.getRecommendations.useMutation({
+  const { mutate: chat, isPending } = trpc.recommendations.chat.useMutation({
     onSuccess: (data) => {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: crypto.randomUUID(),
-          role: "assistant",
-          blurb: data.blurb,
-          books: data.books,
-          retried: data.retried,
-        },
-      ]);
+      if (data.type === "recommendations") {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: crypto.randomUUID(),
+            role: "assistant",
+            type: "recommendations",
+            blurb: data.blurb,
+            books: data.books,
+            retried: data.retried,
+          },
+        ]);
+      } else {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: crypto.randomUUID(),
+            role: "assistant",
+            type: "answer",
+            text: data.text,
+            books: data.books,
+          },
+        ]);
+      }
     },
-    onError: () => {
-      toast.error("Failed to get recommendations. Please try again.");
-      // Remove the optimistically-added user message
-      setMessages((prev) => prev.slice(0, -1));
+    onError: (error) => {
+      const text =
+        error.message === "intent_classification_failed" ? CLASSIFICATION_ERROR_MESSAGE : GENERIC_ERROR_MESSAGE;
+      toast.error(text);
+      setMessages((prev) => [...prev, { id: crypto.randomUUID(), role: "assistant", type: "error", text }]);
     },
   });
 
@@ -191,8 +223,8 @@ const Page = (): React.ReactElement => {
     const drop = Math.max(0, totalExchanges - MAX_EXCHANGES) * 2;
     const priorMessages = serializeForClaude(updatedMessages.slice(drop, -1));
 
-    getRecommendations({ prompt: trimmed, includeHistory, priorMessages });
-  }, [prompt, isPending, messages, includeHistory, getRecommendations]);
+    chat({ prompt: trimmed, includeHistory, priorMessages });
+  }, [prompt, isPending, messages, includeHistory, chat]);
 
   const handleToggle = (checked: boolean): void => {
     if (messages.length > 0) {
@@ -276,14 +308,46 @@ const Page = (): React.ReactElement => {
             </div>
           ) : (
             <div className="flex flex-col gap-5">
-              {messages.map((message) =>
-                message.role === "user" ? (
-                  <div key={message.id} className="flex justify-end">
-                    <div className="max-w-[60%] rounded-2xl rounded-tr-sm bg-neutral-900 px-4 py-2.5 text-sm leading-relaxed text-white dark:bg-neutral-700">
-                      {message.content}
+              {messages.map((message) => {
+                if (message.role === "user") {
+                  return (
+                    <div key={message.id} className="flex justify-end">
+                      <div className="max-w-[60%] rounded-2xl rounded-tr-sm bg-neutral-900 px-4 py-2.5 text-sm leading-relaxed text-white dark:bg-neutral-700">
+                        {message.content}
+                      </div>
                     </div>
-                  </div>
-                ) : (
+                  );
+                }
+
+                if (message.type === "error") {
+                  return (
+                    <div key={message.id} className="flex justify-start">
+                      <div className="max-w-[75%] rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-relaxed text-red-700 dark:border-red-800 dark:bg-red-950/30 dark:text-red-400">
+                        {message.text}
+                      </div>
+                    </div>
+                  );
+                }
+
+                if (message.type === "answer") {
+                  return (
+                    <div key={message.id} className="flex flex-col gap-3">
+                      <div className="max-w-[75%] rounded-xl border bg-white px-4 py-3 text-sm leading-relaxed text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300">
+                        {message.text}
+                      </div>
+                      {message.books.length > 0 && (
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                          {message.books.map((book) => (
+                            <RecommendationCard key={`${book.title}-${book.author}`} recommendation={book} />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+
+                // type === "recommendations"
+                return (
                   <div key={message.id} className="flex flex-col gap-3">
                     <div className="max-w-[75%] rounded-xl border bg-white px-4 py-3 text-sm leading-relaxed text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300">
                       {message.blurb}
@@ -299,8 +363,8 @@ const Page = (): React.ReactElement => {
                       </span>
                     )}
                   </div>
-                ),
-              )}
+                );
+              })}
               {isPending && (
                 <div className="flex items-center gap-2 text-sm text-neutral-400">
                   <Spinner className="size-4" />
@@ -324,7 +388,7 @@ const Page = (): React.ReactElement => {
                   handleSubmit();
                 }
               }}
-              placeholder="Ask for a recommendation…"
+              placeholder="Ask for a recommendation or a question about books…"
               disabled={isPending}
               className="min-h-[42px] resize-none"
               rows={1}
