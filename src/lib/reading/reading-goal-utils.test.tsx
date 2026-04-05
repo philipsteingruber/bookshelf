@@ -470,6 +470,8 @@ describe("readingGoalUtils", () => {
     });
   });
   describe("enrichGoalHistory", () => {
+    const refDate = new Date("2026-07-01"); // day 182 of 365
+
     it("should return empty array when given empty input", () => {
       const result = enrichGoalHistory([]);
       expect(result).toEqual([]);
@@ -548,7 +550,7 @@ describe("readingGoalUtils", () => {
         { year: currentYear, goal: 10, actual: 7 },
       ];
 
-      const result = enrichGoalHistory(input);
+      const result = enrichGoalHistory(input, mockDate);
 
       expect(result).toHaveLength(1);
       expect(result[0]).toEqual({
@@ -558,7 +560,41 @@ describe("readingGoalUtils", () => {
         progressPercentage: 70,
         difference: -3,
         differenceFromPrevious: null,
+        expectedAtThisPoint: 0,
       } satisfies EnrichedGoalHistoryEntry);
+    });
+
+    it("should compute expectedAtThisPoint for the current year entry", () => {
+      const input: GoalHistoryEntry[] = [
+        { year: currentYear, goal: 10, actual: 3 },
+      ];
+
+      const result = enrichGoalHistory(input, refDate);
+
+      // Math.round(10 / 365 * 182) = 5
+      expect(result[0].expectedAtThisPoint).toBe(5);
+    });
+
+    it("should return null for expectedAtThisPoint for past year entries", () => {
+      const input: GoalHistoryEntry[] = [
+        { year: currentYear, goal: 10, actual: 5 },
+        { year: currentYear - 1, goal: 10, actual: 8 },
+      ];
+
+      const result = enrichGoalHistory(input, refDate);
+
+      const pastEntry = result.find((e) => e.year === currentYear - 1);
+      expect(pastEntry?.expectedAtThisPoint).toBeNull();
+    });
+
+    it("should return null for expectedAtThisPoint when goal is 0", () => {
+      const input: GoalHistoryEntry[] = [
+        { year: currentYear, goal: 0, actual: 5 },
+      ];
+
+      const result = enrichGoalHistory(input, refDate);
+
+      expect(result[0].expectedAtThisPoint).toBeNull();
     });
   });
 });
