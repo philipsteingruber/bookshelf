@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { RedirectToSignIn, useAuth } from "@clerk/nextjs";
 import { RotateCcwIcon, SendIcon } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 
 import type { RecommendationBook } from "@/components/recommendations/recommendation-card";
 import { RecommendationCard } from "@/components/recommendations/recommendation-card";
@@ -336,8 +337,8 @@ const Page = (): React.ReactElement => {
                 if (message.type === "answer") {
                   return (
                     <div key={message.id} className="flex flex-col gap-3">
-                      <div className="max-w-[75%] rounded-xl border bg-white px-4 py-3 text-sm leading-relaxed text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300">
-                        {message.text}
+                      <div className="prose prose-sm dark:prose-invert max-w-[75%] rounded-xl border bg-white px-4 py-3 text-sm leading-relaxed text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300">
+                        <ReactMarkdown>{message.text}</ReactMarkdown>
                       </div>
                       {message.books.length > 0 && (
                         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -353,8 +354,8 @@ const Page = (): React.ReactElement => {
                 // type === "recommendations"
                 return (
                   <div key={message.id} className="flex flex-col gap-3">
-                    <div className="max-w-[75%] rounded-xl border bg-white px-4 py-3 text-sm leading-relaxed text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300">
-                      {message.blurb}
+                    <div className="prose prose-sm dark:prose-invert max-w-[75%] rounded-xl border bg-white px-4 py-3 text-sm leading-relaxed text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300">
+                      <ReactMarkdown>{message.blurb}</ReactMarkdown>
                     </div>
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                       {message.books.map((book) => (
@@ -382,7 +383,7 @@ const Page = (): React.ReactElement => {
 
         {/* Input area */}
         <div className="border-t bg-white px-6 py-4 dark:bg-neutral-900">
-          <div className="flex items-end gap-3">
+          <div className="flex items-center gap-3">
             <Textarea
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}

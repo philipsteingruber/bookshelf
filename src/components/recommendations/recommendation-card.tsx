@@ -4,6 +4,8 @@ import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 
+import ReactMarkdown from "react-markdown";
+
 import BookCoverFallback from "@/components/books/book-cover-fallback";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -115,20 +117,37 @@ export const RecommendationCard = ({ recommendation }: RecommendationCardProps):
         <span className="text-xs text-neutral-400">
           {recommendation.pageCount !== null ? `${recommendation.pageCount} pages` : "—"}
         </span>
-        <p
+        <div
           className={cn(
             "mt-auto border-t pt-2 text-xs leading-relaxed text-neutral-600 dark:text-neutral-400",
             styles.divider,
           )}
         >
-          {recommendation.reason}
-        </p>
+          <ReactMarkdown
+            components={{
+              p: ({ children }) => <p className="mb-1 last:mb-0">{children}</p>,
+              strong: ({ children }) => (
+                <strong className="font-semibold text-neutral-700 dark:text-neutral-300">{children}</strong>
+              ),
+              ul: ({ children }) => <ul className="my-1 ml-3 list-disc space-y-0.5">{children}</ul>,
+              li: ({ children }) => <li>{children}</li>,
+              h2: ({ children }) => (
+                <p className="mt-1 font-semibold text-neutral-700 dark:text-neutral-300">{children}</p>
+              ),
+              h3: ({ children }) => (
+                <p className="mt-1 font-semibold text-neutral-700 dark:text-neutral-300">{children}</p>
+              ),
+            }}
+          >
+            {recommendation.reason}
+          </ReactMarkdown>
+        </div>
         <div className="flex w-full items-center justify-between">
           <Link
             href={`https://annas-archive.gl/search?index=&page=1&sort=smallest&ext=epub&src=zlib&lang=en&display=&q=${encodeURIComponent(recommendation.title)}+${encodeURIComponent(recommendation.author)}`}
             target="_blank"
           >
-            <Button>Download</Button>
+            <Button size={"sm"}>Download</Button>
           </Link>
         </div>
       </div>
