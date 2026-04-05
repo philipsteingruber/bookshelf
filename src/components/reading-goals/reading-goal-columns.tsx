@@ -15,6 +15,19 @@ export const columns: ColumnDef<EnrichedGoalHistoryEntry>[] = [
       return goal === 0 ? "—" : goal;
     },
   },
+  {
+    accessorKey: "expectedAtThisPoint",
+    header: "Expected",
+    cell: ({ row }) => {
+      const expected = row.getValue("expectedAtThisPoint") as number | null;
+
+      if (expected === null) {
+        return <span className="text-muted-foreground">—</span>;
+      }
+
+      return expected;
+    },
+  },
   { accessorKey: "actual", header: "Actual" },
   {
     accessorKey: "progressPercentage",
