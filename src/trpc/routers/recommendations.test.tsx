@@ -30,7 +30,7 @@ const DEFAULT_BOOKS = [
   { title: "Book E", author: "Author E", reason: "Reason E", type: "risky" },
 ];
 
-const makeClassifyResponse = (intent: "recommendation" | "question") => ({
+const makeClassifyResponse = (intent: "recommendation" | "question"): { content: { type: string; id: string; name: string; input: { intent: "recommendation" | "question" } }[] } => ({
   content: [
     {
       type: "tool_use",
@@ -41,7 +41,7 @@ const makeClassifyResponse = (intent: "recommendation" | "question") => ({
   ],
 });
 
-const makeRecommendResponse = (books = DEFAULT_BOOKS) => ({
+const makeRecommendResponse = (books = DEFAULT_BOOKS): { content: { type: string; id: string; name: string; input: { blurb: string; books: { title: string; author: string; reason: string; type: string }[] } }[] } => ({
   content: [
     {
       type: "tool_use",
@@ -52,7 +52,7 @@ const makeRecommendResponse = (books = DEFAULT_BOOKS) => ({
   ],
 });
 
-const makeAnswerResponse = (text: string, books: { title: string; author: string; reason: string }[] = []) => ({
+const makeAnswerResponse = (text: string, books: { title: string; author: string; reason: string }[] = []): { content: { type: string; id: string; name: string; input: { text: string; books: { title: string; author: string; reason: string }[] } }[] } => ({
   content: [
     {
       type: "tool_use",
@@ -63,7 +63,7 @@ const makeAnswerResponse = (text: string, books: { title: string; author: string
   ],
 });
 
-const makeGoogleBooksJson = (thumbnail?: string, pageCount?: number) => ({
+const makeGoogleBooksJson = (thumbnail?: string, pageCount?: number): { items: { volumeInfo: { imageLinks?: { thumbnail: string }; pageCount?: number } }[] } => ({
   items:
     thumbnail || pageCount
       ? [
@@ -77,7 +77,7 @@ const makeGoogleBooksJson = (thumbnail?: string, pageCount?: number) => ({
       : [],
 });
 
-const makeFetchResponse = (json: unknown) => ({
+const makeFetchResponse = (json: unknown): { ok: boolean; json: ReturnType<typeof vi.fn> } => ({
   ok: true,
   json: vi.fn().mockResolvedValue(json),
 });
