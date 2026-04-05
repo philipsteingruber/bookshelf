@@ -149,21 +149,33 @@ export function checkGoalCelebration({
 
 export const enrichGoalHistory = (
   goalHistory: GoalHistoryEntry[],
+  referenceDate: Date = new Date(),
 ): EnrichedGoalHistoryEntry[] => {
-  // Probably not necessary, might be good to keep to make the edge case explicit?
   if (goalHistory.length === 0) {
     return [];
   }
 
+  const currentYear = referenceDate.getFullYear();
   const reversed = goalHistory.toReversed();
   const result = reversed.map((entry, index) => {
+    const expectedAtThisPoint =
+      entry.year === currentYear && entry.goal > 0
+        ? Math.round(
+            (entry.goal / getDaysInYear(referenceDate)) *
+              getDayOfYear(referenceDate),
+          )
+        : null;
+
     return {
       ...entry,
       progressPercentage:
-        entry.goal === 0 ? null : Math.round((entry.actual / entry.goal) * 100), // progressPercentage = null => No goal set, percentage not computable
+        entry.goal === 0
+          ? null
+          : Math.round((entry.actual / entry.goal) * 100),
       difference: entry.actual - entry.goal,
       differenceFromPrevious:
         index === 0 ? null : entry.actual - reversed[index - 1].actual,
+      expectedAtThisPoint,
     };
   });
 

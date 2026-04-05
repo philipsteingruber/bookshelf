@@ -27,6 +27,7 @@ export interface EnrichedGoalHistoryEntry extends GoalHistoryEntry {
   progressPercentage: number | null;
   difference: number;
   differenceFromPrevious: number | null;
+  expectedAtThisPoint: number | null;
 }
 
 export interface BuildGoalHistoryOptions {
