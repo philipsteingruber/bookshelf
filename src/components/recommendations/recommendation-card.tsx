@@ -1,10 +1,12 @@
 "use client";
 
+import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 
 import BookCoverFallback from "@/components/books/book-cover-fallback";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { useImageError } from "@/hooks/ui";
 import { cn } from "@/lib/utils";
 
@@ -67,7 +69,7 @@ interface RecommendationCardProps {
   recommendation: RecommendationBook;
 }
 
-export const RecommendationCard = ({ recommendation }: RecommendationCardProps) => {
+export const RecommendationCard = ({ recommendation }: RecommendationCardProps): React.ReactElement => {
   const styles = recommendation.type ? TYPE_STYLES[recommendation.type] : CONVERSATIONAL_STYLE;
   const { imageError, handleImageError } = useImageError(recommendation.coverUrl);
   const showFallback = !recommendation.coverUrl || imageError;
@@ -121,6 +123,14 @@ export const RecommendationCard = ({ recommendation }: RecommendationCardProps) 
         >
           {recommendation.reason}
         </p>
+        <div className="flex w-full items-center justify-between">
+          <Link
+            href={`https://annas-archive.gl/search?index=&page=1&sort=smallest&ext=epub&src=zlib&lang=en&display=&q=${encodeURIComponent(recommendation.title)}+${encodeURIComponent(recommendation.author)}`}
+            target="_blank"
+          >
+            <Button>Download</Button>
+          </Link>
+        </div>
       </div>
     </div>
   );
