@@ -4,6 +4,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   /* config options here */
   reactCompiler: true,
+  transpilePackages: ["react-markdown"],
   images: {
     remotePatterns: [
       new URL("https://3k01dt1q3i.ufs.sh/**/*"),
