@@ -13,26 +13,6 @@ const eslintConfig = defineConfig([
       "unused-imports": unusedImports,
     },
     rules: {
-      "simple-import-sort/imports": [
-        "warn",
-        {
-          groups: [
-            // Side effect imports (e.g., import './styles.css')
-            ["^\\u0000"],
-            // React and Next.js
-            ["^react$", "^react-dom$", "^next(/.*)?$"],
-            // External packages - anything that doesn't start with . or @ or /
-            ["^[a-z@]"],
-            // Internal packages - starting with @/
-            ["^@/"],
-            // Parent imports (..)
-            ["^\\.\\."],
-            // Same folder imports (.)
-            ["^\\."],
-          ],
-        },
-      ],
-      "simple-import-sort/exports": "warn",
       "@typescript-eslint/consistent-type-imports": [
         "warn",
         {
@@ -89,8 +69,7 @@ const eslintConfig = defineConfig([
           patterns: [
             {
               group: ["@radix-ui", "@radix-ui/*"],
-              message:
-                "Import from ui/components or add new ShadCN component instead",
+              message: "Import from ui/components or add new ShadCN component instead",
             },
           ],
         },
