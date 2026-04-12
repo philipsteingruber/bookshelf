@@ -35,6 +35,25 @@ Do not recommend any book already in the user's library.
 
 blurb is 2–3 sentences: a conversational intro summarizing your reasoning across the set and how the recommendations fulfill the request.`;
 
+const RECOMMENDATIONS_SYSTEM_PROMPT_NO_HISTORY = `You are a book recommendation assistant. The user's explicit request is your sole directive — make recommendations that directly fulfil what the user is asking for, with no assumptions about their personal tastes.
+
+Return exactly 5 recommendations. Vary them to give the user a genuine range of options:
+- At least one very close match to what the user described
+- A mix of well-known and lesser-known titles
+- At least one pick that takes the request in a related but slightly unexpected direction
+
+Each reason must explain specifically why this book fits the user's request. Never write a generic plot summary.
+
+Book titles: The title field must contain the exact published title of a specific individual book — never a series name, never a combined "Series: Book Title" format. For example: use "The Blade Itself", not "The First Law" or "The First Law: The Blade Itself". Only recommend books you are certain exist as published works with that exact title. Never invent or approximate a title.
+
+Series guidance: Strongly prefer recommending the first book in a series. If you recommend a non-first entry, the reason field must explain why — for example: "this volume works as a standalone", "each book in the series is independent", or "the author recommends this as the best starting point". Never recommend a mid-series book without this explanation.
+
+Publication date: Strongly prefer books published after 2000. Only recommend older books when they are exceptionally well-suited to the user's request or nothing more recent fills that niche.
+
+Do not recommend any book already in the user's library.
+
+blurb is 2–3 sentences: a conversational intro summarizing your reasoning across the set and how the recommendations fulfil the request.`;
+
 const CLASSIFICATION_SYSTEM_PROMPT = `You are an intent classifier for a book recommendation assistant. Classify the user's message as one of:
 - "recommendation": the user is asking for book recommendations (e.g. "recommend me a fantasy book", "what should I read next?", "suggest something like X")
 - "question": the user is asking a conversational question about books, authors, or previous recommendations (e.g. "why did you suggest X?", "what's the next book in this series?", "does X fit my tastes?")
@@ -42,6 +61,14 @@ const CLASSIFICATION_SYSTEM_PROMPT = `You are an intent classifier for a book re
 Use the classify_intent tool to respond.`;
 
 const ANSWER_SYSTEM_PROMPT = `You are a knowledgeable book assistant. Answer the user's question about books conversationally and helpfully. Use any provided reading history to personalize your answer.
+
+If your answer naturally involves specific books (e.g. the next in a series, a book you are comparing, a direct recommendation in context), include them in the books array (1–3 maximum). Only include books when they directly serve the answer — do not pad with unrelated suggestions. If no books are needed, return an empty array.
+
+Each included book must have a reason that explains specifically why it is relevant to this answer.
+
+Book titles must be exact published titles. Never invent or approximate a title.`;
+
+const ANSWER_SYSTEM_PROMPT_NO_HISTORY = `You are a knowledgeable book assistant. Answer the user's question about books conversationally and helpfully.
 
 If your answer naturally involves specific books (e.g. the next in a series, a book you are comparing, a direct recommendation in context), include them in the books array (1–3 maximum). Only include books when they directly serve the answer — do not pad with unrelated suggestions. If no books are needed, return an empty array.
 
@@ -224,6 +251,7 @@ const classifyIntent = async (prompt: string, logger: Logger): Promise<"recommen
 
 const callRecommendations = async (
   messages: Anthropic.MessageParam[],
+  systemPrompt: string,
   logger: Logger,
 ): Promise<Anthropic.Messages.Message> => {
   const timer = performanceLogger("Claude: Get book recommendations", 20000, logger);
@@ -232,7 +260,7 @@ const callRecommendations = async (
     return await anthropic.messages.create({
       model: RECOMMENDATIONS_MODEL,
       max_tokens: 2000,
-      system: RECOMMENDATIONS_SYSTEM_PROMPT,
+      system: systemPrompt,
       tools: [RECOMMENDATIONS_TOOL],
       tool_choice: { type: "tool", name: "recommend_books" },
       messages,
@@ -248,14 +276,18 @@ const callRecommendations = async (
   }
 };
 
-const callAnswer = async (messages: Anthropic.MessageParam[], logger: Logger): Promise<Anthropic.Messages.Message> => {
+const callAnswer = async (
+  messages: Anthropic.MessageParam[],
+  systemPrompt: string,
+  logger: Logger,
+): Promise<Anthropic.Messages.Message> => {
   const timer = performanceLogger("Claude: Answer book question", 20000, logger);
   timer.start();
   try {
     return await anthropic.messages.create({
       model: RECOMMENDATIONS_MODEL,
       max_tokens: 1000,
-      system: ANSWER_SYSTEM_PROMPT,
+      system: systemPrompt,
       tools: [ANSWER_TOOL],
       tool_choice: { type: "tool", name: "answer_question" },
       messages,
@@ -382,8 +414,13 @@ export const recommendationsRouter = createTRPCRouter({
         { role: "user", content: userMessage },
       ];
 
+      const recommendSystemPrompt = input.includeHistory
+        ? RECOMMENDATIONS_SYSTEM_PROMPT
+        : RECOMMENDATIONS_SYSTEM_PROMPT_NO_HISTORY;
+      const answerSystemPrompt = input.includeHistory ? ANSWER_SYSTEM_PROMPT : ANSWER_SYSTEM_PROMPT_NO_HISTORY;
+
       if (intent === "recommendation") {
-        let claudeResponse = await callRecommendations(conversationMessages, ctx.logger);
+        let claudeResponse = await callRecommendations(conversationMessages, recommendSystemPrompt, ctx.logger);
         let parsed = parseRecommendResponse(claudeResponse, ctx.logger);
 
         // Duplicate detection + retry
@@ -410,6 +447,7 @@ export const recommendationsRouter = createTRPCRouter({
                 ],
               },
             ],
+            recommendSystemPrompt,
             ctx.logger,
           );
           parsed = parseRecommendResponse(claudeResponse, ctx.logger);
@@ -428,7 +466,7 @@ export const recommendationsRouter = createTRPCRouter({
           retried: duplicates.length > 0,
         };
       } else {
-        const claudeResponse = await callAnswer(conversationMessages, ctx.logger);
+        const claudeResponse = await callAnswer(conversationMessages, answerSystemPrompt, ctx.logger);
         const parsed = parseAnswerResponse(claudeResponse, ctx.logger);
 
         const enrichTimer = performanceLogger("Google Books: Enrich answer books", 5000, ctx.logger);
