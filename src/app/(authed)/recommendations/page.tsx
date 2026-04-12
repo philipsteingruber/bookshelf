@@ -108,6 +108,7 @@ const Page = (): React.ReactElement => {
   const [pendingConfirm, setPendingConfirm] = useState<PendingConfirm | null>(null);
 
   const conversationEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const storageKey = userId ? `${STORAGE_KEY_PREFIX}${userId}` : null;
 
   // Load persisted conversation from localStorage on mount
@@ -270,7 +271,7 @@ const Page = (): React.ReactElement => {
           if (!open) setPendingConfirm(null);
         }}
       >
-        <AlertDialogContent>
+        <AlertDialogContent onCloseAutoFocus={(e) => { e.preventDefault(); textareaRef.current?.focus(); }}>
           <AlertDialogHeader>
             <AlertDialogTitle>Clear conversation?</AlertDialogTitle>
             <AlertDialogDescription>{pendingConfirm && CONFIRM_DESCRIPTIONS[pendingConfirm]}</AlertDialogDescription>
@@ -385,6 +386,7 @@ const Page = (): React.ReactElement => {
         <div className="border-t bg-white px-6 py-4 dark:bg-neutral-900">
           <div className="flex items-center gap-3">
             <Textarea
+              ref={textareaRef}
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               onKeyDown={(e) => {
