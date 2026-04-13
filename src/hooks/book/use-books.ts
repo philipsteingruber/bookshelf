@@ -45,7 +45,7 @@ export const useBooks = (options?: BookFilters & { enabled?: boolean }): UseBook
       status,
       rating,
       search: debouncedSearch,
-      sortBy: sortBy === "title" ? "titleSort" : sortBy === "author" ? "authorSort" : sortBy,
+      sortBy,
       sortDirection,
       limit,
       page,

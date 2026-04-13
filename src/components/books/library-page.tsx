@@ -25,14 +25,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger } from "@/components/ui/select";
 import type { ReadStatus } from "@/generated/prisma/enums";
-import type { BookScalarFieldEnum } from "@/generated/prisma/internal/prismaNamespace";
 import { useBooks } from "@/hooks/book";
+import type { SortableField } from "@/lib/book";
 import { DEBOUNCE_INTERVAL, DEFAULT_FILTER, DEFAULT_SORTING, sortGroups } from "@/lib/constants";
 import { librarySearchParams } from "@/lib/schemas/url-state";
 import type { SortItem, SortOptions, StatusFilterOption } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-const SORT_CONFIG: Record<SortOptions, { sortBy: BookScalarFieldEnum; sortDirection: "asc" | "desc" }> = {
+const SORT_CONFIG: Record<SortOptions, { sortBy: SortableField; sortDirection: "asc" | "desc" }> = {
   RECENTLY_UPDATED: { sortBy: "updatedAt", sortDirection: "desc" },
   RECENTLY_ADDED: { sortBy: "createdAt", sortDirection: "desc" },
   RECENTLY_FINISHED: { sortBy: "finishedAt", sortDirection: "desc" },
@@ -75,10 +75,10 @@ const statusFilterOptions: StatusFilterOption[] = [
   },
 ];
 
-const parseSelectedSort = (value: string): { sortBy: BookScalarFieldEnum; sortDirection: "asc" | "desc" } => {
+const parseSelectedSort = (value: string): { sortBy: SortableField; sortDirection: "asc" | "desc" } => {
   return (
     SORT_CONFIG[value as SortOptions] ?? {
-      sortBy: "title" as BookScalarFieldEnum,
+      sortBy: "title" as SortableField,
       sortDirection: "asc" as const,
     }
   );

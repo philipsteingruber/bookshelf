@@ -556,7 +556,7 @@ describe("bookRouter", () => {
   });
   describe("getBooks", () => {
     const baseQuery = {
-      orderBy: { title: "asc" },
+      orderBy: { titleSort: "asc" },
       take: VALIDATION_LIMITS.BOOKS_QUERY_DEFAULT,
       skip: 0,
     };
@@ -649,7 +649,7 @@ describe("bookRouter", () => {
         ...baseQuery,
         where: { userId: fakeBook1.userId },
         take: VALIDATION_LIMITS.BOOKS_QUERY_DEFAULT,
-        orderBy: { title: "asc" },
+        orderBy: { titleSort: "asc" },
       });
     });
 
@@ -671,7 +671,7 @@ describe("bookRouter", () => {
         ...baseQuery,
         where: { userId: fakeBook1.userId },
         take: VALIDATION_LIMITS.BOOKS_QUERY_DEFAULT,
-        orderBy: { title: "desc" },
+        orderBy: { titleSort: "desc" },
       });
     });
 
@@ -734,7 +734,7 @@ describe("bookRouter", () => {
         ...baseQuery,
         where: { userId: fakeBook.userId },
         take: limit,
-        orderBy: { title: "asc" },
+        orderBy: { titleSort: "asc" },
       });
     });
 
@@ -764,7 +764,7 @@ describe("bookRouter", () => {
             { isbn: { contains: "book", mode: "insensitive" } },
           ],
         },
-        orderBy: { title: "desc" },
+        orderBy: { titleSort: "desc" },
         take: VALIDATION_LIMITS.BOOKS_QUERY_DEFAULT,
       });
     });

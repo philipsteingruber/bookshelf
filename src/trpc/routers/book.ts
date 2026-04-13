@@ -4,8 +4,8 @@ import { UTApi } from "uploadthing/server";
 import z from "zod";
 
 import { ReadStatus } from "@/generated/prisma/enums";
-import { type BookOrderByWithRelationInput, type BookWhereInput } from "@/generated/prisma/internal/prismaNamespace";
-import { createAuthorSort, createTitleSort } from "@/lib/book";
+import { type BookWhereInput } from "@/generated/prisma/internal/prismaNamespace";
+import { createAuthorSort, createTitleSort, toOrderBy } from "@/lib/book";
 import { extractFileKeyFromUrl } from "@/lib/common";
 import { performanceLogger } from "@/lib/common/logger";
 import { VALIDATION_LIMITS } from "@/lib/constants";
@@ -41,19 +41,7 @@ export const bookRouter = createTRPCRouter({
       where.rating = null;
     }
 
-    const sortDirection = filters?.sortDirection || "asc";
-    let orderBy: BookOrderByWithRelationInput | BookOrderByWithRelationInput[];
-    if (filters?.sortBy) {
-      if (filters.sortBy === "series") {
-        orderBy = [{ series: { sort: "asc", nulls: "last" } }, { seriesIndex: "asc" }, { titleSort: "asc" }];
-      } else if (filters.sortBy === "finishedAt") {
-        orderBy = [{ finishedAt: { sort: sortDirection, nulls: "last" } }, { titleSort: "asc" }];
-      } else {
-        orderBy = { [filters.sortBy]: sortDirection };
-      }
-    } else {
-      orderBy = { title: "asc" };
-    }
+    const orderBy = toOrderBy(filters?.sortBy ?? "title", filters?.sortDirection ?? "asc");
 
     const limit = filters?.limit || VALIDATION_LIMITS.BOOKS_QUERY_DEFAULT;
     let skip: number;

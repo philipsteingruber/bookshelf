@@ -52,15 +52,15 @@ describe("useBooks", () => {
       expect(useDebounce).toHaveBeenCalledWith("test query", DEBOUNCE_INTERVAL);
     });
 
-    it("should map sort fields (title -> titleSort, author -> authorSort)", () => {
+    it("should pass sortBy directly without translation", () => {
       renderHook(() => useBooks({ sortBy: "title" }));
       expect(trpc.book.getBooks.useQuery).toHaveBeenCalledWith(
-        expect.objectContaining({ sortBy: "titleSort" }),
+        expect.objectContaining({ sortBy: "title" }),
         expect.anything(),
       );
       renderHook(() => useBooks({ sortBy: "author" }));
       expect(trpc.book.getBooks.useQuery).toHaveBeenCalledWith(
-        expect.objectContaining({ sortBy: "authorSort" }),
+        expect.objectContaining({ sortBy: "author" }),
         expect.anything(),
       );
     });
