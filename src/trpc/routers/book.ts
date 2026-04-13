@@ -12,6 +12,7 @@ import { VALIDATION_LIMITS } from "@/lib/constants";
 import { createBookInputSchema, createFormSchema } from "@/lib/schemas/book";
 import { bookFiltersSchema } from "@/lib/schemas/book-filters";
 
+import { requireOwnedBook } from "../helpers";
 import { authedProcedure, createTRPCRouter } from "../init";
 
 export const bookRouter = createTRPCRouter({
@@ -81,32 +82,7 @@ export const bookRouter = createTRPCRouter({
   }),
   getBook: authedProcedure.input(z.number().min(0)).query(async ({ ctx, input: bookId }) => {
     ctx.logger.debug({ bookId }, "Fetching book by ID");
-
-    const fetchBookTimer = performanceLogger("DB: Fetch book by ID", 1000, ctx.logger);
-
-    fetchBookTimer.start();
-    const book = await ctx.db.book.findUnique({
-      where: { id: bookId },
-    });
-    fetchBookTimer.end({ bookId });
-
-    if (!book) {
-      ctx.logger.warn({ bookId }, "Book not found");
-      throw new TRPCError({ code: "NOT_FOUND" });
-    }
-
-    if (book.userId !== ctx.currentUser.id) {
-      ctx.logger.warn(
-        {
-          bookId: book.id,
-          bookOwnerId: book.userId,
-          attemptedBy: ctx.currentUser.id,
-        },
-        "Permission denied: Attempted to access another user's book",
-      );
-      throw new TRPCError({ code: "FORBIDDEN" });
-    }
-
+    const book = await requireOwnedBook(ctx, bookId);
     ctx.logger.debug({ bookId }, "Successfully fetched book");
     return { book };
   }),
@@ -240,30 +216,7 @@ export const bookRouter = createTRPCRouter({
       const { bookId, newStatus } = input;
 
       ctx.logger.debug({ bookId, newStatus }, "Updating reading status");
-
-      const fetchBookTimer = performanceLogger("DB: Fetch book for status update", 1000, ctx.logger);
-
-      fetchBookTimer.start();
-      const book = await ctx.db.book.findUnique({
-        where: { id: bookId },
-      });
-      fetchBookTimer.end({ bookId });
-
-      if (!book) {
-        ctx.logger.warn({ bookId }, "Book not found for status update");
-        throw new TRPCError({ code: "NOT_FOUND" });
-      }
-      if (book.userId !== ctx.currentUser.id) {
-        ctx.logger.warn(
-          {
-            bookId,
-            bookOwnerId: book.userId,
-            attemptedBy: ctx.currentUser.id,
-          },
-          "Permission denied: Attempted to update another user's book status",
-        );
-        throw new TRPCError({ code: "FORBIDDEN" });
-      }
+      const book = await requireOwnedBook(ctx, bookId);
 
       const updateData: {
         status: ReadStatus;
@@ -325,30 +278,7 @@ export const bookRouter = createTRPCRouter({
     .input(z.object({ bookId: z.number(), newPageCount: z.int().positive() }))
     .mutation(async ({ ctx, input }) => {
       ctx.logger.debug({ bookId: input.bookId }, "Updating book pagecount");
-
-      const fetchBookTimer = performanceLogger("DB: Fetch book for pagecount update", 1000, ctx.logger);
-
-      fetchBookTimer.start();
-      const book = await ctx.db.book.findUnique({
-        where: { id: input.bookId },
-      });
-      fetchBookTimer.end({ bookId: input.bookId });
-
-      if (!book) {
-        ctx.logger.warn({ bookId: input.bookId }, `No book with ID ${input.bookId} found for pagecount update`);
-        throw new TRPCError({ code: "NOT_FOUND" });
-      }
-      if (book.userId !== ctx.currentUser.id) {
-        ctx.logger.warn(
-          {
-            bookId: input.bookId,
-            bookOwnerId: book.userId,
-            attemptedBy: ctx.currentUser.id,
-          },
-          "Permission denied: Attempted to access another user's book",
-        );
-        throw new TRPCError({ code: "FORBIDDEN" });
-      }
+      const book = await requireOwnedBook(ctx, input.bookId);
 
       const updatePageCountTimer = performanceLogger("DB: Update book pagecount", 1000, ctx.logger);
 
@@ -379,30 +309,7 @@ export const bookRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       ctx.logger.debug({ bookId: input.bookId }, "Updating book rating");
-
-      const fetchBookTimer = performanceLogger("DB: Fetch book for rating update", 1000, ctx.logger);
-
-      fetchBookTimer.start();
-      const book = await ctx.db.book.findUnique({
-        where: { id: input.bookId },
-      });
-      fetchBookTimer.end({ bookId: input.bookId });
-
-      if (!book) {
-        ctx.logger.warn({ bookId: input.bookId }, "Book not found for rating update");
-        throw new TRPCError({ code: "NOT_FOUND" });
-      }
-      if (book.userId !== ctx.currentUser.id) {
-        ctx.logger.warn(
-          {
-            bookId: input.bookId,
-            bookOwnerId: book.userId,
-            attemptedBy: ctx.currentUser.id,
-          },
-          "Permission denied: Attempted to update another user's book rating",
-        );
-        throw new TRPCError({ code: "FORBIDDEN" });
-      }
+      const book = await requireOwnedBook(ctx, input.bookId);
 
       const updateRatingTimer = performanceLogger("DB: Update book rating", 1000, ctx.logger);
 
@@ -419,28 +326,7 @@ export const bookRouter = createTRPCRouter({
     }),
   deleteBook: authedProcedure.input(z.number().int().nonnegative()).mutation(async ({ input: bookId, ctx }) => {
     ctx.logger.debug({ bookId }, "Deleting book");
-
-    const fetchBookTimer = performanceLogger("DB: Fetch book for deletion", 1000, ctx.logger);
-
-    fetchBookTimer.start();
-    const book = await ctx.db.book.findUnique({ where: { id: bookId } });
-    fetchBookTimer.end({ bookId });
-
-    if (!book) {
-      ctx.logger.warn({ bookId }, `No book with ID ${bookId} found for deletion`);
-      throw new TRPCError({ code: "NOT_FOUND" });
-    }
-    if (book.userId !== ctx.currentUser.id) {
-      ctx.logger.warn(
-        {
-          bookId,
-          bookOwnerId: book.userId,
-          attemptedBy: ctx.currentUser.id,
-        },
-        "Permission denied: Attempted to access another user's book",
-      );
-      throw new TRPCError({ code: "FORBIDDEN" });
-    }
+    const book = await requireOwnedBook(ctx, bookId);
 
     const deleteBookTimer = performanceLogger("DB: Delete book", 1000, ctx.logger);
 
@@ -479,30 +365,7 @@ export const bookRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       ctx.logger.debug({ bookId: input.bookId }, "Updating book");
-
-      const fetchBookTimer = performanceLogger("DB: Fetch book for update", 1000, ctx.logger);
-
-      fetchBookTimer.start();
-      const book = await ctx.db.book.findUnique({
-        where: { id: input.bookId },
-      });
-      fetchBookTimer.end({ bookId: input.bookId });
-
-      if (!book) {
-        ctx.logger.warn({ bookId: input.bookId }, `No book with ID ${input.bookId} found for update`);
-        throw new TRPCError({ code: "NOT_FOUND" });
-      }
-      if (book.userId !== ctx.currentUser.id) {
-        ctx.logger.warn(
-          {
-            bookId: input.bookId,
-            bookOwnerId: book.userId,
-            attemptedBy: ctx.currentUser.id,
-          },
-          "Permission denied: Attempted to update another user's book",
-        );
-        throw new TRPCError({ code: "FORBIDDEN" });
-      }
+      const book = await requireOwnedBook(ctx, input.bookId);
 
       const data = input.data;
 
