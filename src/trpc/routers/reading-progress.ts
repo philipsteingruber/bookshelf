@@ -9,6 +9,7 @@ import { performanceLogger } from "@/lib/common/logger";
 import { calculateStreakUpdate } from "@/lib/reading";
 import { recalculateUserStreaks } from "@/lib/reading/streak-utils";
 
+import { requireOwnedBook, requireOwnedReadingProgress } from "../helpers";
 import { authedProcedure, createTRPCRouter } from "../init";
 
 export const readingProgressRouter = createTRPCRouter({
@@ -36,35 +37,7 @@ export const readingProgressRouter = createTRPCRouter({
         throw new TRPCError({ code: "BAD_REQUEST" });
       }
 
-      const fetchBookTimer = performanceLogger(
-        "DB: Fetch book for ReadingProgress creation",
-      );
-
-      fetchBookTimer.start();
-      const book = await ctx.db.book.findUnique({
-        where: { id: input.bookId },
-      });
-      fetchBookTimer.end({ bookId: book?.id });
-
-      if (!book) {
-        ctx.logger.warn(
-          { bookId: input.bookId },
-          "No book found for reading progress creation",
-        );
-        throw new TRPCError({ code: "NOT_FOUND" });
-      }
-
-      if (book.userId !== ctx.currentUser.id) {
-        ctx.logger.warn(
-          {
-            bookId: book.id,
-            bookOwnerId: book.userId,
-            attemptedBy: ctx.currentUser.id,
-          },
-          "Permission denied: Attempted to access another user's book",
-        );
-        throw new TRPCError({ code: "FORBIDDEN" });
-      }
+      const book = await requireOwnedBook(ctx, input.bookId);
 
       const progress =
         input.newProgress ??
@@ -239,36 +212,7 @@ export const readingProgressRouter = createTRPCRouter({
     .input(z.int().min(1))
     .query(async ({ ctx, input: bookId }) => {
       ctx.logger.debug({ bookId }, "Getting reading progress history");
-
-      const fetchBookTimer = performanceLogger(
-        "DB: Fetch book for reading progress history",
-        1000,
-        ctx.logger,
-      );
-
-      fetchBookTimer.start();
-      const book = await ctx.db.book.findUnique({ where: { id: bookId } });
-      fetchBookTimer.end({ bookId });
-
-      if (!book) {
-        ctx.logger.warn(
-          { bookId },
-          "No book found for fetching reading progress history",
-        );
-        throw new TRPCError({ code: "NOT_FOUND" });
-      }
-
-      if (book.userId !== ctx.currentUser.id) {
-        ctx.logger.warn(
-          {
-            bookId: book.id,
-            bookOwnerId: book.userId,
-            attemptedBy: ctx.currentUser.id,
-          },
-          "Permission denied: Attempted to access another user's book",
-        );
-        throw new TRPCError({ code: "FORBIDDEN" });
-      }
+      await requireOwnedBook(ctx, bookId);
 
       const fetchReadingProgressHistoryTimer = performanceLogger(
         "DB: Fetch reading progress history",
@@ -320,38 +264,7 @@ export const readingProgressRouter = createTRPCRouter({
         "Deleting reading progress instance",
       );
 
-      const fetchReadingProgressTimer = performanceLogger(
-        "DB: Fetch reading progress for deletion",
-        1000,
-        ctx.logger,
-      );
-
-      fetchReadingProgressTimer.start();
-      const readingProgressToDelete = await ctx.db.readingProgress.findUnique({
-        where: { id: readingProgressId },
-        include: { book: true },
-      });
-      fetchReadingProgressTimer.end({ readingProgressId });
-
-      if (!readingProgressToDelete) {
-        ctx.logger.warn(
-          { readingProgressId },
-          `No reading progress with ID ${readingProgressId} found for deletion`,
-        );
-        throw new TRPCError({ code: "NOT_FOUND" });
-      }
-
-      if (readingProgressToDelete.book.userId !== ctx.currentUser.id) {
-        ctx.logger.warn(
-          {
-            bookId: readingProgressToDelete.book.id,
-            bookOwnerId: readingProgressToDelete.book.userId,
-            attemptedBy: ctx.currentUser.id,
-          },
-          "Permission denied: Attempted to access another user's book",
-        );
-        throw new TRPCError({ code: "FORBIDDEN" });
-      }
+      const readingProgressToDelete = await requireOwnedReadingProgress(ctx, readingProgressId);
 
       const deleteReadingProgressTransactionTimer = performanceLogger(
         "DB: Transaction - Delete ReadingProgress / Update Book Progress",
@@ -472,37 +385,7 @@ export const readingProgressRouter = createTRPCRouter({
         "Updating reading progress instance",
       );
 
-      const fetchProgressTimer = performanceLogger(
-        "DB: Fetch reading progress for update",
-        1000,
-        ctx.logger,
-      );
-
-      fetchProgressTimer.start();
-      const readingProgress = await ctx.db.readingProgress.findUnique({
-        where: { id: input.progressId },
-        include: { book: true },
-      });
-      fetchProgressTimer.end({ progressId: input.progressId });
-
-      if (!readingProgress) {
-        ctx.logger.warn(
-          { progressId: input.progressId },
-          `No reading progress with ID ${input.progressId} found for update`,
-        );
-        throw new TRPCError({ code: "NOT_FOUND" });
-      }
-      if (readingProgress.book.userId !== ctx.currentUser.id) {
-        ctx.logger.warn(
-          {
-            bookId: readingProgress.book.id,
-            bookOwnerId: readingProgress.book.userId,
-            attemptedBy: ctx.currentUser.id,
-          },
-          "Permission denied: Attempted to access another user's book",
-        );
-        throw new TRPCError({ code: "FORBIDDEN" });
-      }
+      const readingProgress = await requireOwnedReadingProgress(ctx, input.progressId);
 
       ctx.logger.debug(
         {
