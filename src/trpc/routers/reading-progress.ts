@@ -1,13 +1,10 @@
 import { TRPCError } from "@trpc/server";
-import { addDays, startOfDay, subDays } from "date-fns";
-import { fromZonedTime, toZonedTime } from "date-fns-tz";
+import { subDays } from "date-fns";
 import z from "zod";
 
 import type { Book, ReadingProgress } from "@/generated/prisma/client";
-import { calculatePagesFromProgress } from "@/lib/book";
 import { performanceLogger } from "@/lib/common/logger";
-import { calculateStreakUpdate } from "@/lib/reading";
-import { recalculateUserStreaks } from "@/lib/reading/streak-utils";
+import { recalculateAllUserStats } from "@/lib/reading/stats-updates";
 
 import { requireOwnedBook, requireOwnedReadingProgress } from "../helpers";
 import { authedProcedure, createTRPCRouter } from "../init";
@@ -124,73 +121,7 @@ export const readingProgressRouter = createTRPCRouter({
         });
       }
 
-      const timezone = ctx.currentUser.timezone;
-      const todayStart = fromZonedTime(
-        startOfDay(toZonedTime(new Date(), timezone)),
-        timezone,
-      );
-      const todayProgressInstances = await ctx.db.readingProgress.findMany({
-        where: { userId: ctx.currentUser.id, createdAt: { gte: todayStart } },
-        include: { book: { select: { pageCount: true } } },
-      });
-
-      const progressByBook = new Map<number, number>();
-      todayProgressInstances.forEach((entry) => {
-        const current = progressByBook.get(entry.bookId) ?? 0;
-        if (entry.progress > current) {
-          progressByBook.set(entry.bookId, entry.progress);
-        }
-      });
-      let pagesReadToday = 0;
-      progressByBook.forEach((maxProgress, bookId) => {
-        const entry = todayProgressInstances.find((e) => e.bookId === bookId)!;
-        pagesReadToday += calculatePagesFromProgress(
-          maxProgress,
-          entry.book.pageCount,
-        );
-      });
-
-      const dayCountsForStreak =
-        pagesReadToday >= ctx.currentUser.minimumPagesForStreak;
-      const currentStreak = await ctx.db.userStats.upsert({
-        where: { userId: ctx.currentUser.id },
-        create: { userId: ctx.currentUser.id },
-        update: {},
-      });
-      const isFirstEntryToday = todayProgressInstances.length === 1;
-
-      if (dayCountsForStreak) {
-        const { newStreak, shouldUpdate } = calculateStreakUpdate(
-          currentStreak.lastReadingDate,
-          currentStreak.currentStreak,
-          ctx.currentUser.timezone,
-        );
-
-        if (shouldUpdate) {
-          await ctx.db.userStats.update({
-            where: { userId: ctx.currentUser.id },
-            data: {
-              currentStreak: newStreak,
-              longestStreak: Math.max(newStreak, currentStreak.longestStreak),
-              lastReadingDate: new Date(),
-              lastQualifyingReadingDate: new Date(),
-              totalActiveDays: isFirstEntryToday
-                ? currentStreak.totalActiveDays + 1
-                : currentStreak.totalActiveDays,
-            },
-          });
-        }
-      }
-
-      // Use delta (new progress - old progress) to avoid overcounting
-      const pagesFromThisEntry = calculatePagesFromProgress(
-        result.readingProgress.progress - book.progress,
-        book.pageCount,
-      );
-      await ctx.db.userStats.update({
-        where: { userId: ctx.currentUser.id },
-        data: { totalPagesRead: { increment: pagesFromThisEntry } },
-      });
+      await recalculateAllUserStats(ctx.db, ctx.currentUser);
 
       ctx.logger.info(
         {
@@ -303,47 +234,7 @@ export const readingProgressRouter = createTRPCRouter({
             data: updateData,
           });
 
-          // Only adjust totalPagesRead if the deleted entry was the highest for this book
-          // Decrement by the delta between old max and new max
-          if (
-            readingProgressToDelete.progress ===
-            readingProgressToDelete.book.progress
-          ) {
-            const newMaxProgress = latestReadingProgress?.progress ?? 0;
-            const pagesToDecrement = calculatePagesFromProgress(
-              readingProgressToDelete.progress - newMaxProgress,
-              readingProgressToDelete.book.pageCount,
-            );
-            await tx.userStats.update({
-              where: { userId: ctx.currentUser.id },
-              data: {
-                totalPagesRead: { decrement: pagesToDecrement },
-              },
-            });
-          }
-
-          const timezone = ctx.currentUser.timezone;
-          const entryInTz = toZonedTime(readingProgressToDelete.createdAt, timezone);
-          const dayStartUTC = fromZonedTime(startOfDay(entryInTz), timezone);
-          const nextDayStartUTC = fromZonedTime(addDays(startOfDay(entryInTz), 1), timezone);
-          const entriesOnSameDay = await tx.readingProgress.count({
-            where: {
-              userId: ctx.currentUser.id,
-              createdAt: {
-                gte: dayStartUTC,
-                lt: nextDayStartUTC,
-              },
-            },
-          });
-
-          if (entriesOnSameDay === 0) {
-            await tx.userStats.update({
-              where: { userId: ctx.currentUser.id },
-              data: { totalActiveDays: { decrement: 1 } },
-            });
-
-            await recalculateUserStreaks(tx, ctx.currentUser);
-          }
+          await recalculateAllUserStats(tx, ctx.currentUser);
         });
         deleteReadingProgressTransactionTimer.end({ success: true });
       } catch (error) {

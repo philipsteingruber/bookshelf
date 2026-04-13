@@ -505,15 +505,15 @@ describe("userRouter", () => {
       const { mockDb, caller, mockUser } = createMockCaller(userRouter);
 
       vi.mocked(mockDb.readingProgress.findMany).mockResolvedValue([]);
-      vi.mocked(mockDb.userStats.update).mockResolvedValue(
+      vi.mocked(mockDb.userStats.upsert).mockResolvedValue(
         createFakeUserStats({ userId: mockUser.id }),
       );
 
       await caller.setStreakThreshold(30);
 
-      // recalculateUserStreaks queries readingProgress and updates userStats
+      // recalculateAllUserStats queries readingProgress and upserts userStats
       expect(mockDb.readingProgress.findMany).toHaveBeenCalled();
-      expect(mockDb.userStats.update).toHaveBeenCalled();
+      expect(mockDb.userStats.upsert).toHaveBeenCalled();
     });
 
     it("should return success on valid input", async () => {
@@ -562,14 +562,14 @@ describe("userRouter", () => {
       const { mockDb, caller } = createMockCaller(userRouter, { mockUser });
 
       vi.mocked(mockDb.readingProgress.findMany).mockResolvedValue([]);
-      vi.mocked(mockDb.userStats.update).mockResolvedValue(
+      vi.mocked(mockDb.userStats.upsert).mockResolvedValue(
         createFakeUserStats({ userId: mockUser.id }),
       );
 
       await caller.setTimezone("Europe/Paris");
 
       expect(mockDb.readingProgress.findMany).toHaveBeenCalled();
-      expect(mockDb.userStats.update).toHaveBeenCalled();
+      expect(mockDb.userStats.upsert).toHaveBeenCalled();
     });
 
     it("should reject empty strings", async () => {

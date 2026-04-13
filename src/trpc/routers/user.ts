@@ -9,7 +9,7 @@ import {
   isToday,
   validateCurrentStreak,
 } from "@/lib/reading";
-import { recalculateUserStreaks } from "@/lib/reading/streak-utils";
+import { recalculateAllUserStats } from "@/lib/reading/stats-updates";
 import {
   bookCSVSchema,
   goalCSVSchema,
@@ -172,7 +172,7 @@ export const userRouter = createTRPCRouter({
         data: { minimumPagesForStreak: newThreshold },
       });
 
-      await recalculateUserStreaks(ctx.db, {
+      await recalculateAllUserStats(ctx.db, {
         ...ctx.currentUser,
         minimumPagesForStreak: newThreshold,
       });
@@ -194,7 +194,7 @@ export const userRouter = createTRPCRouter({
         });
 
         // Recalculate streaks with new timezone
-        await recalculateUserStreaks(ctx.db, {
+        await recalculateAllUserStats(ctx.db, {
           ...ctx.currentUser,
           timezone,
         });
@@ -310,7 +310,7 @@ export const userRouter = createTRPCRouter({
         } else {
           await importFromCSV(tx, ctx, input.data, results);
         }
-        await recalculateUserStreaks(tx, ctx.currentUser);
+        await recalculateAllUserStats(tx, ctx.currentUser);
       });
 
       return results;

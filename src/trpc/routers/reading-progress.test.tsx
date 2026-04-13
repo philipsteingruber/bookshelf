@@ -1,12 +1,11 @@
 import { subDays } from "date-fns";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { PrismaClient, ReadingProgress } from "@/generated/prisma/client";
 import {
   createFakeBook,
   createFakeReadingProgress,
   createFakeReadingProgressWithBook,
-  createFakeUser,
   createFakeUserStats,
   createMockCaller,
 } from "@/lib/test-utils";
@@ -322,22 +321,12 @@ describe("readingProgressRouter", () => {
       });
     });
 
-    it("should use user timezone when querying today's progress for streak calculation", async () => {
-      // 3 AM UTC on Jan 15 = 10 PM EST on Jan 14. The user's "today" in EST is Jan 14.
-      vi.useFakeTimers();
-      vi.setSystemTime(new Date("2026-01-15T03:00:00Z"));
+    it("should trigger stats recalculation after creating reading progress", async () => {
+      const { mockDb, caller } = createMockCaller(readingProgressRouter);
 
-      const mockUser = createFakeUser({ timezone: "America/New_York" });
-      const { mockDb, caller } = createMockCaller(readingProgressRouter, { mockUser });
-
-      const fakeBook = createFakeBook({ userId: mockUser.id });
+      const fakeBook = createFakeBook({ progress: 0, pageCount: 200 });
       const fakeReadingProgress = createFakeReadingProgress({
         bookId: fakeBook.id,
-        progress: 50,
-      });
-      const fakeReadingProgressWithBook = createFakeReadingProgressWithBook({
-        bookId: fakeBook.id,
-        book: fakeBook,
         progress: 50,
       });
       const fakeUserStats = createFakeUserStats();
@@ -345,35 +334,21 @@ describe("readingProgressRouter", () => {
       vi.mocked(mockDb.book.findUnique).mockResolvedValue(fakeBook);
       vi.mocked(mockDb.$transaction).mockImplementation(async (callback) => {
         const fakeTxClient = {
-          readingProgress: {
-            create: vi.fn().mockResolvedValue(fakeReadingProgress),
-          },
-          book: {
-            update: vi.fn().mockResolvedValue({ ...fakeBook, progress: 50 }),
-          },
+          readingProgress: { create: vi.fn().mockResolvedValue(fakeReadingProgress) },
+          book: { update: vi.fn().mockResolvedValue({ ...fakeBook, progress: 50 }) },
         } as unknown as PrismaClient;
         return callback(fakeTxClient);
       });
-      vi.mocked(mockDb.readingProgress.findMany).mockResolvedValue([fakeReadingProgressWithBook]);
+      vi.mocked(mockDb.readingProgress.findMany).mockResolvedValue([]);
       vi.mocked(mockDb.userStats.upsert).mockResolvedValue(fakeUserStats);
-      vi.mocked(mockDb.userStats.update).mockResolvedValue(fakeUserStats);
 
       await caller.createReadingProgressInstance({
         bookId: fakeBook.id,
         newProgress: 50,
       });
 
-      // At 3 AM UTC (= 10 PM EST Jan 14), user's "today" in EST is Jan 14.
-      // Start of Jan 14 EST = midnight EST Jan 14 = 2026-01-14T05:00:00.000Z
-      expect(mockDb.readingProgress.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            createdAt: { gte: new Date("2026-01-14T05:00:00.000Z") },
-          }),
-        }),
-      );
-
-      vi.useRealTimers();
+      expect(mockDb.readingProgress.findMany).toHaveBeenCalled();
+      expect(mockDb.userStats.upsert).toHaveBeenCalled();
     });
   });
   describe("getProgressHistory", () => {
@@ -589,14 +564,13 @@ describe("readingProgressRouter", () => {
           readingProgress: {
             delete: mockDelete,
             findFirst: vi.fn().mockResolvedValue(null),
-            count: vi.fn().mockResolvedValue(0),
             findMany: vi.fn().mockResolvedValue([]),
           },
           book: {
             update: vi.fn().mockResolvedValue(fakeBook),
           },
           userStats: {
-            update: vi.fn().mockResolvedValue(fakeUserStats),
+            upsert: vi.fn().mockResolvedValue(fakeUserStats),
           },
         } as unknown as PrismaClient;
         return callback(fakeTxClient);
@@ -639,14 +613,13 @@ describe("readingProgressRouter", () => {
           readingProgress: {
             delete: vi.fn().mockResolvedValue(secondReadingProgress),
             findFirst: vi.fn().mockResolvedValue(firstReadingProgress),
-            count: vi.fn().mockResolvedValue(1),
             findMany: vi.fn().mockResolvedValue([firstReadingProgress]),
           },
           book: {
             update: mockUpdate,
           },
           userStats: {
-            update: vi.fn().mockResolvedValue(fakeUserStats),
+            upsert: vi.fn().mockResolvedValue(fakeUserStats),
           },
         } as unknown as PrismaClient;
         return callback(fakeTxClient);
@@ -683,14 +656,13 @@ describe("readingProgressRouter", () => {
           readingProgress: {
             delete: vi.fn().mockResolvedValue(fakeReadingProgress),
             findFirst: vi.fn().mockResolvedValue(null), // No remaining entries
-            count: vi.fn().mockResolvedValue(0),
             findMany: vi.fn().mockResolvedValue([]),
           },
           book: {
             update: mockUpdate,
           },
           userStats: {
-            update: vi.fn().mockResolvedValue(fakeUserStats),
+            upsert: vi.fn().mockResolvedValue(fakeUserStats),
           },
         } as unknown as PrismaClient;
         return callback(fakeTxClient);
@@ -727,14 +699,13 @@ describe("readingProgressRouter", () => {
           readingProgress: {
             delete: vi.fn().mockResolvedValue(fakeReadingProgress),
             findFirst: vi.fn().mockResolvedValue(null), // No remaining entries
-            count: vi.fn().mockResolvedValue(0),
             findMany: vi.fn().mockResolvedValue([]),
           },
           book: {
             update: mockUpdate,
           },
           userStats: {
-            update: vi.fn().mockResolvedValue(fakeUserStats),
+            upsert: vi.fn().mockResolvedValue(fakeUserStats),
           },
         } as unknown as PrismaClient;
         return callback(fakeTxClient);
@@ -784,57 +755,35 @@ describe("readingProgressRouter", () => {
       expect(mockLogger.warn).toHaveBeenCalled();
     });
 
-    it("should use user timezone when counting same-day entries during deletion", async () => {
-      vi.useFakeTimers();
-      vi.setSystemTime(new Date("2026-01-15T12:00:00Z"));
+    it("should trigger stats recalculation after deleting reading progress", async () => {
+      const { mockDb, caller } = createMockCaller(readingProgressRouter);
 
-      const mockUser = createFakeUser({ timezone: "America/New_York" });
-      const { mockDb, caller } = createMockCaller(readingProgressRouter, { mockUser });
-
-      const fakeBook = createFakeBook({ userId: mockUser.id });
-      // createdAt = 4 AM UTC Jan 15 = 11 PM EST Jan 14
+      const fakeBook = createFakeBook();
       const fakeReadingProgress = createFakeReadingProgressWithBook({
-        createdAt: new Date("2026-01-15T04:00:00Z"),
         bookId: fakeBook.id,
         book: fakeBook,
-        progress: 50,
       });
       const fakeUserStats = createFakeUserStats();
 
       vi.mocked(mockDb.readingProgress.findUnique).mockResolvedValue(fakeReadingProgress);
 
-      const mockCount = vi.fn().mockResolvedValue(1);
+      const mockUpsert = vi.fn().mockResolvedValue(fakeUserStats);
       vi.mocked(mockDb.$transaction).mockImplementation(async (callback) => {
         const fakeTxClient = {
           readingProgress: {
             delete: vi.fn().mockResolvedValue(fakeReadingProgress),
             findFirst: vi.fn().mockResolvedValue(null),
-            count: mockCount,
             findMany: vi.fn().mockResolvedValue([]),
           },
           book: { update: vi.fn().mockResolvedValue(fakeBook) },
-          userStats: { update: vi.fn().mockResolvedValue(fakeUserStats) },
+          userStats: { upsert: mockUpsert },
         } as unknown as PrismaClient;
         return callback(fakeTxClient);
       });
 
       await caller.deleteReadingProgressInstance(fakeReadingProgress.id);
 
-      // Entry is on Jan 14 in EST. Day boundaries in EST:
-      // dayStart = Jan 14 midnight EST = 2026-01-14T05:00:00.000Z
-      // dayEnd   = Jan 15 midnight EST = 2026-01-15T05:00:00.000Z
-      expect(mockCount).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            createdAt: {
-              gte: new Date("2026-01-14T05:00:00.000Z"),
-              lt: new Date("2026-01-15T05:00:00.000Z"),
-            },
-          }),
-        }),
-      );
-
-      vi.useRealTimers();
+      expect(mockUpsert).toHaveBeenCalled();
     });
   });
 
@@ -1250,1149 +1199,6 @@ describe("readingProgressRouter", () => {
     });
   });
 
-  describe("createReadingProgressInstance - UserStats updates", () => {
-    beforeEach(() => {
-      vi.clearAllMocks();
-      vi.useFakeTimers();
-    });
-
-    afterEach(() => {
-      vi.useRealTimers();
-    });
-
-    it("should set currentStreak to 1 and lastReadingDate to today on first ever reading progress", async () => {
-      const mockDate = new Date("2026-01-15T12:00:00Z");
-      vi.setSystemTime(mockDate);
-
-      const { mockDb, caller } = createMockCaller(readingProgressRouter);
-
-      const fakeBook = createFakeBook({ progress: 0, pageCount: 200 });
-      const fakeReadingProgress = createFakeReadingProgressWithBook({
-        progress: 50,
-        bookId: fakeBook.id,
-        book: fakeBook,
-        createdAt: mockDate,
-      });
-      const fakeUserStats = createFakeUserStats({
-        currentStreak: 0,
-        lastReadingDate: null,
-        lastQualifyingReadingDate: null,
-      });
-
-      vi.mocked(mockDb.book.findUnique).mockResolvedValue(fakeBook);
-      // findMany is called AFTER create, so it includes the new entry
-      vi.mocked(mockDb.readingProgress.findMany).mockResolvedValue([
-        fakeReadingProgress,
-      ]);
-
-      const mockStatsUpdate = vi.fn().mockResolvedValue({
-        ...fakeUserStats,
-        currentStreak: 1,
-        lastReadingDate: mockDate,
-        lastQualifyingReadingDate: mockDate,
-        totalActiveDays: 1,
-      });
-
-      vi.mocked(mockDb.$transaction).mockImplementation(async (callback) => {
-        const fakeTxClient = {
-          book: {
-            update: vi.fn().mockResolvedValue({ ...fakeBook, progress: 50 }),
-          },
-          readingProgress: {
-            create: vi.fn().mockResolvedValue(fakeReadingProgress),
-          },
-        } as unknown as PrismaClient;
-        return callback(fakeTxClient);
-      });
-
-      vi.mocked(mockDb.userStats.upsert).mockResolvedValue(fakeUserStats);
-      vi.mocked(mockDb.userStats.update).mockImplementation(mockStatsUpdate);
-
-      await caller.createReadingProgressInstance({
-        bookId: fakeBook.id,
-        newProgress: 50,
-      });
-
-      expect(mockStatsUpdate).toHaveBeenCalledWith({
-        where: { userId: expect.any(String) },
-        data: {
-          currentStreak: 1,
-          longestStreak: 1,
-          lastReadingDate: expect.any(Date),
-          lastQualifyingReadingDate: expect.any(Date),
-          totalActiveDays: 1,
-        },
-      });
-    });
-
-    it("should increment currentStreak and update lastReadingDate when lastReadingDate is yesterday", async () => {
-      const mockDate = new Date("2026-01-15T12:00:00Z");
-      vi.setSystemTime(mockDate);
-
-      const { mockDb, caller } = createMockCaller(readingProgressRouter);
-
-      const fakeBook = createFakeBook({ progress: 0, pageCount: 200 });
-      const fakeReadingProgress = createFakeReadingProgressWithBook({
-        progress: 50,
-        bookId: fakeBook.id,
-        book: fakeBook,
-        createdAt: mockDate,
-      });
-      const fakeUserStats = createFakeUserStats({
-        currentStreak: 5,
-        lastReadingDate: subDays(mockDate, 1),
-        lastQualifyingReadingDate: subDays(mockDate, 1),
-      });
-
-      vi.mocked(mockDb.book.findUnique).mockResolvedValue(fakeBook);
-      vi.mocked(mockDb.readingProgress.findMany).mockResolvedValue([
-        fakeReadingProgress,
-      ]);
-
-      const mockStatsUpdate = vi.fn().mockResolvedValue({
-        ...fakeUserStats,
-        currentStreak: 6,
-        lastReadingDate: mockDate,
-      });
-
-      vi.mocked(mockDb.$transaction).mockImplementation(async (callback) => {
-        const fakeTxClient = {
-          book: {
-            update: vi.fn().mockResolvedValue({ ...fakeBook, progress: 50 }),
-          },
-          readingProgress: {
-            create: vi.fn().mockResolvedValue(fakeReadingProgress),
-          },
-        } as unknown as PrismaClient;
-        return callback(fakeTxClient);
-      });
-
-      vi.mocked(mockDb.userStats.upsert).mockResolvedValue(fakeUserStats);
-      vi.mocked(mockDb.userStats.update).mockImplementation(mockStatsUpdate);
-
-      await caller.createReadingProgressInstance({
-        bookId: fakeBook.id,
-        newProgress: 50,
-      });
-
-      expect(mockStatsUpdate).toHaveBeenCalledWith({
-        where: { userId: expect.any(String) },
-        data: {
-          currentStreak: 6,
-          longestStreak: expect.any(Number),
-          lastReadingDate: expect.any(Date),
-          lastQualifyingReadingDate: expect.any(Date),
-          totalActiveDays: 1,
-        },
-      });
-    });
-
-    it("should not change currentStreak when lastReadingDate is already today", async () => {
-      const mockDate = new Date("2026-01-15T12:00:00Z");
-      vi.setSystemTime(mockDate);
-
-      const { mockDb, caller } = createMockCaller(readingProgressRouter);
-
-      const fakeBook = createFakeBook({ progress: 0, pageCount: 200 });
-      const existingProgress = createFakeReadingProgressWithBook({
-        progress: 25,
-        bookId: fakeBook.id,
-        book: fakeBook,
-        createdAt: mockDate,
-      });
-      const fakeReadingProgress = createFakeReadingProgressWithBook({
-        progress: 50,
-        bookId: fakeBook.id,
-        book: fakeBook,
-        createdAt: mockDate,
-      });
-      const fakeUserStats = createFakeUserStats({
-        currentStreak: 7,
-        lastReadingDate: mockDate,
-        lastQualifyingReadingDate: mockDate,
-        totalActiveDays: 10,
-      });
-
-      vi.mocked(mockDb.book.findUnique).mockResolvedValue(fakeBook);
-      vi.mocked(mockDb.readingProgress.findMany).mockResolvedValue([
-        existingProgress,
-        fakeReadingProgress,
-      ]);
-
-      const mockStatsUpdate = vi.fn();
-
-      vi.mocked(mockDb.$transaction).mockImplementation(async (callback) => {
-        const fakeTxClient = {
-          book: {
-            update: vi.fn().mockResolvedValue({ ...fakeBook, progress: 50 }),
-          },
-          readingProgress: {
-            create: vi.fn().mockResolvedValue(fakeReadingProgress),
-          },
-        } as unknown as PrismaClient;
-        return callback(fakeTxClient);
-      });
-
-      vi.mocked(mockDb.userStats.upsert).mockResolvedValue(fakeUserStats);
-      vi.mocked(mockDb.userStats.update).mockImplementation(mockStatsUpdate);
-
-      await caller.createReadingProgressInstance({
-        bookId: fakeBook.id,
-        newProgress: 50,
-      });
-
-      // Should not call update for streak (already today)
-      expect(mockStatsUpdate).not.toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            currentStreak: expect.any(Number),
-            lastReadingDate: expect.any(Date),
-          }),
-        }),
-      );
-      // But should still update totalPagesRead
-      expect(mockStatsUpdate).toHaveBeenCalledWith({
-        where: { userId: expect.any(String) },
-        data: { totalPagesRead: { increment: expect.any(Number) } },
-      });
-    });
-
-    it("should reset currentStreak to 1 when lastReadingDate is older than yesterday", async () => {
-      const mockDate = new Date("2026-01-15T12:00:00Z");
-      vi.setSystemTime(mockDate);
-
-      const { mockDb, caller } = createMockCaller(readingProgressRouter);
-
-      const fakeBook = createFakeBook({ progress: 0, pageCount: 200 });
-      const fakeReadingProgress = createFakeReadingProgressWithBook({
-        progress: 50,
-        bookId: fakeBook.id,
-        book: fakeBook,
-        createdAt: mockDate,
-      });
-      const fakeUserStats = createFakeUserStats({
-        currentStreak: 10,
-        lastReadingDate: subDays(mockDate, 5),
-        lastQualifyingReadingDate: subDays(mockDate, 5),
-      });
-
-      vi.mocked(mockDb.book.findUnique).mockResolvedValue(fakeBook);
-      vi.mocked(mockDb.readingProgress.findMany).mockResolvedValue([
-        fakeReadingProgress,
-      ]);
-
-      const mockStatsUpdate = vi.fn().mockResolvedValue({
-        ...fakeUserStats,
-        currentStreak: 1,
-        lastReadingDate: mockDate,
-      });
-
-      vi.mocked(mockDb.$transaction).mockImplementation(async (callback) => {
-        const fakeTxClient = {
-          book: {
-            update: vi.fn().mockResolvedValue({ ...fakeBook, progress: 50 }),
-          },
-          readingProgress: {
-            create: vi.fn().mockResolvedValue(fakeReadingProgress),
-          },
-        } as unknown as PrismaClient;
-        return callback(fakeTxClient);
-      });
-
-      vi.mocked(mockDb.userStats.upsert).mockResolvedValue(fakeUserStats);
-      vi.mocked(mockDb.userStats.update).mockImplementation(mockStatsUpdate);
-
-      await caller.createReadingProgressInstance({
-        bookId: fakeBook.id,
-        newProgress: 50,
-      });
-
-      expect(mockStatsUpdate).toHaveBeenCalledWith({
-        where: { userId: expect.any(String) },
-        data: {
-          currentStreak: 1,
-          longestStreak: expect.any(Number),
-          lastReadingDate: expect.any(Date),
-          lastQualifyingReadingDate: expect.any(Date),
-          totalActiveDays: 1,
-        },
-      });
-    });
-
-    it("should update longestStreak when currentStreak exceeds it", async () => {
-      const mockDate = new Date("2026-01-15T12:00:00Z");
-      vi.setSystemTime(mockDate);
-
-      const { mockDb, caller } = createMockCaller(readingProgressRouter);
-
-      const fakeBook = createFakeBook({ progress: 0, pageCount: 200 });
-      const fakeReadingProgress = createFakeReadingProgress({
-        progress: 50,
-        bookId: fakeBook.id,
-      });
-      const fakeUserStats = createFakeUserStats({
-        currentStreak: 9,
-        longestStreak: 9,
-        lastReadingDate: subDays(mockDate, 1),
-        lastQualifyingReadingDate: subDays(mockDate, 1),
-      });
-
-      vi.mocked(mockDb.book.findUnique).mockResolvedValue(fakeBook);
-      vi.mocked(mockDb.readingProgress.findMany).mockResolvedValue([]);
-
-      const mockStatsUpdate = vi.fn().mockResolvedValue({
-        ...fakeUserStats,
-        currentStreak: 10,
-        longestStreak: 10,
-      });
-
-      vi.mocked(mockDb.$transaction).mockImplementation(async (callback) => {
-        const fakeTxClient = {
-          book: {
-            update: vi.fn().mockResolvedValue({ ...fakeBook, progress: 50 }),
-          },
-          readingProgress: {
-            create: vi.fn().mockResolvedValue(fakeReadingProgress),
-          },
-        } as unknown as PrismaClient;
-        return callback(fakeTxClient);
-      });
-
-      vi.mocked(mockDb.userStats.upsert).mockResolvedValue(fakeUserStats);
-      vi.mocked(mockDb.userStats.update).mockImplementation(mockStatsUpdate);
-
-      await caller.createReadingProgressInstance({
-        bookId: fakeBook.id,
-        newProgress: 50,
-      });
-
-      expect(mockStatsUpdate).toHaveBeenCalledWith({
-        where: { userId: expect.any(String) },
-        data: expect.objectContaining({
-          longestStreak: 10,
-        }),
-      });
-    });
-
-    it("should not decrease longestStreak when streak resets", async () => {
-      const mockDate = new Date("2026-01-15T12:00:00Z");
-      vi.setSystemTime(mockDate);
-
-      const { mockDb, caller } = createMockCaller(readingProgressRouter);
-
-      const fakeBook = createFakeBook({ progress: 0, pageCount: 200 });
-      const fakeReadingProgress = createFakeReadingProgress({
-        progress: 50,
-        bookId: fakeBook.id,
-      });
-      const fakeUserStats = createFakeUserStats({
-        currentStreak: 5,
-        longestStreak: 20,
-        lastReadingDate: subDays(mockDate, 5),
-        lastQualifyingReadingDate: subDays(mockDate, 5),
-      });
-
-      vi.mocked(mockDb.book.findUnique).mockResolvedValue(fakeBook);
-      vi.mocked(mockDb.readingProgress.findMany).mockResolvedValue([]);
-
-      const mockStatsUpdate = vi.fn().mockResolvedValue({
-        ...fakeUserStats,
-        currentStreak: 1,
-        longestStreak: 20,
-      });
-
-      vi.mocked(mockDb.$transaction).mockImplementation(async (callback) => {
-        const fakeTxClient = {
-          book: {
-            update: vi.fn().mockResolvedValue({ ...fakeBook, progress: 50 }),
-          },
-          readingProgress: {
-            create: vi.fn().mockResolvedValue(fakeReadingProgress),
-          },
-        } as unknown as PrismaClient;
-        return callback(fakeTxClient);
-      });
-
-      vi.mocked(mockDb.userStats.upsert).mockResolvedValue(fakeUserStats);
-      vi.mocked(mockDb.userStats.update).mockImplementation(mockStatsUpdate);
-
-      await caller.createReadingProgressInstance({
-        bookId: fakeBook.id,
-        newProgress: 50,
-      });
-
-      expect(mockStatsUpdate).toHaveBeenCalledWith({
-        where: { userId: expect.any(String) },
-        data: expect.objectContaining({
-          longestStreak: 20,
-        }),
-      });
-    });
-
-    it("should create UserStats record if it doesn't exist", async () => {
-      const mockDate = new Date("2026-01-15T12:00:00Z");
-      vi.setSystemTime(mockDate);
-
-      const { mockDb, caller, mockUser } = createMockCaller(
-        readingProgressRouter,
-      );
-
-      const fakeBook = createFakeBook({ progress: 0, pageCount: 200 });
-      const fakeReadingProgress = createFakeReadingProgress({
-        progress: 50,
-        bookId: fakeBook.id,
-      });
-      const newUserStats = createFakeUserStats({
-        userId: mockUser.id,
-        currentStreak: 0,
-        lastReadingDate: null,
-      });
-
-      vi.mocked(mockDb.book.findUnique).mockResolvedValue(fakeBook);
-      vi.mocked(mockDb.readingProgress.findMany).mockResolvedValue([]);
-
-      const mockStatsUpsert = vi.fn().mockResolvedValue(newUserStats);
-
-      vi.mocked(mockDb.$transaction).mockImplementation(async (callback) => {
-        const fakeTxClient = {
-          book: {
-            update: vi.fn().mockResolvedValue({ ...fakeBook, progress: 50 }),
-          },
-          readingProgress: {
-            create: vi.fn().mockResolvedValue(fakeReadingProgress),
-          },
-        } as unknown as PrismaClient;
-        return callback(fakeTxClient);
-      });
-
-      vi.mocked(mockDb.userStats.upsert).mockImplementation(mockStatsUpsert);
-      vi.mocked(mockDb.userStats.update).mockResolvedValue(newUserStats);
-
-      await caller.createReadingProgressInstance({
-        bookId: fakeBook.id,
-        newProgress: 50,
-      });
-
-      expect(mockStatsUpsert).toHaveBeenCalledWith({
-        where: { userId: mockUser.id },
-        create: { userId: mockUser.id },
-        update: {},
-      });
-    });
-
-    it("should increment totalPagesRead by pages from new progress entry", async () => {
-      const mockDate = new Date("2026-01-15T12:00:00Z");
-      vi.setSystemTime(mockDate);
-
-      const { mockDb, caller } = createMockCaller(readingProgressRouter);
-
-      const fakeBook = createFakeBook({ progress: 25, pageCount: 200 });
-      const existingProgress = createFakeReadingProgressWithBook({
-        progress: 25,
-        bookId: fakeBook.id,
-        book: fakeBook,
-        createdAt: mockDate,
-      });
-      const fakeReadingProgress = createFakeReadingProgressWithBook({
-        progress: 50,
-        bookId: fakeBook.id,
-        book: fakeBook,
-        createdAt: mockDate,
-      });
-      const fakeUserStats = createFakeUserStats({
-        totalPagesRead: 100,
-        lastReadingDate: mockDate,
-      });
-
-      vi.mocked(mockDb.book.findUnique).mockResolvedValue(fakeBook);
-      vi.mocked(mockDb.readingProgress.findMany).mockResolvedValue([
-        existingProgress,
-        fakeReadingProgress,
-      ]);
-
-      const mockStatsUpdate = vi.fn().mockResolvedValue({
-        ...fakeUserStats,
-        totalPagesRead: 150,
-      });
-
-      vi.mocked(mockDb.$transaction).mockImplementation(async (callback) => {
-        const fakeTxClient = {
-          book: {
-            update: vi.fn().mockResolvedValue({ ...fakeBook, progress: 50 }),
-          },
-          readingProgress: {
-            create: vi.fn().mockResolvedValue(fakeReadingProgress),
-          },
-        } as unknown as PrismaClient;
-        return callback(fakeTxClient);
-      });
-
-      vi.mocked(mockDb.userStats.upsert).mockResolvedValue(fakeUserStats);
-      vi.mocked(mockDb.userStats.update).mockImplementation(mockStatsUpdate);
-
-      await caller.createReadingProgressInstance({
-        bookId: fakeBook.id,
-        newProgress: 50,
-      });
-
-      // Progress delta is 50% - 25% = 25% of 200 pages = 50 pages
-      expect(mockStatsUpdate).toHaveBeenCalledWith({
-        where: { userId: expect.any(String) },
-        data: { totalPagesRead: { increment: 50 } },
-      });
-    });
-
-    it("should increment totalActiveDays when first entry of a new day", async () => {
-      const mockDate = new Date("2026-01-15T12:00:00Z");
-      vi.setSystemTime(mockDate);
-
-      const { mockDb, caller } = createMockCaller(readingProgressRouter);
-
-      const fakeBook = createFakeBook({ progress: 0, pageCount: 200 });
-      const fakeReadingProgress = createFakeReadingProgressWithBook({
-        progress: 50,
-        bookId: fakeBook.id,
-        book: fakeBook,
-        createdAt: mockDate,
-      });
-      const fakeUserStats = createFakeUserStats({
-        currentStreak: 5,
-        totalActiveDays: 10,
-        lastReadingDate: subDays(mockDate, 1),
-        lastQualifyingReadingDate: subDays(mockDate, 1),
-      });
-
-      vi.mocked(mockDb.book.findUnique).mockResolvedValue(fakeBook);
-      vi.mocked(mockDb.readingProgress.findMany).mockResolvedValue([
-        fakeReadingProgress,
-      ]);
-
-      const mockStatsUpdate = vi.fn().mockResolvedValue({
-        ...fakeUserStats,
-        totalActiveDays: 11,
-      });
-
-      vi.mocked(mockDb.$transaction).mockImplementation(async (callback) => {
-        const fakeTxClient = {
-          book: {
-            update: vi.fn().mockResolvedValue({ ...fakeBook, progress: 50 }),
-          },
-          readingProgress: {
-            create: vi.fn().mockResolvedValue(fakeReadingProgress),
-          },
-        } as unknown as PrismaClient;
-        return callback(fakeTxClient);
-      });
-
-      vi.mocked(mockDb.userStats.upsert).mockResolvedValue(fakeUserStats);
-      vi.mocked(mockDb.userStats.update).mockImplementation(mockStatsUpdate);
-
-      await caller.createReadingProgressInstance({
-        bookId: fakeBook.id,
-        newProgress: 50,
-      });
-
-      expect(mockStatsUpdate).toHaveBeenCalledWith({
-        where: { userId: expect.any(String) },
-        data: expect.objectContaining({
-          totalActiveDays: 11,
-        }),
-      });
-    });
-
-    it("should not increment totalActiveDays when another entry exists for same day", async () => {
-      const mockDate = new Date("2026-01-15T12:00:00Z");
-      vi.setSystemTime(mockDate);
-
-      const { mockDb, caller } = createMockCaller(readingProgressRouter);
-
-      const fakeBook = createFakeBook({ progress: 25, pageCount: 200 });
-      const existingProgress = createFakeReadingProgressWithBook({
-        progress: 25,
-        bookId: fakeBook.id,
-        book: fakeBook,
-        createdAt: mockDate,
-      });
-      const fakeReadingProgress = createFakeReadingProgressWithBook({
-        progress: 50,
-        bookId: fakeBook.id,
-        book: fakeBook,
-        createdAt: mockDate,
-      });
-      const fakeUserStats = createFakeUserStats({
-        currentStreak: 7,
-        totalActiveDays: 15,
-        lastReadingDate: mockDate,
-        lastQualifyingReadingDate: mockDate,
-      });
-
-      vi.mocked(mockDb.book.findUnique).mockResolvedValue(fakeBook);
-      vi.mocked(mockDb.readingProgress.findMany).mockResolvedValue([
-        existingProgress,
-        fakeReadingProgress,
-      ]);
-
-      const mockStatsUpdate = vi.fn();
-
-      vi.mocked(mockDb.$transaction).mockImplementation(async (callback) => {
-        const fakeTxClient = {
-          book: {
-            update: vi.fn().mockResolvedValue({ ...fakeBook, progress: 50 }),
-          },
-          readingProgress: {
-            create: vi.fn().mockResolvedValue(fakeReadingProgress),
-          },
-        } as unknown as PrismaClient;
-        return callback(fakeTxClient);
-      });
-
-      vi.mocked(mockDb.userStats.upsert).mockResolvedValue(fakeUserStats);
-      vi.mocked(mockDb.userStats.update).mockImplementation(mockStatsUpdate);
-
-      await caller.createReadingProgressInstance({
-        bookId: fakeBook.id,
-        newProgress: 50,
-      });
-
-      // Should not include totalActiveDays in streak update (already reading today)
-      expect(mockStatsUpdate).not.toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            totalActiveDays: expect.any(Number),
-            currentStreak: expect.any(Number),
-          }),
-        }),
-      );
-      // But should still update totalPagesRead
-      expect(mockStatsUpdate).toHaveBeenCalledWith({
-        where: { userId: expect.any(String) },
-        data: { totalPagesRead: { increment: expect.any(Number) } },
-      });
-    });
-
-    it("should not update streak when pages read today is below threshold", async () => {
-      const mockDate = new Date("2026-01-15T12:00:00Z");
-      vi.setSystemTime(mockDate);
-
-      const { mockDb, caller, mockUser } = createMockCaller(
-        readingProgressRouter,
-        {
-          mockUser: createFakeUser({
-            minimumPagesForStreak: 50,
-          }),
-        },
-      );
-
-      const fakeBook = createFakeBook({
-        progress: 0,
-        pageCount: 200,
-        userId: mockUser.id,
-      });
-      const fakeReadingProgress = createFakeReadingProgressWithBook({
-        progress: 10, // Only 20 pages (10% of 200), below 50 threshold
-        bookId: fakeBook.id,
-        book: fakeBook,
-        createdAt: mockDate,
-      });
-      const fakeUserStats = createFakeUserStats({
-        currentStreak: 5,
-        lastReadingDate: subDays(mockDate, 1),
-        lastQualifyingReadingDate: subDays(mockDate, 1),
-      });
-
-      vi.mocked(mockDb.book.findUnique).mockResolvedValue(fakeBook);
-      vi.mocked(mockDb.readingProgress.findMany).mockResolvedValue([
-        fakeReadingProgress,
-      ]);
-
-      const mockStatsUpdate = vi.fn();
-
-      vi.mocked(mockDb.$transaction).mockImplementation(async (callback) => {
-        const fakeTxClient = {
-          book: {
-            update: vi.fn().mockResolvedValue({ ...fakeBook, progress: 10 }),
-          },
-          readingProgress: {
-            create: vi.fn().mockResolvedValue(fakeReadingProgress),
-          },
-        } as unknown as PrismaClient;
-        return callback(fakeTxClient);
-      });
-
-      vi.mocked(mockDb.userStats.upsert).mockResolvedValue(fakeUserStats);
-      vi.mocked(mockDb.userStats.update).mockImplementation(mockStatsUpdate);
-
-      await caller.createReadingProgressInstance({
-        bookId: fakeBook.id,
-        newProgress: 10,
-      });
-
-      // Should not update streak info when below threshold
-      expect(mockStatsUpdate).not.toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            currentStreak: expect.any(Number),
-          }),
-        }),
-      );
-      // But should still update totalPagesRead
-      expect(mockStatsUpdate).toHaveBeenCalledWith({
-        where: { userId: mockUser.id },
-        data: { totalPagesRead: { increment: 20 } },
-      });
-    });
-  });
-
-  describe("deleteReadingProgressInstance - UserStats updates", () => {
-    beforeEach(() => {
-      vi.clearAllMocks();
-    });
-
-    it("should not recalculate streak when deleting non-sole entry for a day", async () => {
-      const { mockDb, caller } = createMockCaller(readingProgressRouter);
-
-      const entryDate = new Date("2026-01-10T10:00:00Z");
-      const fakeBook = createFakeBook({ progress: 75, pageCount: 200 });
-      const progressToDelete = createFakeReadingProgressWithBook({
-        id: "delete-me",
-        progress: 50,
-        bookId: fakeBook.id,
-        book: fakeBook,
-        createdAt: entryDate,
-      });
-      const otherEntry = createFakeReadingProgress({
-        progress: 75,
-        bookId: fakeBook.id,
-        createdAt: new Date(entryDate.getTime() + 3600000), // 1 hour later
-      });
-
-      vi.mocked(mockDb.readingProgress.findUnique).mockResolvedValue(
-        progressToDelete,
-      );
-
-      const mockUserStatsUpdate = vi.fn();
-
-      vi.mocked(mockDb.$transaction).mockImplementation(async (callback) => {
-        const fakeTxClient = {
-          readingProgress: {
-            delete: vi.fn().mockResolvedValue(progressToDelete),
-            findFirst: vi.fn().mockResolvedValue(otherEntry),
-            count: vi.fn().mockResolvedValue(1), // Still has 1 entry that day
-          },
-          book: {
-            update: vi.fn().mockResolvedValue({ ...fakeBook, progress: 75 }),
-          },
-          userStats: {
-            update: mockUserStatsUpdate,
-          },
-        } as unknown as PrismaClient;
-        return callback(fakeTxClient);
-      });
-
-      await caller.deleteReadingProgressInstance("delete-me");
-
-      // Should not decrement totalActiveDays or recalculate streak
-      expect(mockUserStatsUpdate).not.toHaveBeenCalled();
-    });
-
-    it("should recalculate streak when deleting sole entry for a day", async () => {
-      const { mockDb, caller } = createMockCaller(readingProgressRouter);
-
-      const entryDate = new Date("2026-01-10T10:00:00Z");
-      const fakeBook = createFakeBook({ progress: 50, pageCount: 200 });
-      const progressToDelete = createFakeReadingProgressWithBook({
-        id: "delete-me",
-        progress: 50,
-        bookId: fakeBook.id,
-        book: fakeBook,
-        createdAt: entryDate,
-      });
-
-      vi.mocked(mockDb.readingProgress.findUnique).mockResolvedValue(
-        progressToDelete,
-      );
-
-      const mockUserStatsUpdate = vi.fn().mockResolvedValue(
-        createFakeUserStats({
-          totalActiveDays: 9,
-        }),
-      );
-      const mockReadingProgressFindMany = vi.fn().mockResolvedValue([]);
-
-      vi.mocked(mockDb.$transaction).mockImplementation(async (callback) => {
-        const fakeTxClient = {
-          readingProgress: {
-            delete: vi.fn().mockResolvedValue(progressToDelete),
-            findFirst: vi.fn().mockResolvedValue(null),
-            count: vi.fn().mockResolvedValue(0), // No entries left that day
-            findMany: mockReadingProgressFindMany,
-          },
-          book: {
-            update: vi.fn().mockResolvedValue({ ...fakeBook, progress: 0 }),
-          },
-          userStats: {
-            update: mockUserStatsUpdate,
-          },
-        } as unknown as PrismaClient;
-        return callback(fakeTxClient);
-      });
-
-      await caller.deleteReadingProgressInstance("delete-me");
-
-      // Should decrement totalActiveDays
-      expect(mockUserStatsUpdate).toHaveBeenCalledWith({
-        where: { userId: expect.any(String) },
-        data: { totalActiveDays: { decrement: 1 } },
-      });
-      // Should trigger streak recalculation (findMany called)
-      expect(mockReadingProgressFindMany).toHaveBeenCalled();
-    });
-
-    it("should correctly recalculate currentStreak after deletion breaks streak chain", async () => {
-      const { mockDb, caller, mockUser } = createMockCaller(
-        readingProgressRouter,
-      );
-
-      const entryDate = new Date("2026-01-10T10:00:00Z");
-      const fakeBook = createFakeBook({ progress: 50, pageCount: 200 });
-      const progressToDelete = createFakeReadingProgressWithBook({
-        id: "delete-me",
-        progress: 50,
-        bookId: fakeBook.id,
-        book: fakeBook,
-        createdAt: entryDate,
-      });
-
-      const olderProgressWithBook = createFakeReadingProgressWithBook({
-        progress: 30,
-        bookId: fakeBook.id,
-        userId: mockUser.id,
-        book: fakeBook,
-        createdAt: subDays(entryDate, 1),
-      });
-
-      vi.mocked(mockDb.readingProgress.findUnique).mockResolvedValue(
-        progressToDelete,
-      );
-
-      const mockUserStatsUpdate = vi.fn().mockResolvedValue(
-        createFakeUserStats({
-          currentStreak: 0,
-          lastReadingDate: subDays(entryDate, 1),
-        }),
-      );
-
-      vi.mocked(mockDb.$transaction).mockImplementation(async (callback) => {
-        const fakeTxClient = {
-          readingProgress: {
-            delete: vi.fn().mockResolvedValue(progressToDelete),
-            findFirst: vi.fn().mockResolvedValue(null),
-            count: vi.fn().mockResolvedValue(0),
-            findMany: vi.fn().mockResolvedValue([olderProgressWithBook]),
-          },
-          book: {
-            update: vi.fn().mockResolvedValue({ ...fakeBook, progress: 0 }),
-          },
-          userStats: {
-            update: mockUserStatsUpdate,
-          },
-        } as unknown as PrismaClient;
-        return callback(fakeTxClient);
-      });
-
-      await caller.deleteReadingProgressInstance("delete-me");
-
-      // Should have at least 2 calls (totalPagesRead, totalActiveDays, streak recalc)
-      expect(mockUserStatsUpdate).toHaveBeenCalled();
-      // One call should be to decrement totalActiveDays
-      expect(mockUserStatsUpdate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            totalActiveDays: { decrement: 1 },
-          }),
-        }),
-      );
-    });
-
-    it("should preserve longestStreak after deletion when reading history supports it", async () => {
-      const { mockDb, caller, mockUser } = createMockCaller(
-        readingProgressRouter,
-      );
-
-      const entryDate = new Date("2026-01-15T10:00:00Z");
-      const fakeBook = createFakeBook({ progress: 75, pageCount: 200 });
-      const progressToDelete = createFakeReadingProgressWithBook({
-        id: "delete-me",
-        progress: 75,
-        bookId: fakeBook.id,
-        book: fakeBook,
-        createdAt: entryDate,
-      });
-
-      // Create a history of progress entries that would result in longestStreak
-      const historicalProgress = Array.from({ length: 15 }, (_, i) =>
-        createFakeReadingProgressWithBook({
-          progress: 50,
-          bookId: fakeBook.id,
-          userId: mockUser.id,
-          book: fakeBook,
-          createdAt: subDays(entryDate, 20 + i),
-        }),
-      );
-
-      vi.mocked(mockDb.readingProgress.findUnique).mockResolvedValue(
-        progressToDelete,
-      );
-
-      const existingStats = createFakeUserStats({
-        currentStreak: 1,
-        longestStreak: 15,
-      });
-
-      const mockUserStatsUpdate = vi.fn().mockResolvedValue(existingStats);
-
-      vi.mocked(mockDb.$transaction).mockImplementation(async (callback) => {
-        const fakeTxClient = {
-          readingProgress: {
-            delete: vi.fn().mockResolvedValue(progressToDelete),
-            findFirst: vi.fn().mockResolvedValue(null),
-            count: vi.fn().mockResolvedValue(0),
-            findMany: vi.fn().mockResolvedValue(historicalProgress),
-          },
-          book: {
-            update: vi.fn().mockResolvedValue({ ...fakeBook, progress: 50 }),
-          },
-          userStats: {
-            update: mockUserStatsUpdate,
-            findUnique: vi.fn().mockResolvedValue(existingStats),
-          },
-        } as unknown as PrismaClient;
-        return callback(fakeTxClient);
-      });
-
-      await caller.deleteReadingProgressInstance("delete-me");
-
-      // Verify that some update happened (streak recalculation)
-      expect(mockUserStatsUpdate).toHaveBeenCalled();
-    });
-
-    it("should update lastReadingDate to most recent remaining entry date", async () => {
-      const { mockDb, caller } = createMockCaller(readingProgressRouter);
-
-      const todayDate = new Date("2026-01-15T10:00:00Z");
-      const yesterdayDate = subDays(todayDate, 1);
-      const fakeBook = createFakeBook({ progress: 75, pageCount: 200 });
-      const progressToDelete = createFakeReadingProgressWithBook({
-        id: "delete-me",
-        progress: 75,
-        bookId: fakeBook.id,
-        book: fakeBook,
-        createdAt: todayDate,
-      });
-      const olderProgressWithBook = createFakeReadingProgressWithBook({
-        progress: 50,
-        bookId: fakeBook.id,
-        book: fakeBook,
-        createdAt: yesterdayDate,
-      });
-
-      vi.mocked(mockDb.readingProgress.findUnique).mockResolvedValue(
-        progressToDelete,
-      );
-
-      const mockUserStatsUpdate = vi.fn().mockResolvedValue(
-        createFakeUserStats({
-          lastReadingDate: yesterdayDate,
-        }),
-      );
-
-      vi.mocked(mockDb.$transaction).mockImplementation(async (callback) => {
-        const fakeTxClient = {
-          readingProgress: {
-            delete: vi.fn().mockResolvedValue(progressToDelete),
-            findFirst: vi.fn().mockResolvedValue(olderProgressWithBook),
-            count: vi.fn().mockResolvedValue(0),
-            findMany: vi.fn().mockResolvedValue([olderProgressWithBook]),
-          },
-          book: {
-            update: vi.fn().mockResolvedValue({ ...fakeBook, progress: 50 }),
-          },
-          userStats: {
-            update: mockUserStatsUpdate,
-          },
-        } as unknown as PrismaClient;
-        return callback(fakeTxClient);
-      });
-
-      await caller.deleteReadingProgressInstance("delete-me");
-
-      // Should have multiple update calls (totalPagesRead, totalActiveDays, streak recalc)
-      expect(mockUserStatsUpdate).toHaveBeenCalled();
-      // Verify totalActiveDays was decremented
-      expect(mockUserStatsUpdate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            totalActiveDays: { decrement: 1 },
-          }),
-        }),
-      );
-    });
-
-    it("should decrement totalPagesRead by pages from deleted entry", async () => {
-      const { mockDb, caller } = createMockCaller(readingProgressRouter);
-
-      const entryDate = new Date("2026-01-10T10:00:00Z");
-      const fakeBook = createFakeBook({ progress: 75, pageCount: 200 });
-      const progressToDelete = createFakeReadingProgressWithBook({
-        id: "delete-me",
-        progress: 75, // This is the max progress
-        bookId: fakeBook.id,
-        book: fakeBook,
-        createdAt: entryDate,
-      });
-      const remainingProgress = createFakeReadingProgress({
-        progress: 50,
-        bookId: fakeBook.id,
-        createdAt: entryDate,
-      });
-
-      vi.mocked(mockDb.readingProgress.findUnique).mockResolvedValue(
-        progressToDelete,
-      );
-
-      const mockUserStatsUpdate = vi.fn().mockResolvedValue(
-        createFakeUserStats({
-          totalPagesRead: 100,
-        }),
-      );
-
-      vi.mocked(mockDb.$transaction).mockImplementation(async (callback) => {
-        const fakeTxClient = {
-          readingProgress: {
-            delete: vi.fn().mockResolvedValue(progressToDelete),
-            findFirst: vi.fn().mockResolvedValue(remainingProgress),
-            count: vi.fn().mockResolvedValue(1),
-          },
-          book: {
-            update: vi.fn().mockResolvedValue({ ...fakeBook, progress: 50 }),
-          },
-          userStats: {
-            update: mockUserStatsUpdate,
-          },
-        } as unknown as PrismaClient;
-        return callback(fakeTxClient);
-      });
-
-      await caller.deleteReadingProgressInstance("delete-me");
-
-      // Should decrement by (75% - 50%) = 25% of 200 = 50 pages
-      expect(mockUserStatsUpdate).toHaveBeenCalledWith({
-        where: { userId: expect.any(String) },
-        data: { totalPagesRead: { decrement: 50 } },
-      });
-    });
-
-    it("should decrement totalActiveDays when deleting sole entry for a day", async () => {
-      const { mockDb, caller } = createMockCaller(readingProgressRouter);
-
-      const entryDate = new Date("2026-01-10T10:00:00Z");
-      const fakeBook = createFakeBook({ progress: 50, pageCount: 200 });
-      const progressToDelete = createFakeReadingProgressWithBook({
-        id: "delete-me",
-        progress: 50,
-        bookId: fakeBook.id,
-        book: fakeBook,
-        createdAt: entryDate,
-      });
-
-      vi.mocked(mockDb.readingProgress.findUnique).mockResolvedValue(
-        progressToDelete,
-      );
-
-      const mockUserStatsUpdate = vi.fn().mockResolvedValue(
-        createFakeUserStats({
-          totalActiveDays: 9,
-        }),
-      );
-
-      vi.mocked(mockDb.$transaction).mockImplementation(async (callback) => {
-        const fakeTxClient = {
-          readingProgress: {
-            delete: vi.fn().mockResolvedValue(progressToDelete),
-            findFirst: vi.fn().mockResolvedValue(null),
-            count: vi.fn().mockResolvedValue(0),
-            findMany: vi.fn().mockResolvedValue([]),
-          },
-          book: {
-            update: vi.fn().mockResolvedValue({ ...fakeBook, progress: 0 }),
-          },
-          userStats: {
-            update: mockUserStatsUpdate,
-          },
-        } as unknown as PrismaClient;
-        return callback(fakeTxClient);
-      });
-
-      await caller.deleteReadingProgressInstance("delete-me");
-
-      expect(mockUserStatsUpdate).toHaveBeenCalledWith({
-        where: { userId: expect.any(String) },
-        data: { totalActiveDays: { decrement: 1 } },
-      });
-    });
-
-    it("should not decrement totalActiveDays when other entries exist for same day", async () => {
-      const { mockDb, caller } = createMockCaller(readingProgressRouter);
-
-      const entryDate = new Date("2026-01-10T10:00:00Z");
-      const fakeBook = createFakeBook({ progress: 75, pageCount: 200 });
-      const progressToDelete = createFakeReadingProgressWithBook({
-        id: "delete-me",
-        progress: 50,
-        bookId: fakeBook.id,
-        book: fakeBook,
-        createdAt: entryDate,
-      });
-      const otherEntry = createFakeReadingProgress({
-        progress: 75,
-        bookId: fakeBook.id,
-        createdAt: new Date(entryDate.getTime() + 3600000),
-      });
-
-      vi.mocked(mockDb.readingProgress.findUnique).mockResolvedValue(
-        progressToDelete,
-      );
-
-      const mockUserStatsUpdate = vi.fn();
-
-      vi.mocked(mockDb.$transaction).mockImplementation(async (callback) => {
-        const fakeTxClient = {
-          readingProgress: {
-            delete: vi.fn().mockResolvedValue(progressToDelete),
-            findFirst: vi.fn().mockResolvedValue(otherEntry),
-            count: vi.fn().mockResolvedValue(1),
-          },
-          book: {
-            update: vi.fn().mockResolvedValue({ ...fakeBook, progress: 75 }),
-          },
-          userStats: {
-            update: mockUserStatsUpdate,
-          },
-        } as unknown as PrismaClient;
-        return callback(fakeTxClient);
-      });
-
-      await caller.deleteReadingProgressInstance("delete-me");
-
-      expect(mockUserStatsUpdate).not.toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            totalActiveDays: expect.any(Number),
-          }),
-        }),
-      );
-    });
-  });
 
   describe("getRecentReadingProgress", () => {
     beforeEach(() => vi.clearAllMocks());

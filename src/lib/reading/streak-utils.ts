@@ -1,21 +1,8 @@
 import { subDays } from "date-fns";
 import { formatInTimeZone } from "date-fns-tz";
 
-import type { PrismaClient, User, UserStats } from "@/generated/prisma/client";
-import type { TransactionClient } from "@/generated/prisma/internal/prismaNamespace";
+import type { UserStats } from "@/generated/prisma/client";
 import { DEFAULT_TIMEZONE } from "@/lib/constants";
-import {
-  calculateStreakDetails,
-  getQualifyingDays,
-} from "@/lib/reading/reading-stats-utils";
-
-/**
- * Helper to parse a date key (YYYY-MM-DD) into a Date object (UTC midnight).
- */
-const parseDateKey = (dateKey: string): Date => {
-  const [year, month, day] = dateKey.split("-").map(Number);
-  return new Date(Date.UTC(year, month - 1, day));
-};
 
 export const isToday = (
   date: Date,
@@ -73,45 +60,3 @@ export const validateCurrentStreak = (
   return 0;
 };
 
-export const recalculateUserStreaks = async (
-  db: TransactionClient | PrismaClient,
-  user: User,
-): Promise<void> => {
-  const allProgress = await db.readingProgress.findMany({
-    where: { userId: user.id },
-    include: { book: { select: { pageCount: true, id: true, title: true } } },
-    orderBy: { createdAt: "asc" },
-  });
-
-  const streakDetails = calculateStreakDetails(
-    allProgress,
-    user.minimumPagesForStreak,
-    user.timezone,
-  );
-
-  const qualifyingDayKeys = getQualifyingDays(
-    allProgress,
-    user.minimumPagesForStreak,
-    user.timezone,
-  );
-  const lastQualifyingReadingDate =
-    qualifyingDayKeys.length > 0
-      ? parseDateKey(qualifyingDayKeys[qualifyingDayKeys.length - 1])
-      : null;
-
-  // Calculate lastReadingDate from progress entries (most recent reading date)
-  const lastReadingDate =
-    allProgress.length > 0
-      ? allProgress[allProgress.length - 1].createdAt
-      : null;
-
-  await db.userStats.update({
-    where: { userId: user.id },
-    data: {
-      currentStreak: streakDetails.currentStreak,
-      longestStreak: streakDetails.longestStreak,
-      lastReadingDate,
-      lastQualifyingReadingDate,
-    },
-  });
-};
