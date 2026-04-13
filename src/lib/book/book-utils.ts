@@ -57,8 +57,9 @@ export function createAuthorSort(author: string): string {
 
 export const calculatePagesFromProgress = (
   progress: number,
-  pageCount: number,
+  pageCount: number | null,
 ): number => {
+  if (!pageCount) return 0;
   return Math.round((progress / 100) * pageCount);
 };
 

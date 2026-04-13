@@ -131,7 +131,9 @@ const Page = ({ params }: { params: Promise<{ bookId: string }> }): React.ReactE
               <div className="relative w-full lg:w-3/4">
                 <Progress value={book.progress} className="h-6 rounded-md" />
                 <span className="absolute inset-0 flex items-center justify-center text-sm text-white">
-                  {book.progress}% / {`${Math.round((book.progress / 100) * book.pageCount)}/${book.pageCount} pages`}
+                  {book.pageCount
+                    ? `${book.progress}% / ${Math.round((book.progress / 100) * book.pageCount)}/${book.pageCount} pages`
+                    : `${book.progress}%`}
                 </span>
               </div>
             )}

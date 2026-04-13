@@ -2,7 +2,7 @@ export interface ValidateProgressParams {
   value: string;
   progressType: "%" | "pages";
   currentProgress: number;
-  pageCount: number;
+  pageCount: number | null;
 }
 
 /**
@@ -34,6 +34,9 @@ export function validateProgress({
       return `Progress must be greater than ${currentProgress}`;
     }
   } else if (progressType === "pages") {
+    if (!pageCount) {
+      return "Page count not set for this book";
+    }
     if (numValue < 0) {
       return "Progress must be a positive number";
     }

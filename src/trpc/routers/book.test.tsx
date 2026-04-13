@@ -476,7 +476,7 @@ describe("bookRouter", () => {
 
       const result = await caller.updatePageCount({
         bookId: originalBook.id,
-        newPageCount: updatedBook.pageCount,
+        newPageCount: updatedBook.pageCount ?? 0,
       });
 
       expect(result.pageCount).toEqual(updatedBook.pageCount);

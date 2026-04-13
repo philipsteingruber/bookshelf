@@ -440,7 +440,7 @@ describe("reading-stats-utils", () => {
       ]);
 
       expect(result.pagesToday).toEqual(
-        firstBook.pageCount + secondBook.pageCount,
+        (firstBook.pageCount ?? 0) + (secondBook.pageCount ?? 0),
       );
     });
 
@@ -459,7 +459,7 @@ describe("reading-stats-utils", () => {
         book: fakeBook,
       });
 
-      const totalPagesRead = (endProgress / 100) * fakeBook.pageCount;
+      const totalPagesRead = (endProgress / 100) * (fakeBook.pageCount ?? 0);
       const activeDays = 2;
 
       const result = calculateDailyStats([firstProgress, secondProgress]);
@@ -513,7 +513,7 @@ describe("reading-stats-utils", () => {
       const fakeBook = createFakeBook({ pageCount: 200, progress: 0 });
 
       const totalPagesRead =
-        ((endProgress - startProgress) / 100) * fakeBook.pageCount;
+        ((endProgress - startProgress) / 100) * (fakeBook.pageCount ?? 0);
 
       const firstReadingProgress = createFakeReadingProgressWithBook({
         book: fakeBook,
@@ -596,7 +596,7 @@ describe("reading-stats-utils", () => {
       ]);
 
       expect(result.pagesThisWeek).toEqual(
-        firstBook.pageCount + secondBook.pageCount,
+        (firstBook.pageCount ?? 0) + (secondBook.pageCount ?? 0),
       );
     });
 
@@ -621,7 +621,7 @@ describe("reading-stats-utils", () => {
       ]);
 
       expect(result.pagesLastWeek).toEqual(
-        firstBook.pageCount + secondBook.pageCount,
+        (firstBook.pageCount ?? 0) + (secondBook.pageCount ?? 0),
       );
     });
 
@@ -671,7 +671,7 @@ describe("reading-stats-utils", () => {
       expect(result.pagesThisWeek).toEqual(
         ((newReadingProgress.progress - lastWeekReadingProgress.progress) /
           100) *
-          fakeBook.pageCount,
+          (fakeBook.pageCount ?? 0),
       );
     });
 
@@ -884,8 +884,8 @@ describe("reading-stats-utils", () => {
       });
 
       const totalPagesRead =
-        (newProgress / 100) * firstBook.pageCount +
-        (newProgress / 100) * secondBook.pageCount;
+        (newProgress / 100) * (firstBook.pageCount ?? 0) +
+        (newProgress / 100) * (secondBook.pageCount ?? 0);
 
       const result = calculateOverallStats([
         firstReadingProgress,

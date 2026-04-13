@@ -162,10 +162,9 @@ const ReadingProgressHistory = ({
                   {entry.progressSinceLast}
                 </TableCell>
                 <TableCell className="hidden py-0.5 text-center md:table-cell">
-                  {calculatePagesFromProgress(
-                    entry.progressSinceLast,
-                    book.pageCount,
-                  )}
+                  {book.pageCount
+                    ? calculatePagesFromProgress(entry.progressSinceLast, book.pageCount)
+                    : "—"}
                 </TableCell>
                 <TableCell className="py-0.5">
                   <Button

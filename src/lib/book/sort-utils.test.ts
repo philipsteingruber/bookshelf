@@ -50,7 +50,8 @@ describe("toOrderBy", () => {
     expect(toOrderBy("rating", "desc")).toEqual({ rating: "desc" });
   });
 
-  it("passes direction directly for pageCount", () => {
-    expect(toOrderBy("pageCount", "asc")).toEqual({ pageCount: "asc" });
+  it("returns nulls-last object for pageCount", () => {
+    expect(toOrderBy("pageCount", "asc")).toEqual({ pageCount: { sort: "asc", nulls: "last" } });
+    expect(toOrderBy("pageCount", "desc")).toEqual({ pageCount: { sort: "desc", nulls: "last" } });
   });
 });

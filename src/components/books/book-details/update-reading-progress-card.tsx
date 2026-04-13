@@ -76,7 +76,9 @@ const UpdateReadingProgressCard = ({
                 placeholder={
                   selectedProgressType === "%"
                     ? progress.toString()
-                    : Math.floor((progress / 100) * pageCount).toString()
+                    : pageCount
+                      ? Math.floor((progress / 100) * pageCount).toString()
+                      : "0"
                 }
                 value={progressValue}
                 onChange={(e) => handleProgressChange(e.target.value)}
@@ -100,7 +102,7 @@ const UpdateReadingProgressCard = ({
                 </SelectTrigger>
                 <SelectContent position="popper">
                   <SelectItem value="%">%</SelectItem>
-                  <SelectItem value="pages">pages</SelectItem>
+                  <SelectItem value="pages" disabled={!pageCount}>pages</SelectItem>
                 </SelectContent>
               </Select>
             </div>

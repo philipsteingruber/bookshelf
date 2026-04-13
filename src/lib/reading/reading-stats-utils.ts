@@ -97,7 +97,7 @@ const calculatePagesPerDay = (
   progress: ReadingProgressWithBook[],
   timezone: string = DEFAULT_TIMEZONE,
 ): Map<string, number> => {
-  const validProgress = progress.filter((p) => p.book.pageCount > 0);
+  const validProgress = progress.filter((p) => p.book.pageCount != null && p.book.pageCount > 0);
   const progressByDay = groupByDay(validProgress, timezone);
   const pagesPerDay = new Map<string, number>();
 
@@ -162,7 +162,7 @@ export const calculateDailyStats = (
   progress: ReadingProgressWithBook[],
   timezone: string = DEFAULT_TIMEZONE,
 ): DailyStats => {
-  const validProgress = progress.filter((p) => p.book.pageCount > 0);
+  const validProgress = progress.filter((p) => p.book.pageCount != null && p.book.pageCount > 0);
 
   if (validProgress.length === 0) {
     return { pagesToday: 0, pagesYesterday: 0, averagePagesPerDay: 0 };
@@ -178,7 +178,7 @@ export const calculateDailyStats = (
   const pagesYesterday = pagesPerDay.get(yesterday) ?? 0;
 
   let totalPages = 0;
-  const bookProgress = new Map<number, { max: number; pageCount: number }>();
+  const bookProgress = new Map<number, { max: number; pageCount: number | null }>();
   validProgress.forEach((entry) => {
     const current = bookProgress.get(entry.bookId);
     if (!current) {
@@ -204,7 +204,7 @@ export const calculateWeeklyStats = (
   progress: ReadingProgressWithBook[],
   timezone: string = DEFAULT_TIMEZONE,
 ): WeeklyStats => {
-  const validProgress = progress.filter((p) => p.book.pageCount > 0);
+  const validProgress = progress.filter((p) => p.book.pageCount != null && p.book.pageCount > 0);
 
   if (validProgress.length === 0) {
     return {
@@ -299,7 +299,7 @@ export const calculateYearlyStats = (
 ): YearlyStats => {
   const validBooks = books.filter(
     (book): book is Book & { finishedAt: Date } =>
-      book.finishedAt != null && book.pageCount >= readingGoalThreshold,
+      book.finishedAt != null && book.pageCount != null && book.pageCount >= readingGoalThreshold,
   );
 
   if (validBooks.length === 0) return { booksFinishedByYear: [] };
@@ -329,7 +329,7 @@ export const calculateOverallStats = (
   progress: ReadingProgressWithBook[],
   timezone: string = DEFAULT_TIMEZONE,
 ): OverallStats => {
-  const validProgress = progress.filter((p) => p.book.pageCount > 0);
+  const validProgress = progress.filter((p) => p.book.pageCount != null && p.book.pageCount > 0);
 
   if (validProgress.length === 0) {
     return {
@@ -346,7 +346,7 @@ export const calculateOverallStats = (
   const activeDays = progressByDay.size;
   const weeksActive = progressByWeek.size;
 
-  const bookProgress = new Map<number, { max: number; pageCount: number }>();
+  const bookProgress = new Map<number, { max: number; pageCount: number | null }>();
 
   validProgress.forEach((entry) => {
     const current = bookProgress.get(entry.bookId);

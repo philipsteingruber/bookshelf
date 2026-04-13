@@ -64,7 +64,7 @@ model Book {
     author     String
     authorSort String
 
-    pageCount Int @default(0)
+    pageCount Int?
     progress  Int @default(0)
 
     rating          Int?

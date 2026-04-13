@@ -101,7 +101,7 @@ describe("readingProgressRouter", () => {
 
       const pagesRead = 50;
       const calculatedProgress = Math.floor(
-        (pagesRead / fakeBook.pageCount) * 100,
+        (pagesRead / (fakeBook.pageCount ?? 1)) * 100,
       );
 
       const fakeReadingProgress = createFakeReadingProgress({
@@ -141,7 +141,7 @@ describe("readingProgressRouter", () => {
     it("should use newProgress directly when provided", async () => {
       const { mockDb, caller } = createMockCaller(readingProgressRouter);
 
-      const fakeBook = createFakeBook({ progress: 0, pageCount: 0 });
+      const fakeBook = createFakeBook({ progress: 0, pageCount: null });
       const fakeUserStats = createFakeUserStats();
 
       const fakeReadingProgress = createFakeReadingProgress({
@@ -187,7 +187,7 @@ describe("readingProgressRouter", () => {
       const newProgress = 50;
       const newPagesRead = 75;
       const calculatedProgress = Math.floor(
-        (newPagesRead / fakeBook.pageCount) * 100,
+        (newPagesRead / (fakeBook.pageCount ?? 1)) * 100,
       ); // 75
 
       const updatedBook = createFakeBook({
@@ -1091,7 +1091,7 @@ describe("readingProgressRouter", () => {
 
       const pagesRead = 1500; // 10% of a 15,000 page book
       const expectedProgress = Math.floor(
-        (pagesRead / largePageCountBook.pageCount) * 100,
+        (pagesRead / (largePageCountBook.pageCount ?? 1)) * 100,
       ); // 10
 
       const fakeReadingProgress = createFakeReadingProgress({

@@ -36,9 +36,14 @@ export const readingProgressRouter = createTRPCRouter({
 
       const book = await requireOwnedBook(ctx, input.bookId);
 
+      if (input.newPagesRead !== undefined && !book.pageCount) {
+        ctx.logger.warn({ bookId: input.bookId }, "Tried to log pages-read progress on a book without pageCount");
+        throw new TRPCError({ code: "BAD_REQUEST" });
+      }
+
       const progress =
         input.newProgress ??
-        Math.floor(((input.newPagesRead ?? 0) / book.pageCount) * 100);
+        Math.floor(((input.newPagesRead ?? 0) / (book.pageCount ?? 1)) * 100);
 
       if (progress < 0 || progress > 100) {
         ctx.logger.warn(

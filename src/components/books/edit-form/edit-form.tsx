@@ -60,7 +60,7 @@ export const EditBookForm = ({ book }: { book: Book }): React.ReactElement => {
       author: book.author,
       coverUrl: book.coverUrl ?? "",
       isbn: book.isbn ?? "",
-      pageCount: book.pageCount ?? 0,
+      pageCount: book.pageCount ?? undefined,
       publishedYear: book.publishedYear ?? 1900,
       series: book.series ?? "",
       seriesIndex: book.seriesIndex ?? 1.0,

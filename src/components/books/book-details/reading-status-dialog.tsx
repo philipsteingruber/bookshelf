@@ -131,7 +131,7 @@ const ReadingStatusDialog = ({
                 value={pageCountInput}
                 onChange={(e) => setPageCountInput(e.target.value)}
                 className="max-w-1/2"
-                placeholder={book.pageCount.toString() || pageCountInput}
+                placeholder={book.pageCount?.toString() ?? ""}
               />
             </div>
           </div>

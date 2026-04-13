@@ -26,7 +26,7 @@ export function toOrderBy(
     case "rating":
       return { rating: direction };
     case "pageCount":
-      return { pageCount: direction };
+      return { pageCount: { sort: direction, nulls: "last" } };
     default: {
       const _exhaustive: never = sortBy;
       throw new Error(`Unhandled sort field: ${_exhaustive}`);
