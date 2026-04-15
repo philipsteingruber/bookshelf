@@ -17,17 +17,16 @@ export const findConflictingBook = async (
     if (byISBN) return byISBN;
   }
 
-  if (book.series && !!book.seriesIndex) {
-    const bySeries = await tx.book.findUnique({
-      where: {
-        series_seriesIndex_userId: {
-          series: book.series,
-          seriesIndex: book.seriesIndex,
-          userId,
-        },
-      },
+  if (book.series && book.seriesIndex) {
+    const seriesRecord = await tx.series.findUnique({
+      where: { name_userId: { name: book.series, userId } },
     });
-    if (bySeries) return bySeries;
+    if (seriesRecord) {
+      const bySeries = await tx.book.findFirst({
+        where: { seriesId: seriesRecord.id, seriesIndex: book.seriesIndex },
+      });
+      if (bySeries) return bySeries;
+    }
   }
 
   return null;

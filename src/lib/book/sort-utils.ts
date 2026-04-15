@@ -13,7 +13,7 @@ export function toOrderBy(
       return { authorSort: direction };
     case "series":
       return [
-        { series: { sort: "asc", nulls: "last" } },
+        { series: { nameSort: "asc" } },
         { seriesIndex: "asc" },
         { titleSort: "asc" },
       ];

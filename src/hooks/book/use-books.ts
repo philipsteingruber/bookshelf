@@ -3,14 +3,14 @@ import { useMemo } from "react";
 import type { TRPCClientErrorLike } from "@trpc/client";
 import { useDebounce } from "use-debounce";
 
-import type { Book } from "@/generated/prisma/client";
 import { DEBOUNCE_INTERVAL } from "@/lib/constants";
 import type { BookFilters } from "@/lib/types";
+import type { BookWithSeries } from "@/lib/types/book";
 import { trpc } from "@/trpc/client";
 import type { AppRouter } from "@/trpc/routers/_app";
 
 interface UseBooksReturn {
-  books: Book[];
+  books: BookWithSeries[];
   totalCount: number;
   totalPages: number;
   currentPage: number;
@@ -54,7 +54,7 @@ export const useBooks = (options?: BookFilters & { enabled?: boolean }): UseBook
     { enabled, placeholderData: (prev) => prev },
   );
 
-  const books: Book[] = useMemo(() => data?.books || [], [data?.books]);
+  const books: BookWithSeries[] = useMemo(() => data?.books || [], [data?.books]);
 
   const isEmpty = books.length === 0 && !isPending;
   const count = books.length;

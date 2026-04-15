@@ -8,7 +8,7 @@ import prisma from "@/lib/prisma";
 config();
 
 async function main(): Promise<void> {
-  type Book = {
+  type BookSeed = {
     title: string;
     author: string;
     coverUrl: string;
@@ -37,7 +37,7 @@ async function main(): Promise<void> {
   });
 
   // Sample books data
-  const books: Book[] = [
+  const books: BookSeed[] = [
     {
       title: "The Emperor's Legion",
       titleSort: createTitleSort("The Emperor's Legion"),
@@ -146,7 +146,17 @@ The Traitor Host of Horus Lupercal tightens its iron grip on the Palace of Terra
   console.log("Seeding books... ⏳");
   for (const book of books) {
     console.log(`Creating ${book.title} by ${book.author}... ⏳`);
-    const createdBook = await prisma.book.create({ data: book });
+    const { series, ...bookRest } = book;
+    let seriesId: string | null = null;
+    if (series) {
+      const seriesRecord = await prisma.series.upsert({
+        where: { name_userId: { name: series, userId } },
+        create: { name: series, nameSort: series.toLowerCase(), userId },
+        update: {},
+      });
+      seriesId = seriesRecord.id;
+    }
+    const createdBook = await prisma.book.create({ data: { ...bookRest, seriesId } });
     console.log(`${book.title} by ${book.author} created. ✅`);
     if (book.title === "Saturnine") {
       console.log("Seeding ReadingProgress... ⏳");

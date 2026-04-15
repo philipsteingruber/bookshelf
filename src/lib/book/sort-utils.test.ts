@@ -13,15 +13,15 @@ describe("toOrderBy", () => {
     expect(toOrderBy("author", "desc")).toEqual({ authorSort: "desc" });
   });
 
-  it("returns 3-field nulls-last array for series", () => {
+  it("returns 3-field relation sort array for series", () => {
     expect(toOrderBy("series", "asc")).toEqual([
-      { series: { sort: "asc", nulls: "last" } },
+      { series: { nameSort: "asc" } },
       { seriesIndex: "asc" },
       { titleSort: "asc" },
     ]);
     // direction is ignored for series (always asc by convention)
     expect(toOrderBy("series", "desc")).toEqual([
-      { series: { sort: "asc", nulls: "last" } },
+      { series: { nameSort: "asc" } },
       { seriesIndex: "asc" },
       { titleSort: "asc" },
     ]);

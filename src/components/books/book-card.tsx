@@ -4,8 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 
 import BookCoverFallback from "@/components/books/book-cover-fallback";
-import type { Book } from "@/generated/prisma/client";
 import { useImageError } from "@/hooks/ui";
+import type { BookWithSeries } from "@/lib/types/book";
 import { formatSeriesIndex } from "@/lib/book";
 import { BOOK_COVER_PLACEHOLDER_URL } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -17,7 +17,7 @@ import { StarRating } from "../ui/star-rating";
 import ReadStatusButton from "./readstatus-button";
 
 interface BookCardProps {
-  book: Book;
+  book: BookWithSeries;
   showStatusButton: boolean;
   showRating?: boolean;
   className?: string;
@@ -80,7 +80,7 @@ const BookCard = ({
                 showStatusButton && "h-[25px]",
               )}
             >
-              {book.series && book.seriesIndex ? `${book.series} #${formatSeriesIndex(book.seriesIndex)}` : "\u00A0"}
+              {book.series?.name && book.seriesIndex ? `${book.series.name} #${formatSeriesIndex(book.seriesIndex)}` : "\u00A0"}
             </p>
             {showRating && (
               <div className="h-[20px]">

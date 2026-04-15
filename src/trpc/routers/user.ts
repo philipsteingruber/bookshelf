@@ -1,6 +1,5 @@
 import z from "zod";
 
-import type { Book } from "@/generated/prisma/client";
 import { performanceLogger } from "@/lib/common/logger";
 import { importFromCSV, importFromJSON } from "@/lib/import";
 import {
@@ -16,7 +15,7 @@ import {
   importJSONSchema,
   progressCSVSchema,
 } from "@/lib/schemas";
-import type { ExportData, ImportResults } from "@/lib/types";
+import type { BookForExport, ExportData, ImportResults } from "@/lib/types";
 
 import { authedProcedure, createTRPCRouter } from "../init";
 
@@ -127,9 +126,9 @@ export const userRouter = createTRPCRouter({
 
     const threshold = ctx.currentUser.defaultReadingThreshold;
 
-    const books = (await ctx.db.book.findMany({
+    const books = await ctx.db.book.findMany({
       where: { userId: ctx.currentUser.id, finishedAt: { not: null } },
-    })) as Book[];
+    });
 
     const stats = calculateYearlyStats(books, threshold, ctx.currentUser.timezone);
 
@@ -220,11 +219,12 @@ export const userRouter = createTRPCRouter({
     );
 
     exportDataTimer.start();
-    const [books, readingProgress, readingGoals, userStats] = await Promise.all(
+    const [rawBooks, readingProgress, readingGoals, userStats] = await Promise.all(
       [
         ctx.db.book.findMany({
           where: { userId: ctx.currentUser.id },
           orderBy: { createdAt: "asc" },
+          include: { series: true },
         }),
         ctx.db.readingProgress.findMany({
           where: { userId: ctx.currentUser.id },
@@ -240,6 +240,12 @@ export const userRouter = createTRPCRouter({
         ctx.db.userStats.findUnique({ where: { userId: ctx.currentUser.id } }),
       ],
     );
+
+    // Flatten series relation to a plain name string to preserve export format
+    const books: BookForExport[] = rawBooks.map(({ series, seriesId: _seriesId, ...book }) => ({
+      ...book,
+      series: series?.name ?? null,
+    }));
 
     const user = await ctx.db.user.findUnique({
       where: { id: ctx.currentUser.id },

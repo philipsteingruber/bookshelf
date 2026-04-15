@@ -113,9 +113,20 @@ async function seedDevUser(): Promise<void> {
     ];
 
     for (const bookData of testBooks) {
+      const { series, ...bookRest } = bookData;
+      let seriesId: string | null = null;
+      if (series) {
+        const seriesRecord = await prisma.series.upsert({
+          where: { name_userId: { name: series, userId: user.id } },
+          create: { name: series, nameSort: series.toLowerCase(), userId: user.id },
+          update: {},
+        });
+        seriesId = seriesRecord.id;
+      }
       const book = await prisma.book.create({
         data: {
-          ...bookData,
+          ...bookRest,
+          seriesId,
           userId: user.id,
           startedAt: bookData.status === "READING" ? new Date() : null,
           finishedAt: bookData.status === "READ" ? new Date() : null,

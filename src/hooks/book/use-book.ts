@@ -1,12 +1,12 @@
 import type { TRPCClientErrorLike } from "@trpc/client";
 
-import type { Book } from "@/generated/prisma/client";
 import { ReadStatus } from "@/generated/prisma/enums";
+import type { BookWithSeries } from "@/lib/types/book";
 import { trpc } from "@/trpc/client";
 import type { AppRouter } from "@/trpc/routers/_app";
 
 interface UseBookReturn {
-  book: Book | null;
+  book: BookWithSeries | null;
   isPending: boolean;
   isError: boolean;
   error: TRPCClientErrorLike<AppRouter> | Error | null;
@@ -22,7 +22,7 @@ interface UseBookReturn {
 export const useBook = (bookId: string): UseBookReturn => {
   const utils = trpc.useUtils();
 
-  const getCachedBook = (): Book | undefined => {
+  const getCachedBook = (): BookWithSeries | undefined => {
     const allBooksQueries = utils.book.getBooks.getData();
 
     if (allBooksQueries?.books) {
@@ -38,7 +38,7 @@ export const useBook = (bookId: string): UseBookReturn => {
     { initialData: getCachedBook() ? { book: getCachedBook()! } : undefined },
   );
 
-  const book = data?.book;
+  const book = data?.book ?? null;
   const isForbidden = error?.data?.code === "FORBIDDEN";
   const isNotFound = error?.data?.code === "NOT_FOUND";
 

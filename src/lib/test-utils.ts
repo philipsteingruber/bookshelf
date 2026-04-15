@@ -3,7 +3,6 @@ import type { Logger } from "pino";
 import { vi } from "vitest";
 
 import type {
-  Book,
   PrismaClient,
   ReadingGoal,
   ReadingProgress,
@@ -17,6 +16,7 @@ import type {
   ReadingProgressWithBook,
   ReadingProgressWithProgressSinceLast,
 } from "@/lib/types";
+import type { BookWithSeries } from "@/lib/types/book";
 
 // Extract the auth type from Clerk's auth() function
 export type AuthType = Awaited<ReturnType<typeof auth>>;
@@ -59,6 +59,13 @@ export function createMockDb(): PrismaClient {
       findUnique: vi.fn(),
       upsert: vi.fn(),
       update: vi.fn(),
+    },
+    series: {
+      findMany: vi.fn(),
+      findUnique: vi.fn(),
+      upsert: vi.fn(),
+      create: vi.fn(),
+      count: vi.fn(),
     },
     $transaction: vi.fn(),
   } as unknown as PrismaClient;
@@ -103,26 +110,38 @@ export function createFakeUser(overrides: Partial<User> = {}): User {
 /**
  * Creates a fake book for testing.
  * Provide overrides for any fields you want to customize.
+ * Returns a BookWithSeries (includes the series relation as null by default).
  */
-export function createFakeBook(overrides: Partial<Book> = {}): Book {
+export function createFakeBook(overrides: Partial<BookWithSeries> = {}): BookWithSeries {
   return {
     id: 1,
     userId: "test-user-123",
     title: "Test Book",
+    titleSort: "test book",
     author: "Test Author",
+    authorSort: "author, test",
     isbn: "1234567890",
     publishedYear: 2026,
     pageCount: 300,
     progress: 0,
     status: "READING",
+    rating: null,
+    goodreadsRating: null,
+    goodreadsUrl: null,
+    googleBooksUrl: null,
+    review: null,
     coverUrl: null,
-    notes: null,
+    seriesName: null,
+    seriesId: null,
+    seriesIndex: null,
+    summary: null,
     createdAt: new Date(),
     updatedAt: new Date(),
     startedAt: null,
     finishedAt: null,
+    series: null,
     ...overrides,
-  } as Book;
+  } as BookWithSeries;
 }
 
 /**
@@ -157,7 +176,7 @@ export function createFakeReadingProgressWithProgressSinceLast(
 
 export const createFakeReadingProgressWithBook = (
   overrides?: Partial<
-    ReadingProgress & { book: Pick<Book, "pageCount" | "id" | "title"> }
+    ReadingProgress & { book: Pick<BookWithSeries, "pageCount" | "id" | "title"> }
   >,
 ): ReadingProgressWithBook => {
   const fakeBook = createFakeBook();

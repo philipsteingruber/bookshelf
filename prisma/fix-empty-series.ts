@@ -7,10 +7,10 @@ async function main(): Promise<void> {
 
   const result = await prisma.book.updateMany({
     where: {
-      series: "",
+      seriesName: "",
     },
     data: {
-      series: null,
+      seriesName: null,
     },
   });
 

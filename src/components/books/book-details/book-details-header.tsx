@@ -12,22 +12,22 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import type { Book } from "@/generated/prisma/client";
 import { formatSeriesIndex } from "@/lib/book";
+import type { BookWithSeries } from "@/lib/types/book";
 
 const BookDetailsHeader = ({
   book,
   className,
 }: {
-  book: Book;
+  book: BookWithSeries;
   className?: string;
 }): React.ReactElement => {
   const router = useRouter();
 
   return (
     <div className={className}>
-      {book.series && book.seriesIndex && (
-        <p className="font-serif text-sm font-light italic">{`${book.series} #${formatSeriesIndex(book.seriesIndex)}`}</p>
+      {book.series?.name && book.seriesIndex && (
+        <p className="font-serif text-sm font-light italic">{`${book.series.name} #${formatSeriesIndex(book.seriesIndex)}`}</p>
       )}
       <div className="flex w-full items-center justify-between gap-x-4">
         <Tooltip>

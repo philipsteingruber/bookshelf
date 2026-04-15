@@ -1,5 +1,5 @@
 import type { TransactionClient } from "@/generated/prisma/internal/prismaNamespace";
-import { createAuthorSort, createTitleSort } from "@/lib/book";
+import { createAuthorSort, createTitleSort, upsertSeries } from "@/lib/book";
 import { findConflictingBook } from "@/lib/import/import-utils";
 import type { ExportData, ImportResults } from "@/lib/types";
 import type { AuthedContext } from "@/trpc/init";
@@ -39,7 +39,7 @@ export const importFromJSON = async (
           review: book.review,
           coverUrl: book.coverUrl,
           isbn: book.isbn,
-          series: book.series,
+          seriesId: book.series ? await upsertSeries(tx, book.series, ctx.currentUser.id) : null,
           seriesIndex: book.seriesIndex,
           publishedYear: book.publishedYear,
           summary: book.summary,

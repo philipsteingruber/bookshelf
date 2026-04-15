@@ -1,5 +1,5 @@
 import type { TransactionClient } from "@/generated/prisma/internal/prismaNamespace";
-import { createAuthorSort, createTitleSort } from "@/lib/book";
+import { createAuthorSort, createTitleSort, upsertSeries } from "@/lib/book";
 import { findConflictingBook } from "@/lib/import/import-utils";
 import type { CSVImportData, ImportResults } from "@/lib/types";
 import type { AuthedContext } from "@/trpc/init";
@@ -44,7 +44,7 @@ export const importFromCSV = async (
             googleBooksUrl: book.googleBooksUrl,
             review: book.review,
             coverUrl: book.coverUrl,
-            series: book.series,
+            seriesId: book.series ? await upsertSeries(tx, book.series, ctx.currentUser.id) : null,
             seriesIndex: book.seriesIndex,
             publishedYear: book.publishedYear,
             isbn: book.isbn,

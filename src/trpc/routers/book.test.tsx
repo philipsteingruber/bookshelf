@@ -1,6 +1,7 @@
 import { subDays } from "date-fns";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { Prisma } from "@/generated/prisma/client";
 import type { ReadStatus } from "@/generated/prisma/enums";
 import { createAuthorSort, createTitleSort } from "@/lib/book";
 import { VALIDATION_LIMITS } from "@/lib/constants";
@@ -45,28 +46,33 @@ describe("bookRouter", () => {
       expect(result.book).toEqual(createdBook);
     });
 
-    it("should detect duplicate series book (same series+index+user)", async () => {
+    it("should detect duplicate series position via P2002 constraint", async () => {
       const { caller, mockDb } = createMockCaller(bookRouter);
 
-      const prevBookData = {
-        series: "Test Series",
-        seriesIndex: 1,
-      };
-      const prevBook = createFakeBook(prevBookData);
-
-      const newBookData = {
-        title: "New Book 2",
-        author: "Test Author",
-        publishedYear: 2026,
-        series: prevBookData.series,
-        seriesIndex: prevBookData.seriesIndex,
-      };
-
-      vi.mocked(mockDb.book.findFirst).mockResolvedValue(prevBook);
-
-      await expect(caller.createBook(newBookData)).rejects.toMatchObject({
-        code: "CONFLICT",
+      vi.mocked(mockDb.series.upsert).mockResolvedValue({
+        id: "series-id-1",
+        name: "Test Series",
+        nameSort: "test series",
+        userId: "test-user-123",
       });
+      vi.mocked(mockDb.book.create).mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError("Unique constraint", {
+          code: "P2002",
+          clientVersion: "5.0.0",
+          batchRequestIdx: undefined,
+          meta: undefined,
+        }),
+      );
+
+      await expect(
+        caller.createBook({
+          title: "New Book 2",
+          author: "Test Author",
+          publishedYear: 2026,
+          series: "Test Series",
+          seriesIndex: 1,
+        }),
+      ).rejects.toMatchObject({ code: "CONFLICT" });
     });
 
     it("should detect duplicate ISBN (same ISBN + user)", async () => {
@@ -556,6 +562,7 @@ describe("bookRouter", () => {
   });
   describe("getBooks", () => {
     const baseQuery = {
+      include: { series: true },
       orderBy: { titleSort: "asc" },
       take: VALIDATION_LIMITS.BOOKS_QUERY_DEFAULT,
       skip: 0,
@@ -623,7 +630,7 @@ describe("bookRouter", () => {
           OR: [
             { title: { contains: "filter", mode: "insensitive" } },
             { author: { contains: "filter", mode: "insensitive" } },
-            { series: { contains: "filter", mode: "insensitive" } },
+            { series: { name: { contains: "filter", mode: "insensitive" } } },
             { isbn: { contains: "filter", mode: "insensitive" } },
           ],
         },
@@ -760,7 +767,7 @@ describe("bookRouter", () => {
           OR: [
             { title: { contains: "book", mode: "insensitive" } },
             { author: { contains: "book", mode: "insensitive" } },
-            { series: { contains: "book", mode: "insensitive" } },
+            { series: { name: { contains: "book", mode: "insensitive" } } },
             { isbn: { contains: "book", mode: "insensitive" } },
           ],
         },
@@ -843,7 +850,7 @@ describe("bookRouter", () => {
       expect(mockDb.book.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           orderBy: [
-            { series: { sort: "asc", nulls: "last" } },
+            { series: { nameSort: "asc" } },
             { seriesIndex: "asc" },
             { titleSort: "asc" },
           ],
@@ -872,28 +879,37 @@ describe("bookRouter", () => {
   describe("getSeriesList", () => {
     beforeEach(() => vi.clearAllMocks());
 
-    it("should return grouped series data with book counts", async () => {
+    it("should return series data with book counts", async () => {
       const { mockDb, caller } = createMockCaller(bookRouter);
 
-      const groupByResult = [
-        { series: "Horus Heresy", _count: { series: 3 } },
-        { series: "Gaunt's Ghosts", _count: { series: 2 } },
-      ];
-
       const heresyBooks = [
-        createFakeBook({ id: 1, series: "Horus Heresy", seriesIndex: 1 }),
-        createFakeBook({ id: 2, series: "Horus Heresy", seriesIndex: 2 }),
-        createFakeBook({ id: 3, series: "Horus Heresy", seriesIndex: 3 }),
+        createFakeBook({ id: 1, seriesIndex: 1 }),
+        createFakeBook({ id: 2, seriesIndex: 2 }),
+        createFakeBook({ id: 3, seriesIndex: 3 }),
       ];
       const gauntBooks = [
-        createFakeBook({ id: 4, series: "Gaunt's Ghosts", seriesIndex: 1 }),
-        createFakeBook({ id: 5, series: "Gaunt's Ghosts", seriesIndex: 2 }),
+        createFakeBook({ id: 4, seriesIndex: 1 }),
+        createFakeBook({ id: 5, seriesIndex: 2 }),
       ];
 
-      vi.mocked(mockDb.book.groupBy).mockResolvedValue(groupByResult as never);
-      vi.mocked(mockDb.book.findMany)
-        .mockResolvedValueOnce(heresyBooks)
-        .mockResolvedValueOnce(gauntBooks);
+      vi.mocked(mockDb.series.findMany).mockResolvedValue([
+        {
+          id: "s1",
+          name: "Horus Heresy",
+          nameSort: "horus heresy",
+          userId: "test-user-123",
+          books: heresyBooks,
+          _count: { books: 3 },
+        },
+        {
+          id: "s2",
+          name: "Gaunt's Ghosts",
+          nameSort: "gaunt's ghosts",
+          userId: "test-user-123",
+          books: gauntBooks,
+          _count: { books: 2 },
+        },
+      ] as never);
 
       const result = await caller.getSeriesList();
 
@@ -909,73 +925,39 @@ describe("bookRouter", () => {
     it("should return empty array when no series exist", async () => {
       const { mockDb, caller } = createMockCaller(bookRouter);
 
-      vi.mocked(mockDb.book.groupBy).mockResolvedValue([]);
+      vi.mocked(mockDb.series.findMany).mockResolvedValue([]);
 
       const result = await caller.getSeriesList();
 
       expect(result.seriesData).toEqual([]);
     });
 
-    it("should filter out null series entries from groupBy results", async () => {
-      const { mockDb, caller } = createMockCaller(bookRouter);
-
-      const groupByResult = [
-        { series: null, _count: { series: 5 } },
-        { series: "Real Series", _count: { series: 2 } },
-      ];
-
-      const seriesBooks = [
-        createFakeBook({ id: 1, series: "Real Series", seriesIndex: 1 }),
-      ];
-
-      vi.mocked(mockDb.book.groupBy).mockResolvedValue(groupByResult as never);
-      vi.mocked(mockDb.book.findMany).mockResolvedValue(seriesBooks);
-
-      const result = await caller.getSeriesList();
-
-      expect(result.seriesData).toHaveLength(1);
-      expect(result.seriesData[0].name).toEqual("Real Series");
-    });
-
     it("should limit books per series to 5", async () => {
       const { mockDb, caller } = createMockCaller(bookRouter);
 
-      const groupByResult = [
-        { series: "Big Series", _count: { series: 10 } },
-      ];
-
-      vi.mocked(mockDb.book.groupBy).mockResolvedValue(groupByResult as never);
-      vi.mocked(mockDb.book.findMany).mockResolvedValue([]);
+      vi.mocked(mockDb.series.findMany).mockResolvedValue([]);
 
       await caller.getSeriesList();
 
-      expect(mockDb.book.findMany).toHaveBeenCalledWith(
+      expect(mockDb.series.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          take: 5,
+          include: expect.objectContaining({
+            books: expect.objectContaining({ take: 5 }),
+          }),
         }),
       );
     });
 
-    it("should only query books for the current user", async () => {
+    it("should only query series for the current user", async () => {
       const { mockDb, caller, mockUser } = createMockCaller(bookRouter);
 
-      const groupByResult = [
-        { series: "Test Series", _count: { series: 1 } },
-      ];
-
-      vi.mocked(mockDb.book.groupBy).mockResolvedValue(groupByResult as never);
-      vi.mocked(mockDb.book.findMany).mockResolvedValue([]);
+      vi.mocked(mockDb.series.findMany).mockResolvedValue([]);
 
       await caller.getSeriesList();
 
-      expect(mockDb.book.groupBy).toHaveBeenCalledWith(
+      expect(mockDb.series.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { userId: mockUser.id, series: { not: null } },
-        }),
-      );
-      expect(mockDb.book.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { userId: mockUser.id, series: "Test Series" },
+          where: { userId: mockUser.id },
         }),
       );
     });
@@ -1174,14 +1156,12 @@ describe("bookRouter", () => {
       const fakeBook = createFakeBook({
         title: "Original Title",
         summary: "Original Summary",
-        series: "Original Series",
         pageCount: 100,
       });
 
       const updateData = {
         title: "Updated Title",
         summary: "Updated Summary",
-        series: "Updated Series",
         pageCount: 200,
       };
       const updatedBook = createFakeBook(updateData);
@@ -1196,7 +1176,6 @@ describe("bookRouter", () => {
 
       expect(result.book.title).toEqual(updateData.title);
       expect(result.book.summary).toEqual(updateData.summary);
-      expect(result.book.series).toEqual(updateData.series);
       expect(result.book.pageCount).toEqual(updateData.pageCount);
     });
 
@@ -1264,24 +1243,20 @@ describe("bookRouter", () => {
       );
     });
 
-    it("should detect duplicate series position (excluding self)", async () => {
+    it("should detect duplicate series position via P2002 constraint", async () => {
       const { mockDb, caller } = createMockCaller(bookRouter);
 
-      const fakeBook = createFakeBook({
-        id: 1,
-        series: "Test Series",
-        seriesIndex: 1,
-      });
-
-      const conflictingBook = createFakeBook({
-        id: 2,
-        series: "Test Series",
-        seriesIndex: 2,
-        title: "Conflicting Book",
-      });
+      const fakeBook = createFakeBook({ id: 1, seriesId: "series-id-1", seriesIndex: 1 });
 
       vi.mocked(mockDb.book.findUnique).mockResolvedValue(fakeBook);
-      vi.mocked(mockDb.book.findFirst).mockResolvedValue(conflictingBook);
+      vi.mocked(mockDb.book.update).mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError("Unique constraint", {
+          code: "P2002",
+          clientVersion: "5.0.0",
+          batchRequestIdx: undefined,
+          meta: undefined,
+        }),
+      );
 
       await expect(
         caller.updateBook({

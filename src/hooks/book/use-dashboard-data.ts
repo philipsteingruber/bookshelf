@@ -2,16 +2,16 @@
 
 import type { TRPCClientErrorLike } from "@trpc/client";
 
-import type { Book } from "@/generated/prisma/client";
+import type { BookWithSeries } from "@/lib/types/book";
 import { trpc } from "@/trpc/client";
 import type { AppRouter } from "@/trpc/routers/_app";
 
 interface UseDashBoardDataReturns {
-  readingBooks: Book[];
+  readingBooks: BookWithSeries[];
   readingBooksCount: number;
-  readNextBooks: Book[];
+  readNextBooks: BookWithSeries[];
   readNextBooksCount: number;
-  recentlyReadBooks: Book[];
+  recentlyReadBooks: BookWithSeries[];
   isPending: boolean;
   isError: boolean;
   error: TRPCClientErrorLike<AppRouter> | null;

@@ -1,3 +1,4 @@
+import type { BookGetPayload } from "@/generated/prisma/models/Book";
 import type z from "zod";
 
 import type { bookFiltersSchema } from "@/lib/schemas/book-filters";
@@ -12,3 +13,9 @@ export type ScrapeData = {
   seriesInfo?: SeriesInfo;
   summary?: string;
 };
+
+/**
+ * Book with the series relation included. Use this type whenever series name
+ * display or editing is needed. All book-fetching procedures return this type.
+ */
+export type BookWithSeries = BookGetPayload<{ include: { series: true } }>;

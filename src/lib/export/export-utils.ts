@@ -1,11 +1,11 @@
-import type { Book, ReadingGoal } from "@/generated/prisma/client";
-import type { ExportData, ReadingProgressForExport } from "@/lib/types";
+import type { ReadingGoal } from "@/generated/prisma/client";
+import type { BookForExport, ExportData, ReadingProgressForExport } from "@/lib/types";
 
 export const exportToJSON = (data: ExportData): string => {
   return JSON.stringify(data, null, 2);
 };
 
-export const exportBooksToCSV = (books: Book[]): string => {
+export const exportBooksToCSV = (books: BookForExport[]): string => {
   const headers = [
     "id",
     "title",

@@ -3,9 +3,16 @@ import { subWeeks } from "date-fns";
 import { UTApi } from "uploadthing/server";
 import z from "zod";
 
+import { Prisma } from "@/generated/prisma/client";
 import { ReadStatus } from "@/generated/prisma/enums";
 import { type BookWhereInput } from "@/generated/prisma/internal/prismaNamespace";
-import { createAuthorSort, createTitleSort, toOrderBy } from "@/lib/book";
+import {
+  cleanupOrphanedSeries,
+  createAuthorSort,
+  createTitleSort,
+  toOrderBy,
+  upsertSeries,
+} from "@/lib/book";
 import { extractFileKeyFromUrl } from "@/lib/common";
 import { performanceLogger } from "@/lib/common/logger";
 import { VALIDATION_LIMITS } from "@/lib/constants";
@@ -14,6 +21,8 @@ import { bookFiltersSchema } from "@/lib/schemas/book-filters";
 
 import { requireOwnedBook } from "../helpers";
 import { authedProcedure, createTRPCRouter } from "../init";
+
+const SERIES_INCLUDE = { series: true } as const;
 
 export const bookRouter = createTRPCRouter({
   getBooks: authedProcedure.input(bookFiltersSchema).query(async ({ ctx, input: filters }) => {
@@ -33,7 +42,7 @@ export const bookRouter = createTRPCRouter({
       where.OR = [
         { title: { contains: filters.search, mode: "insensitive" } },
         { author: { contains: filters.search, mode: "insensitive" } },
-        { series: { contains: filters.search, mode: "insensitive" } },
+        { series: { name: { contains: filters.search, mode: "insensitive" } } },
         { isbn: { contains: filters.search, mode: "insensitive" } },
       ];
     }
@@ -60,6 +69,7 @@ export const bookRouter = createTRPCRouter({
         orderBy,
         skip,
         take: limit,
+        include: SERIES_INCLUDE,
       }),
       ctx.db.book.count({ where }),
     ]);
@@ -68,87 +78,63 @@ export const bookRouter = createTRPCRouter({
     ctx.logger.debug({ count: books.length }, "Books query completed");
     return { books, totalCount };
   }),
+
   getBook: authedProcedure.input(z.number().min(0)).query(async ({ ctx, input: bookId }) => {
     ctx.logger.debug({ bookId }, "Fetching book by ID");
-    const book = await requireOwnedBook(ctx, bookId);
+
+    const book = await ctx.db.book.findUnique({
+      where: { id: bookId },
+      include: SERIES_INCLUDE,
+    });
+
+    if (!book) {
+      ctx.logger.warn({ bookId }, "Book not found");
+      throw new TRPCError({ code: "NOT_FOUND" });
+    }
+    if (book.userId !== ctx.currentUser.id) {
+      ctx.logger.warn({ bookId, attemptedBy: ctx.currentUser.id }, "Permission denied");
+      throw new TRPCError({ code: "FORBIDDEN" });
+    }
+
     ctx.logger.debug({ bookId }, "Successfully fetched book");
     return { book };
   }),
+
   createBook: authedProcedure.input(createBookInputSchema).mutation(async ({ ctx, input }) => {
     const userId = ctx.currentUser.id;
 
-    // Normalize series: empty string to null
-    const normalizedSeries = input.series && input.series.trim() !== "" ? input.series : null;
+    const normalizedSeries = input.series && input.series.trim() !== "" ? input.series.trim() : null;
 
     ctx.logger.info(
-      {
-        title: input.title,
-        author: input.author,
-        isbn: input.isbn,
-      },
+      { title: input.title, author: input.author, isbn: input.isbn },
       "Creating book",
     );
-
-    // Check for duplicate series entry
-    if (normalizedSeries && input.seriesIndex) {
-      const duplicateSeriesTimer = performanceLogger("DB: Check for duplicate series index", 1000, ctx.logger);
-
-      duplicateSeriesTimer.start();
-      const duplicateSeries = await ctx.db.book.findFirst({
-        where: {
-          userId,
-          series: { equals: normalizedSeries, mode: "insensitive" },
-          seriesIndex: input.seriesIndex,
-        },
-      });
-      duplicateSeriesTimer.end();
-
-      if (duplicateSeries) {
-        ctx.logger.warn(
-          {
-            series: normalizedSeries,
-            seriesIndex: input.seriesIndex,
-            existingBookId: duplicateSeries.id,
-            existingBookTitle: duplicateSeries.title,
-          },
-          "Duplicate series entry detected",
-        );
-
-        throw new TRPCError({
-          code: "CONFLICT",
-          message: `You already have "${duplicateSeries.title}" at position ${input.seriesIndex} in ${normalizedSeries}`,
-        });
-      }
-    }
 
     // Check for duplicate ISBN
     if (input.isbn) {
       const duplicateIsbnTimer = performanceLogger("DB: Check for duplicate ISBN", 1000, ctx.logger);
-
       duplicateIsbnTimer.start();
       const duplicateIsbn = await ctx.db.book.findFirst({
-        where: {
-          userId,
-          isbn: input.isbn,
-        },
+        where: { userId, isbn: input.isbn },
       });
       duplicateIsbnTimer.end({ isbn: input.isbn });
 
       if (duplicateIsbn) {
         ctx.logger.warn(
-          {
-            isbn: input.isbn,
-            existingBookId: duplicateIsbn.id,
-            existingBookTitle: duplicateIsbn.title,
-          },
+          { isbn: input.isbn, existingBookId: duplicateIsbn.id, existingBookTitle: duplicateIsbn.title },
           "Duplicate ISBN detected",
         );
-
         throw new TRPCError({
           code: "CONFLICT",
           message: `You already have "${duplicateIsbn.title}" with ISBN ${input.isbn}`,
         });
       }
+    }
+
+    // Upsert series if provided
+    let seriesId: string | null = null;
+    if (normalizedSeries) {
+      seriesId = await upsertSeries(ctx.db, normalizedSeries, userId);
     }
 
     const alreadyReadData = input.alreadyRead
@@ -163,36 +149,40 @@ export const bookRouter = createTRPCRouter({
 
     const createBookTimer = performanceLogger("DB: Create book", 1000, ctx.logger);
     createBookTimer.start();
-    const book = await ctx.db.book.create({
-      data: {
-        title: input.title,
-        titleSort: createTitleSort(input.title),
-        author: input.author,
-        authorSort: createAuthorSort(input.author),
-        pageCount: input.pageCount,
-        isbn: input.isbn || null,
-        series: normalizedSeries,
-        seriesIndex: input.seriesIndex,
-        publishedYear: input.publishedYear,
-        summary: input.summary,
-        coverUrl: input.coverUrl,
-        userId,
-        ...alreadyReadData,
-      },
-    });
-    createBookTimer.end({ bookId: book.id });
 
-    ctx.logger.info(
-      {
-        bookId: book.id,
-        title: book.title,
-        author: book.author,
-        isbn: book.isbn,
-      },
-      "Book created successfully",
-    );
-    return { book };
+    try {
+      const book = await ctx.db.book.create({
+        data: {
+          title: input.title,
+          titleSort: createTitleSort(input.title),
+          author: input.author,
+          authorSort: createAuthorSort(input.author),
+          pageCount: input.pageCount,
+          isbn: input.isbn || null,
+          seriesId,
+          seriesIndex: input.seriesIndex,
+          publishedYear: input.publishedYear,
+          summary: input.summary,
+          coverUrl: input.coverUrl,
+          userId,
+          ...alreadyReadData,
+        },
+      });
+      createBookTimer.end({ bookId: book.id });
+
+      ctx.logger.info({ bookId: book.id, title: book.title, author: book.author }, "Book created successfully");
+      return { book };
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: `You already have a book at position ${input.seriesIndex} in ${normalizedSeries ?? "this series"}`,
+        });
+      }
+      throw error;
+    }
   }),
+
   updateReadingStatus: authedProcedure
     .input(
       z.object({
@@ -250,18 +240,13 @@ export const bookRouter = createTRPCRouter({
       transactionTimer.end({ bookId });
 
       ctx.logger.info(
-        {
-          bookId,
-          oldStatus: book.status,
-          newStatus: updatedBook.status,
-          oldProgress: book.progress,
-          newProgress: updatedBook.progress,
-        },
+        { bookId, oldStatus: book.status, newStatus: updatedBook.status, oldProgress: book.progress, newProgress: updatedBook.progress },
         "Reading status updated",
       );
 
       return { updatedBook };
     }),
+
   updatePageCount: authedProcedure
     .input(z.object({ bookId: z.number(), newPageCount: z.int().positive() }))
     .mutation(async ({ ctx, input }) => {
@@ -278,16 +263,13 @@ export const bookRouter = createTRPCRouter({
       updatePageCountTimer.end({ bookId: input.bookId });
 
       ctx.logger.info(
-        {
-          bookId: input.bookId,
-          oldPageCount: book.pageCount,
-          newPageCount: updatedBook.pageCount,
-        },
+        { bookId: input.bookId, oldPageCount: book.pageCount, newPageCount: updatedBook.pageCount },
         "Book pagecount updated",
       );
 
       return updatedBook;
     }),
+
   updateRating: authedProcedure
     .input(
       z.object({
@@ -308,10 +290,14 @@ export const bookRouter = createTRPCRouter({
       });
       updateRatingTimer.end({ bookId: input.bookId });
 
-      ctx.logger.info({ bookId: input.bookId, oldRating: book.rating, newRating: input.rating }, "Book rating updated");
+      ctx.logger.info(
+        { bookId: input.bookId, oldRating: book.rating, newRating: input.rating },
+        "Book rating updated",
+      );
 
       return { book: updatedBook };
     }),
+
   deleteBook: authedProcedure.input(z.number().int().nonnegative()).mutation(async ({ input: bookId, ctx }) => {
     ctx.logger.debug({ bookId }, "Deleting book");
     const book = await requireOwnedBook(ctx, bookId);
@@ -321,6 +307,11 @@ export const bookRouter = createTRPCRouter({
     deleteBookTimer.start();
     await ctx.db.book.delete({ where: { id: bookId } });
     deleteBookTimer.end({ bookId });
+
+    // Clean up orphaned series
+    if (book.seriesId) {
+      await cleanupOrphanedSeries(ctx.db, book.seriesId);
+    }
 
     if (book.coverUrl) {
       const fileKey = extractFileKeyFromUrl(book.coverUrl);
@@ -335,15 +326,9 @@ export const bookRouter = createTRPCRouter({
       }
     }
 
-    ctx.logger.info(
-      {
-        bookId,
-        title: book.title,
-        author: book.author,
-      },
-      "Book deleted",
-    );
+    ctx.logger.info({ bookId, title: book.title, author: book.author }, "Book deleted");
   }),
+
   updateBook: authedProcedure
     .input(
       z.object({
@@ -356,51 +341,6 @@ export const bookRouter = createTRPCRouter({
       const book = await requireOwnedBook(ctx, input.bookId);
 
       const data = input.data;
-
-      if (data.series || data.seriesIndex) {
-        const updatedSeriesState = {
-          series: data.series || book.series,
-          seriesIndex: data.seriesIndex || book.seriesIndex,
-        };
-        if (updatedSeriesState.series && updatedSeriesState.seriesIndex) {
-          const seriesConflictTimer = performanceLogger(
-            "DB: Check for series conflict during update",
-            1000,
-            ctx.logger,
-          );
-
-          seriesConflictTimer.start();
-          const seriesDuplicate = await ctx.db.book.findFirst({
-            where: {
-              id: { not: book.id },
-              series: {
-                equals: updatedSeriesState.series,
-                mode: "insensitive",
-              },
-              seriesIndex: updatedSeriesState.seriesIndex,
-              userId: ctx.currentUser.id,
-            },
-          });
-          seriesConflictTimer.end();
-
-          if (seriesDuplicate) {
-            ctx.logger.warn(
-              {
-                bookId: input.bookId,
-                series: updatedSeriesState.series,
-                seriesIndex: updatedSeriesState.seriesIndex,
-                existingBookId: seriesDuplicate.id,
-                existingBookTitle: seriesDuplicate.title,
-              },
-              "Duplicate series entry detected during update",
-            );
-            throw new TRPCError({
-              code: "CONFLICT",
-              message: `You already have "${seriesDuplicate.title}" at position ${updatedSeriesState.seriesIndex} in ${updatedSeriesState.series}`,
-            });
-          }
-        }
-      }
 
       if (data.isbn) {
         const isbnConflictTimer = performanceLogger("DB: Check for ISBN conflict during update", 1000, ctx.logger);
@@ -417,18 +357,26 @@ export const bookRouter = createTRPCRouter({
 
         if (isbnDuplicate) {
           ctx.logger.warn(
-            {
-              bookId: input.bookId,
-              isbn: data.isbn,
-              existingBookId: isbnDuplicate.id,
-              existingBookTitle: isbnDuplicate.title,
-            },
+            { bookId: input.bookId, isbn: data.isbn, existingBookId: isbnDuplicate.id, existingBookTitle: isbnDuplicate.title },
             "Duplicate ISBN detected during update",
           );
           throw new TRPCError({
             code: "CONFLICT",
             message: `You already have "${isbnDuplicate.title}" with ISBN ${data.isbn}`,
           });
+        }
+      }
+
+      // Resolve new seriesId
+      const oldSeriesId = book.seriesId;
+      let newSeriesId: string | null | undefined = undefined; // undefined = no change
+
+      if (data.series !== undefined) {
+        const trimmed = data.series?.trim() ?? "";
+        if (trimmed === "") {
+          newSeriesId = null;
+        } else {
+          newSeriesId = await upsertSeries(ctx.db, trimmed, ctx.currentUser.id);
         }
       }
 
@@ -461,61 +409,84 @@ export const bookRouter = createTRPCRouter({
         authorSort = createAuthorSort(data.author);
       }
 
+      // Omit `series` (the string field no longer exists on Book — it's now a relation)
+      const { series: _series, ...restData } = data;
+
       const updateBookTimer = performanceLogger("DB: Update book", 1000, ctx.logger);
 
       updateBookTimer.start();
-      const updatedBook = await ctx.db.book.update({
-        where: { id: input.bookId },
-        data: {
-          ...data,
-          titleSort,
-          authorSort,
-          isbn: data.isbn === "" ? null : data.isbn,
-          series: data.series === "" ? null : data.series,
-          coverUrl: data.coverUrl === "" ? null : data.coverUrl,
-        },
-      });
-      updateBookTimer.end({ bookId: input.bookId });
 
-      ctx.logger.info(
-        {
-          bookId: input.bookId,
-          updatedFields: Object.keys(data),
-        },
-        "Book updated successfully",
-      );
+      try {
+        const updatedBook = await ctx.db.book.update({
+          where: { id: input.bookId },
+          data: {
+            ...restData,
+            titleSort,
+            authorSort,
+            isbn: data.isbn === "" ? null : data.isbn,
+            coverUrl: data.coverUrl === "" ? null : data.coverUrl,
+            ...(newSeriesId !== undefined ? { seriesId: newSeriesId } : {}),
+          },
+        });
+        updateBookTimer.end({ bookId: input.bookId });
 
-      return { book: updatedBook };
+        // Clean up orphaned series if series changed
+        if (newSeriesId !== undefined && oldSeriesId && oldSeriesId !== newSeriesId) {
+          await cleanupOrphanedSeries(ctx.db, oldSeriesId);
+        }
+
+        ctx.logger.info(
+          { bookId: input.bookId, updatedFields: Object.keys(data) },
+          "Book updated successfully",
+        );
+
+        return { book: updatedBook };
+      } catch (error) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: `A book already exists at that position in this series`,
+          });
+        }
+        throw error;
+      }
     }),
+
   getSeriesList: authedProcedure.query(async ({ ctx }) => {
-    const seriesData = await ctx.db.book.groupBy({
-      by: ["series"],
-      where: { userId: ctx.currentUser.id, series: { not: null } },
-      _count: { series: true },
-      orderBy: { series: "asc" },
+    const seriesData = await ctx.db.series.findMany({
+      where: { userId: ctx.currentUser.id },
+      orderBy: { nameSort: "asc" },
+      include: {
+        books: { take: 5, orderBy: { seriesIndex: "asc" } },
+        _count: { select: { books: true } },
+      },
     });
 
     return {
-      seriesData: await Promise.all(
-        seriesData
-          .filter((s) => !!s.series)
-          .map(async (s) => ({
-            name: s.series as string,
-            bookCount: s._count.series,
-            books: await ctx.db.book.findMany({
-              where: { userId: ctx.currentUser.id, series: s.series },
-              take: 5,
-            }),
-          })),
-      ),
+      seriesData: seriesData.map((s) => ({
+        name: s.name,
+        bookCount: s._count.books,
+        books: s.books,
+      })),
     };
   }),
+
+  getSeriesNames: authedProcedure.query(async ({ ctx }) => {
+    const series = await ctx.db.series.findMany({
+      where: { userId: ctx.currentUser.id },
+      orderBy: { nameSort: "asc" },
+      select: { id: true, name: true },
+    });
+    return { series };
+  }),
+
   getDashBoardBooks: authedProcedure.query(async ({ ctx }) => {
     const [readingBooks, readingBooksCount, readNextBooks, readNextBooksCount, recentlyReadBooks] = await Promise.all([
       ctx.db.book.findMany({
         where: { status: "READING", userId: ctx.currentUser.id },
         orderBy: { updatedAt: "desc" },
         take: 10,
+        include: SERIES_INCLUDE,
       }),
       ctx.db.book.count({
         where: { status: "READING", userId: ctx.currentUser.id },
@@ -524,6 +495,7 @@ export const bookRouter = createTRPCRouter({
         where: { status: "READ_NEXT", userId: ctx.currentUser.id },
         orderBy: { updatedAt: "desc" },
         take: 10,
+        include: SERIES_INCLUDE,
       }),
       ctx.db.book.count({
         where: { status: "READ_NEXT", userId: ctx.currentUser.id },
@@ -538,6 +510,7 @@ export const bookRouter = createTRPCRouter({
         },
         orderBy: { finishedAt: "desc" },
         take: 10,
+        include: SERIES_INCLUDE,
       }),
     ]);
 

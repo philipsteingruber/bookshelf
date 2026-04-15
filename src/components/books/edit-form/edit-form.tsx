@@ -23,12 +23,12 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Spinner } from "@/components/ui/spinner";
 import { useUploadThing } from "@/components/uploadthing";
-import type { Book } from "@/generated/prisma/client";
 import { handleTRPCError, handleUploadError } from "@/lib/common";
 import { createFormSchema } from "@/lib/schemas/book";
+import type { BookWithSeries } from "@/lib/types/book";
 import { trpc } from "@/trpc/client";
 
-export const EditBookForm = ({ book }: { book: Book }): React.ReactElement => {
+export const EditBookForm = ({ book }: { book: BookWithSeries }): React.ReactElement => {
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [removeCover, setRemoveCover] = useState<boolean>(false);
 
@@ -62,7 +62,7 @@ export const EditBookForm = ({ book }: { book: Book }): React.ReactElement => {
       isbn: book.isbn ?? "",
       pageCount: book.pageCount ?? undefined,
       publishedYear: book.publishedYear ?? 1900,
-      series: book.series ?? "",
+      series: book.series?.name ?? "",
       seriesIndex: book.seriesIndex ?? 1.0,
       summary: book.summary ?? "",
     },

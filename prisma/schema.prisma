@@ -32,6 +32,7 @@ model User {
     readingProgresses ReadingProgress[]
     readingGoals      ReadingGoal[]
     stats             UserStats?
+    series            Series[]
 
     @@index([clerkId])
 }
@@ -56,6 +57,20 @@ enum ReadStatus {
     DNF
 }
 
+model Series {
+    id       String @id @default(cuid())
+    name     String
+    nameSort String
+
+    user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+    userId String
+
+    books Book[]
+
+    @@unique([name, userId])
+    @@index([userId])
+}
+
 model Book {
     id Int @id @default(autoincrement())
 
@@ -77,8 +92,11 @@ model Book {
 
     isbn String?
 
-    series      String?
+    seriesName  String?  @map("series")
     seriesIndex Float?
+
+    series   Series? @relation(fields: [seriesId], references: [id])
+    seriesId String?
 
     publishedYear Int?
 
@@ -95,7 +113,7 @@ model Book {
     updatedAt         DateTime          @updatedAt
     readingProgresses ReadingProgress[]
 
-    @@unique([series, seriesIndex, userId])
+    @@unique([seriesId, seriesIndex])
     @@unique([isbn, userId])
     @@index([userId])
     @@index([status])
