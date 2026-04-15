@@ -6,6 +6,7 @@ import { VALIDATION_LIMITS } from "../constants";
 export const createFormSchema = z.object({
   title: z
     .string()
+    .trim()
     .min(1, "Title is mandatory.")
     .max(
       VALIDATION_LIMITS.TITLE_MAX_LENGTH,
@@ -13,6 +14,7 @@ export const createFormSchema = z.object({
     ),
   author: z
     .string()
+    .trim()
     .min(1, "Author is mandatory.")
     .max(
       VALIDATION_LIMITS.AUTHOR_MAX_LENGTH,
@@ -25,6 +27,7 @@ export const createFormSchema = z.object({
     .optional(),
   isbn: z
     .string()
+    .trim()
     .refine((val) => {
       if (!val) return true;
       try {
@@ -35,7 +38,7 @@ export const createFormSchema = z.object({
       }
     }, "Invalid ISBN. Please enter a valid ISBN-10 or ISBN-13.")
     .optional(),
-  series: z.string().max(VALIDATION_LIMITS.SERIES_MAX_LENGTH).optional(),
+  series: z.string().trim().max(VALIDATION_LIMITS.SERIES_MAX_LENGTH).optional(),
   seriesIndex: z
     .number()
     .positive()
@@ -50,7 +53,7 @@ export const createFormSchema = z.object({
     .positive()
     .min(VALIDATION_LIMITS.MIN_PUBLISHED_YEAR)
     .max(VALIDATION_LIMITS.MAX_PUBLISHED_YEAR),
-  summary: z.string().max(VALIDATION_LIMITS.SUMMARY_MAX_LENGTH).optional(),
+  summary: z.string().trim().max(VALIDATION_LIMITS.SUMMARY_MAX_LENGTH).optional(),
   coverUrl: z.url().optional().or(z.literal("")),
 });
 
