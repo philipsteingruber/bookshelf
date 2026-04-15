@@ -12,6 +12,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { createFormSchema } from "@/lib/schemas/book";
 
+import { SeriesCombobox } from "./series-combobox";
+
 interface OptionalInfoSectionProps {
   form: UseFormReturn<z.infer<typeof createFormSchema>>;
   idPrefix?: "create" | "edit";
@@ -86,12 +88,13 @@ export const OptionalInfoSection = ({
             <FieldLabel htmlFor={`${idPrefix}-book-form-series`}>
               Series
             </FieldLabel>
-            <Input
-              {...field}
+            <SeriesCombobox
               id={`${idPrefix}-book-form-series`}
+              value={field.value ?? ""}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
+              disabled={disabled}
               aria-invalid={fieldState.invalid}
-              placeholder="Lord of the Rings"
-              autoComplete="off"
             />
             {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
           </Field>
