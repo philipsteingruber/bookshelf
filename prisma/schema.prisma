@@ -92,7 +92,6 @@ model Book {
 
     isbn String?
 
-    seriesName  String?  @map("series")
     seriesIndex Float?
 
     series   Series? @relation(fields: [seriesId], references: [id])
