@@ -50,7 +50,7 @@ Series guidance: Strongly prefer recommending the first book in a series. If you
 
 Publication date: Strongly prefer books published after 2000. Only recommend older books when they are exceptionally well-suited to the user's request or nothing more recent fills that niche.
 
-Do not recommend any book already in the user's library.
+The user's library is provided solely to exclude those titles from your response — do not use it to infer their tastes, genres, or preferences.
 
 blurb is 2–3 sentences: a conversational intro summarizing your reasoning across the set and how the recommendations fulfil the request.`;
 
@@ -66,7 +66,9 @@ If your answer naturally involves specific books (e.g. the next in a series, a b
 
 Each included book must have a reason that explains specifically why it is relevant to this answer.
 
-Book titles must be exact published titles. Never invent or approximate a title.`;
+Book titles must be exact published titles. Never invent or approximate a title.
+
+The reading history is the signal for personalizing your answer. The library list is provided solely to exclude those titles — do not use it as an additional taste signal beyond what the reading history already tells you.`;
 
 const ANSWER_SYSTEM_PROMPT_NO_HISTORY = `You are a knowledgeable book assistant. Answer the user's question about books conversationally and helpfully.
 
@@ -74,7 +76,9 @@ If your answer naturally involves specific books (e.g. the next in a series, a b
 
 Each included book must have a reason that explains specifically why it is relevant to this answer.
 
-Book titles must be exact published titles. Never invent or approximate a title.`;
+Book titles must be exact published titles. Never invent or approximate a title.
+
+The user's library is provided solely to exclude those titles from your response — do not use it to infer their tastes, genres, or preferences.`;
 
 // --- Tools ---
 
