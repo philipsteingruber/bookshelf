@@ -285,7 +285,7 @@ const Page = (): React.ReactElement => {
 
       <div className="flex flex-1 flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between border-b px-6 py-4">
+        <div className="bg-background sticky top-0 z-10 flex items-center justify-between border-b px-6 py-4">
           <div className="flex items-center gap-3">
             <h1 className="text-xl font-semibold">Book Recommendations</h1>
             {messages.length > 0 && (
