@@ -310,6 +310,7 @@ const callAnswer = async (
 const parseRecommendResponse = (
   response: Anthropic.Messages.Message,
   logger: Logger,
+  libraryTitles?: Set<string>,
 ): {
   data: {
     blurb: string;
@@ -325,7 +326,23 @@ const parseRecommendResponse = (
       message: "Failed to parse recommendations",
     });
   }
-  const parseResult = claudeRecommendOutputSchema.safeParse(toolBlock.input);
+
+  let rawInput: Record<string, unknown> = { ...(toolBlock.input as Record<string, unknown>) };
+  if (libraryTitles) {
+    const books = rawInput.books;
+    if (Array.isArray(books)) {
+      rawInput = {
+        ...rawInput,
+        books: books.filter((book) => {
+          if (typeof book !== "object" || book === null || !("title" in book)) return true;
+          const title = (book as { title: unknown }).title;
+          return typeof title !== "string" || !libraryTitles.has(title.trim().toLowerCase());
+        }),
+      };
+    }
+  }
+
+  const parseResult = claudeRecommendOutputSchema.safeParse(rawInput);
   if (!parseResult.success) {
     logger.error(
       { error: parseResult.error, input: toolBlock.input },
@@ -424,13 +441,15 @@ export const recommendationsRouter = createTRPCRouter({
       const answerSystemPrompt = input.includeHistory ? ANSWER_SYSTEM_PROMPT : ANSWER_SYSTEM_PROMPT_NO_HISTORY;
 
       if (intent === "recommendation") {
+        const allBooksSet = new Set(allBooks.map((b) => b.title.trim().toLowerCase()));
+
         let claudeResponse = await callRecommendations(conversationMessages, recommendSystemPrompt, ctx.logger);
         let parsed = parseRecommendResponse(claudeResponse, ctx.logger);
 
         // Duplicate detection + retry
         const duplicates: string[] = [];
         for (const book of parsed.data.books) {
-          if (allBooks.find((b) => b.title.trim().toLowerCase() === book.title.trim().toLowerCase())) {
+          if (allBooksSet.has(book.title.trim().toLowerCase())) {
             duplicates.push(book.title);
           }
         }
@@ -446,7 +465,7 @@ export const recommendationsRouter = createTRPCRouter({
                   { type: "tool_result", tool_use_id: parsed.toolId, content: "Received" },
                   {
                     type: "text",
-                    text: `The following books you recommended are already in my library: ${duplicates.join(", ")}. Please replace them with different books not in my library, keeping all other recommendations the same.`,
+                    text: `The following books you recommended are already in my library and must not appear in your response: ${duplicates.join(", ")}. Return exactly 5 books total — replace each disallowed book with a different one not in my library, and keep all other recommendations unchanged.`,
                   },
                 ],
               },
@@ -454,7 +473,7 @@ export const recommendationsRouter = createTRPCRouter({
             recommendSystemPrompt,
             ctx.logger,
           );
-          parsed = parseRecommendResponse(claudeResponse, ctx.logger);
+          parsed = parseRecommendResponse(claudeResponse, ctx.logger, allBooksSet);
         }
 
         const enrichTimer = performanceLogger("Google Books: Enrich recommendations", 5000, ctx.logger);
