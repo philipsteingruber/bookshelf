@@ -8,8 +8,8 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import { Input } from "@/components/ui/input";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
 import { trpc } from "@/trpc/client";
 
 interface SeriesComboboxProps {
@@ -31,6 +31,22 @@ export const SeriesCombobox = ({
 }: SeriesComboboxProps): React.ReactElement => {
   const [open, setOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const commandRef = useRef<HTMLDivElement>(null);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>): void => {
+    if (!showDropdown) return;
+    if (e.key === "Escape") {
+      e.preventDefault();
+      setOpen(false);
+      return;
+    }
+    if (e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === "Enter") {
+      e.preventDefault();
+      commandRef.current?.dispatchEvent(
+        new KeyboardEvent("keydown", { key: e.key, bubbles: true, cancelable: true }),
+      );
+    }
+  };
 
   const { data } = trpc.book.getSeriesNames.useQuery();
   const allSeries = data?.series ?? [];
@@ -44,7 +60,7 @@ export const SeriesCombobox = ({
   return (
     <Popover open={showDropdown} onOpenChange={setOpen}>
       <PopoverAnchor asChild>
-        <input
+        <Input
           ref={inputRef}
           id={id}
           value={value}
@@ -54,16 +70,11 @@ export const SeriesCombobox = ({
             setOpen(false);
             onBlur?.();
           }}
+          onKeyDown={handleKeyDown}
           disabled={disabled}
           aria-invalid={ariaInvalid}
           placeholder="Lord of the Rings"
           autoComplete="off"
-          data-slot="input"
-          className={cn(
-            "file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input h-9 w-full min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
-            "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
-            "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
-          )}
         />
       </PopoverAnchor>
       <PopoverContent
@@ -77,7 +88,7 @@ export const SeriesCombobox = ({
           }
         }}
       >
-        <Command shouldFilter={false}>
+        <Command ref={commandRef} shouldFilter={false}>
           <CommandList>
             <CommandGroup>
               {filtered.map((s) => (
