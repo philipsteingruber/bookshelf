@@ -19,6 +19,7 @@
     "prepare": "husky",
     "cleanup:covers": "tsx scripts/cleanup-orphaned-covers.ts",
     "backfill:user-stats": "tsx scripts/backfill-user-stats.ts",
+    "backfill:cover-urls": "tsx scripts/backfill-cover-urls.ts",
     "seed:dev": "tsx scripts/seed-dev-user.ts"
   },
   "dependencies": {

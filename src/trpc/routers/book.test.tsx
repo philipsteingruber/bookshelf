@@ -15,10 +15,13 @@ import {
 import { bookRouter } from "./book";
 
 const { mockDeleteFiles } = vi.hoisted(() => ({ mockDeleteFiles: vi.fn() }));
+const mockUploadFilesFromUrl = vi.fn();
+
 vi.mock("uploadthing/server", () => {
   return {
     UTApi: class {
       deleteFiles = mockDeleteFiles;
+      uploadFilesFromUrl = mockUploadFilesFromUrl;
     },
   };
 });

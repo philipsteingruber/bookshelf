@@ -13,7 +13,7 @@ import {
   toOrderBy,
   upsertSeries,
 } from "@/lib/book";
-import { extractFileKeyFromUrl } from "@/lib/common";
+import { extractFileKeyFromUrl, isUploadThingUrl, uploadCoverFromUrl } from "@/lib/common";
 import { performanceLogger } from "@/lib/common/logger";
 import { VALIDATION_LIMITS } from "@/lib/constants";
 import { createBookInputSchema, createFormSchema } from "@/lib/schemas/book";
@@ -131,6 +131,14 @@ export const bookRouter = createTRPCRouter({
       }
     }
 
+    // Upload external cover URL to UploadThing so all covers share one domain
+    let coverUrl = input.coverUrl || null;
+    if (coverUrl && !isUploadThingUrl(coverUrl)) {
+      ctx.logger.info({ url: coverUrl }, "Uploading external cover URL to UploadThing");
+      coverUrl = await uploadCoverFromUrl(coverUrl);
+      ctx.logger.info({ ufsUrl: coverUrl }, "External cover uploaded to UploadThing");
+    }
+
     // Upsert series if provided
     let seriesId: string | null = null;
     if (normalizedSeries) {
@@ -163,7 +171,7 @@ export const bookRouter = createTRPCRouter({
           seriesIndex: input.seriesIndex,
           publishedYear: input.publishedYear,
           summary: input.summary,
-          coverUrl: input.coverUrl,
+          coverUrl,
           userId,
           ...alreadyReadData,
         },
@@ -380,7 +388,15 @@ export const bookRouter = createTRPCRouter({
         }
       }
 
-      if (book.coverUrl && data.coverUrl !== undefined && data.coverUrl !== book.coverUrl) {
+      // Upload external cover URL to UploadThing so all covers share one domain
+      let resolvedCoverUrl = data.coverUrl;
+      if (resolvedCoverUrl && !isUploadThingUrl(resolvedCoverUrl)) {
+        ctx.logger.info({ url: resolvedCoverUrl, bookId: input.bookId }, "Uploading external cover URL to UploadThing");
+        resolvedCoverUrl = await uploadCoverFromUrl(resolvedCoverUrl);
+        ctx.logger.info({ ufsUrl: resolvedCoverUrl, bookId: input.bookId }, "External cover uploaded to UploadThing");
+      }
+
+      if (book.coverUrl && resolvedCoverUrl !== undefined && resolvedCoverUrl !== book.coverUrl) {
         const fileKeyToDelete = extractFileKeyFromUrl(book.coverUrl);
         const utAPI = new UTApi();
 
@@ -424,7 +440,7 @@ export const bookRouter = createTRPCRouter({
             titleSort,
             authorSort,
             isbn: data.isbn === "" ? null : data.isbn,
-            coverUrl: data.coverUrl === "" ? null : data.coverUrl,
+            coverUrl: resolvedCoverUrl === "" ? null : resolvedCoverUrl,
             ...(newSeriesId !== undefined ? { seriesId: newSeriesId } : {}),
           },
         });
