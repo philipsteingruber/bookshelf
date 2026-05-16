@@ -103,5 +103,6 @@ export const scrape = async (url: string): Promise<ScrapeData> => {
     publishedYear,
     seriesInfo,
     summary,
+    goodreadsUrl: url,
   };
 };

@@ -12,6 +12,7 @@ export type ScrapeData = {
   publishedYear: number;
   seriesInfo?: SeriesInfo;
   summary?: string;
+  goodreadsUrl?: string;
 };
 
 /**

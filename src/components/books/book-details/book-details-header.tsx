@@ -33,7 +33,10 @@ const BookDetailsHeader = ({
         <Tooltip>
           <TooltipTrigger asChild>
             <Link
-              href={`https://www.goodreads.com/search?utf8=%E2%9C%93&q=${book.title}+${book.author}&search_type=books&search%5Bfield%5D=on`}
+              href={
+                book.goodreadsUrl ??
+                `https://www.goodreads.com/search?utf8=%E2%9C%93&q=${book.title}+${book.author}&search_type=books&search%5Bfield%5D=on`
+              }
               target="_blank"
               className="w-fit font-serif text-4xl font-semibold whitespace-nowrap hover:underline"
             >
@@ -41,7 +44,11 @@ const BookDetailsHeader = ({
             </Link>
           </TooltipTrigger>
           <TooltipContent>
-            <p>{`Search "${book.title} ${book.author}" on GoodReads`}</p>
+            <p>
+              {book.goodreadsUrl
+                ? `View "${book.title}" on GoodReads`
+                : `Search "${book.title} ${book.author}" on GoodReads`}
+            </p>
           </TooltipContent>
         </Tooltip>
         <div className="flex gap-x-4">

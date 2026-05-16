@@ -55,6 +55,7 @@ export const createFormSchema = z.object({
     .max(VALIDATION_LIMITS.MAX_PUBLISHED_YEAR),
   summary: z.string().trim().max(VALIDATION_LIMITS.SUMMARY_MAX_LENGTH).optional(),
   coverUrl: z.url().optional().or(z.literal("")),
+  goodreadsUrl: z.url().optional().or(z.literal("")),
 });
 
 export const createBookInputSchema = createFormSchema
