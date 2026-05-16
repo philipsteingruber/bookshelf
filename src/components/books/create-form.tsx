@@ -8,7 +8,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import type z from "zod";
 
-import CoverDropzone from "@/components/books/create-form/form-sections/cover-dropzone";
+import CoverSection, { type CoverValue } from "@/components/books/create-form/form-sections/cover-section";
 import GoodreadsImportPanel from "@/components/books/create-form/goodreads-import-panel";
 import { useUploadThing } from "@/components/uploadthing";
 import { handleTRPCError, handleUploadError } from "@/lib/common";
@@ -35,7 +35,7 @@ import { OptionalInfoSection } from "./create-form/form-sections/optional-info-s
 import { ReadingHistorySection } from "./create-form/form-sections/reading-history-section";
 
 const CreateBookForm = (): React.ReactElement => {
-  const [pendingCoverFile, setPendingCoverFile] = useState<File | null>(null);
+  const [coverValue, setCoverValue] = useState<CoverValue>({ type: "unchanged" });
   const [isImportingFromGoodReads, setIsImportingFromGoodReads] =
     useState<boolean>(false);
   const [isProcessingKepub, setIsProcessingKepub] = useState<boolean>(false);
@@ -123,17 +123,18 @@ const CreateBookForm = (): React.ReactElement => {
   const onSubmit = async (
     data: z.infer<typeof createBookInputSchema>,
   ): Promise<void> => {
-    let coverUrl = data.coverUrl;
+    let coverUrl = "";
 
-    if (pendingCoverFile) {
+    if (coverValue.type === "file") {
       try {
-        const uploadResult = await startUpload([pendingCoverFile]);
-        if (uploadResult && uploadResult.length > 0) {
-          coverUrl = uploadResult[0].ufsUrl;
-        }
+        const uploadResult = await startUpload([coverValue.file]);
+        if (!uploadResult?.length) return;
+        coverUrl = uploadResult[0].ufsUrl;
       } catch {
         return;
       }
+    } else if (coverValue.type === "url") {
+      coverUrl = coverValue.url;
     }
 
     createBook({ ...data, coverUrl });
@@ -175,9 +176,9 @@ const CreateBookForm = (): React.ReactElement => {
             form={form}
             disabled={isUploading || isCreatingBook}
           />
-          <CoverDropzone
-            file={pendingCoverFile}
-            onFileSelect={setPendingCoverFile}
+          <CoverSection
+            coverValue={coverValue}
+            onCoverChange={setCoverValue}
             disabled={isCreatingBook || isUploading}
             isUploading={isUploading}
           />
@@ -193,7 +194,7 @@ const CreateBookForm = (): React.ReactElement => {
             variant="destructive"
             onClick={() => {
               form.reset();
-              setPendingCoverFile(null);
+              setCoverValue({ type: "unchanged" });
             }}
             className="w-full text-lg sm:w-50"
             size="lg"
