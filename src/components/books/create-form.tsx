@@ -12,6 +12,7 @@ import CoverDropzone from "@/components/books/create-form/form-sections/cover-dr
 import GoodreadsImportPanel from "@/components/books/create-form/goodreads-import-panel";
 import { useUploadThing } from "@/components/uploadthing";
 import { handleTRPCError, handleUploadError } from "@/lib/common";
+import { estimateKepubPageCount } from "@/lib/book";
 import { createBookInputSchema } from "@/lib/schemas/book";
 import type { ScrapeData } from "@/lib/types";
 import { trpc } from "@/trpc/client";
@@ -37,6 +38,7 @@ const CreateBookForm = (): React.ReactElement => {
   const [pendingCoverFile, setPendingCoverFile] = useState<File | null>(null);
   const [isImportingFromGoodReads, setIsImportingFromGoodReads] =
     useState<boolean>(false);
+  const [isProcessingKepub, setIsProcessingKepub] = useState<boolean>(false);
 
   const { startUpload, isUploading } = useUploadThing("imageUploader", {
     onUploadError: (error) => {
@@ -65,6 +67,20 @@ const CreateBookForm = (): React.ReactElement => {
 
   const router = useRouter();
 
+  const handleKepubSelect = async (file: File): Promise<void> => {
+    setIsProcessingKepub(true);
+    try {
+      const count = await estimateKepubPageCount(file);
+      form.setValue("pageCount", count, { shouldValidate: true });
+    } catch {
+      toast.error("Could not estimate page count", {
+        description: "Make sure the file is a valid KEPUB or EPUB.",
+      });
+    } finally {
+      setIsProcessingKepub(false);
+    }
+  };
+
   const handleGoodReadsImport = (data: ScrapeData): void => {
     form.setValue("title", data.title);
     form.setValue("author", data.author);
@@ -75,6 +91,9 @@ const CreateBookForm = (): React.ReactElement => {
     }
     if (data.summary) {
       form.setValue("summary", data.summary);
+    }
+    if (data.goodreadsUrl) {
+      form.setValue("goodreadsUrl", data.goodreadsUrl);
     }
   };
 
@@ -148,6 +167,8 @@ const CreateBookForm = (): React.ReactElement => {
           <OptionalInfoSection
             form={form}
             disabled={isUploading || isCreatingBook}
+            onKepubSelect={handleKepubSelect}
+            isProcessingKepub={isProcessingKepub}
           />
           <Separator className="my-4" />
           <ReadingHistorySection

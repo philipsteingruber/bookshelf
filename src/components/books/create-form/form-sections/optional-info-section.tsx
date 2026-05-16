@@ -1,3 +1,5 @@
+import { useRef } from "react";
+
 import type { UseFormReturn } from "react-hook-form";
 import { Controller } from "react-hook-form";
 import type z from "zod";
@@ -9,6 +11,7 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import type { createFormSchema } from "@/lib/schemas/book";
 
@@ -18,13 +21,18 @@ interface OptionalInfoSectionProps {
   form: UseFormReturn<z.infer<typeof createFormSchema>>;
   idPrefix?: "create" | "edit";
   disabled?: boolean;
+  onKepubSelect?: (file: File) => void;
+  isProcessingKepub?: boolean;
 }
 
 export const OptionalInfoSection = ({
   form,
   idPrefix = "create",
   disabled = false,
+  onKepubSelect,
+  isProcessingKepub = false,
 }: OptionalInfoSectionProps): React.ReactElement => {
+  const kepubInputRef = useRef<HTMLInputElement>(null);
   return (
     <FieldGroup className="gap-y-1">
       <Controller
@@ -56,7 +64,7 @@ export const OptionalInfoSection = ({
       <Controller
         name="pageCount"
         control={form.control}
-        disabled={disabled}
+        disabled={disabled || isProcessingKepub}
         render={({ field, fieldState }) => (
           <Field data-invalid={fieldState.invalid} className="gap-y-1">
             <FieldLabel htmlFor={`${idPrefix}-book-form-pageCount`}>
@@ -76,6 +84,35 @@ export const OptionalInfoSection = ({
               }}
             />
             {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+            {onKepubSelect && (
+              <div className="flex items-center gap-x-2">
+                <input
+                  ref={kepubInputRef}
+                  type="file"
+                  accept=".kepub,.epub"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) onKepubSelect(file);
+                    e.target.value = "";
+                  }}
+                />
+                <button
+                  type="button"
+                  disabled={disabled || isProcessingKepub}
+                  onClick={() => kepubInputRef.current?.click()}
+                  className="text-muted-foreground hover:text-foreground disabled:opacity-50 text-xs underline underline-offset-2 transition-colors"
+                >
+                  {isProcessingKepub ? (
+                    <span className="flex items-center gap-x-1">
+                      <Spinner className="size-3" /> Estimating pages…
+                    </span>
+                  ) : (
+                    "Estimate from KEPUB / EPUB file"
+                  )}
+                </button>
+              </div>
+            )}
           </Field>
         )}
       />

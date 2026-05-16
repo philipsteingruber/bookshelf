@@ -24,6 +24,7 @@ import { Separator } from "@/components/ui/separator";
 import { Spinner } from "@/components/ui/spinner";
 import { useUploadThing } from "@/components/uploadthing";
 import { handleTRPCError, handleUploadError } from "@/lib/common";
+import { estimateKepubPageCount } from "@/lib/book";
 import { createFormSchema } from "@/lib/schemas/book";
 import type { BookWithSeries } from "@/lib/types/book";
 import { trpc } from "@/trpc/client";
@@ -31,6 +32,7 @@ import { trpc } from "@/trpc/client";
 export const EditBookForm = ({ book }: { book: BookWithSeries }): React.ReactElement => {
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [removeCover, setRemoveCover] = useState<boolean>(false);
+  const [isProcessingKepub, setIsProcessingKepub] = useState<boolean>(false);
 
   const { startUpload, isUploading } = useUploadThing("imageUploader", {
     onUploadError: (error) => {
@@ -94,6 +96,20 @@ export const EditBookForm = ({ book }: { book: BookWithSeries }): React.ReactEle
       },
     });
   };
+  const handleKepubSelect = async (file: File): Promise<void> => {
+    setIsProcessingKepub(true);
+    try {
+      const count = await estimateKepubPageCount(file);
+      form.setValue("pageCount", count, { shouldValidate: true });
+    } catch {
+      toast.error("Could not estimate page count", {
+        description: "Make sure the file is a valid KEPUB or EPUB.",
+      });
+    } finally {
+      setIsProcessingKepub(false);
+    }
+  };
+
   const onRemoveExisting = (): void => {
     setRemoveCover(true);
   };
@@ -130,6 +146,8 @@ export const EditBookForm = ({ book }: { book: BookWithSeries }): React.ReactEle
               form={form}
               idPrefix="edit"
               disabled={isUpdatingBook || isUploading}
+              onKepubSelect={handleKepubSelect}
+              isProcessingKepub={isProcessingKepub}
             />
             <Separator className="my-2" />
             <CoverDropzone
