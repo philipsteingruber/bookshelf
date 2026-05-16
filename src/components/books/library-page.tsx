@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger } from "@/components/ui/select";
 import type { ReadStatus } from "@/generated/prisma/enums";
 import { useBooks } from "@/hooks/book";
@@ -289,9 +290,9 @@ const LibraryFilterPicker = ({
         </Select>
         <div className="flex items-center gap-x-2">
           <Checkbox id="unrated" checked={unrated} onCheckedChange={onUnratedChange} />
-          <label htmlFor="unrated" className="cursor-pointer text-sm">
+          <Label htmlFor="unrated" className="cursor-pointer">
             Unrated Only
-          </label>
+          </Label>
         </div>
         <Button onClick={onClearFilters} disabled={!hasActiveFilters}>
           Reset Filters

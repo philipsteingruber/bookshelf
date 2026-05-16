@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import z from "zod";
 
 import { Button } from "@/components/ui/button";
+import { FieldError } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
@@ -209,7 +210,7 @@ const CoverSection = ({
               onBlur={handleUrlBlur}
               disabled={disabled}
             />
-            {urlError && <p className="text-destructive text-sm">{urlError}</p>}
+            <FieldError>{urlError}</FieldError>
             {urlPreviewUrl && (
               <div className="flex flex-col items-center gap-y-2">
                 {urlImageError ? (

@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Label } from "@/components/ui/label";
 import {
   Popover,
   PopoverContent,
@@ -49,12 +50,9 @@ export const ReadingHistorySection = ({
               onCheckedChange={field.onChange}
               disabled={disabled}
             />
-            <label
-              htmlFor="create-book-form-alreadyRead"
-              className="cursor-pointer text-sm font-medium"
-            >
+            <Label htmlFor="create-book-form-alreadyRead" className="cursor-pointer">
               I&apos;ve already read this book
-            </label>
+            </Label>
           </div>
         )}
       />

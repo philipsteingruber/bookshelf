@@ -4,6 +4,7 @@ import type { UseFormReturn } from "react-hook-form";
 import { Controller } from "react-hook-form";
 import type z from "zod";
 
+import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
@@ -88,11 +89,13 @@ export const OptionalInfoSection = ({
                     e.target.value = "";
                   }}
                 />
-                <button
+                <Button
                   type="button"
+                  variant="link"
+                  size="sm"
                   disabled={disabled || isProcessingKepub}
                   onClick={() => kepubInputRef.current?.click()}
-                  className="text-muted-foreground hover:text-foreground cursor-pointer text-xs underline underline-offset-2 transition-colors disabled:opacity-50"
+                  className="h-auto p-0 text-xs"
                 >
                   {isProcessingKepub ? (
                     <span className="flex items-center gap-x-1">
@@ -101,7 +104,7 @@ export const OptionalInfoSection = ({
                   ) : (
                     "Estimate from KEPUB / EPUB file"
                   )}
-                </button>
+                </Button>
               </div>
             )}
           </Field>
