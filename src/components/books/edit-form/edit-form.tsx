@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import type z from "zod";
 
 import { BasicInfoSection } from "@/components/books/create-form/form-sections/basic-info-section";
-import CoverDropzone from "@/components/books/create-form/form-sections/cover-dropzone";
+import CoverSection, { type CoverValue } from "@/components/books/create-form/form-sections/cover-section";
 import { OptionalInfoSection } from "@/components/books/create-form/form-sections/optional-info-section";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,8 +30,7 @@ import type { BookWithSeries } from "@/lib/types/book";
 import { trpc } from "@/trpc/client";
 
 export const EditBookForm = ({ book }: { book: BookWithSeries }): React.ReactElement => {
-  const [coverFile, setCoverFile] = useState<File | null>(null);
-  const [removeCover, setRemoveCover] = useState<boolean>(false);
+  const [coverValue, setCoverValue] = useState<CoverValue>({ type: "unchanged" });
   const [isProcessingKepub, setIsProcessingKepub] = useState<boolean>(false);
 
   const { startUpload, isUploading } = useUploadThing("imageUploader", {
@@ -74,15 +73,17 @@ export const EditBookForm = ({ book }: { book: BookWithSeries }): React.ReactEle
     data: z.infer<typeof createFormSchema>,
   ): Promise<void> => {
     let coverUrl: string | undefined;
-    if (coverFile) {
-      const uploadResults = await startUpload([coverFile]);
-      if (uploadResults && uploadResults.length !== 0) {
-        coverUrl = uploadResults[0].ufsUrl;
-      } else {
+
+    if (coverValue.type === "file") {
+      const uploadResults = await startUpload([coverValue.file]);
+      if (!uploadResults?.length) {
         handleUploadError(new Error("Failed to upload cover. Try again."));
         return;
       }
-    } else if (removeCover) {
+      coverUrl = uploadResults[0].ufsUrl;
+    } else if (coverValue.type === "url") {
+      coverUrl = coverValue.url;
+    } else if (coverValue.type === "removed") {
       coverUrl = "";
     } else {
       coverUrl = undefined;
@@ -107,16 +108,6 @@ export const EditBookForm = ({ book }: { book: BookWithSeries }): React.ReactEle
       });
     } finally {
       setIsProcessingKepub(false);
-    }
-  };
-
-  const onRemoveExisting = (): void => {
-    setRemoveCover(true);
-  };
-  const handleFileSelect = (file: File | null): void => {
-    setCoverFile(file);
-    if (file) {
-      setRemoveCover(false);
     }
   };
 
@@ -150,12 +141,11 @@ export const EditBookForm = ({ book }: { book: BookWithSeries }): React.ReactEle
               isProcessingKepub={isProcessingKepub}
             />
             <Separator className="my-2" />
-            <CoverDropzone
-              file={coverFile}
-              onFileSelect={handleFileSelect}
-              onRemoveExisting={onRemoveExisting}
+            <CoverSection
+              coverValue={coverValue}
+              onCoverChange={setCoverValue}
               isUploading={isUploading}
-              existingUrl={!removeCover ? book.coverUrl : undefined}
+              existingUrl={book.coverUrl}
               disabled={isUpdatingBook || isUploading}
             />
             <CardFooter className="flex items-center justify-center gap-x-4">
