@@ -61,6 +61,9 @@ const CoverSection = ({
   }, [urlInput]);
 
   const { imageError: urlImageError, handleImageError: handleUrlImageError } = useImageError(urlPreviewUrl);
+  const { imageError: uploadImageError, handleImageError: handleUploadImageError } = useImageError(
+    existingUrl ?? null,
+  );
 
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
@@ -153,10 +156,15 @@ const CoverSection = ({
             )}
           >
             <input {...getInputProps()} />
-            {uploadPreviewUrl ? (
+            {uploadPreviewUrl && !(uploadImageError && !blobUrl) ? (
               <div className="relative">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={uploadPreviewUrl} alt="Cover Preview" className="max-h-[160px] rounded-md object-contain" />
+                <img
+                  src={uploadPreviewUrl}
+                  alt="Cover Preview"
+                  className="max-h-[160px] rounded-md object-contain"
+                  {...(!blobUrl && { onError: handleUploadImageError })}
+                />
                 {isUploading && (
                   <div className="absolute inset-0 flex items-center justify-center rounded-md bg-black/50">
                     <Spinner className="size-6 text-white" />

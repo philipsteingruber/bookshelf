@@ -201,5 +201,21 @@ describe("CoverSection", () => {
       );
       expect(screen.queryByRole("button", { name: "Remove cover image" })).not.toBeInTheDocument();
     });
+
+    it("falls back to empty dropzone when existingUrl image fails to load", () => {
+      render(
+        <CoverSection
+          coverValue={unchanged}
+          onCoverChange={vi.fn()}
+          isUploading={false}
+          existingUrl="https://example.com/broken.jpg"
+        />,
+      );
+      // Image renders initially
+      fireEvent.error(screen.getByAltText("Cover Preview"));
+      // After error, preview is gone and empty dropzone state is shown
+      expect(screen.queryByAltText("Cover Preview")).not.toBeInTheDocument();
+      expect(screen.getByText("Drag & drop an image")).toBeInTheDocument();
+    });
   });
 });
