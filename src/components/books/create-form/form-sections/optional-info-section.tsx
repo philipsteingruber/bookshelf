@@ -4,12 +4,7 @@ import type { UseFormReturn } from "react-hook-form";
 import { Controller } from "react-hook-form";
 import type z from "zod";
 
-import {
-  Field,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-} from "@/components/ui/field";
+import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
@@ -41,9 +36,7 @@ export const OptionalInfoSection = ({
         disabled={disabled}
         render={({ field, fieldState }) => (
           <Field data-invalid={fieldState.invalid} className="gap-y-1">
-            <FieldLabel htmlFor={`${idPrefix}-book-form-publishedYear`}>
-              Published Year
-            </FieldLabel>
+            <FieldLabel htmlFor={`${idPrefix}-book-form-publishedYear`}>Published Year</FieldLabel>
             <Input
               {...field}
               value={field.value ?? ""}
@@ -67,9 +60,7 @@ export const OptionalInfoSection = ({
         disabled={disabled || isProcessingKepub}
         render={({ field, fieldState }) => (
           <Field data-invalid={fieldState.invalid} className="gap-y-1">
-            <FieldLabel htmlFor={`${idPrefix}-book-form-pageCount`}>
-              Page Count
-            </FieldLabel>
+            <FieldLabel htmlFor={`${idPrefix}-book-form-pageCount`}>Page Count</FieldLabel>
             <Input
               {...field}
               value={field.value ?? ""}
@@ -101,7 +92,7 @@ export const OptionalInfoSection = ({
                   type="button"
                   disabled={disabled || isProcessingKepub}
                   onClick={() => kepubInputRef.current?.click()}
-                  className="text-muted-foreground hover:text-foreground disabled:opacity-50 text-xs underline underline-offset-2 transition-colors"
+                  className="text-muted-foreground hover:text-foreground cursor-pointer text-xs underline underline-offset-2 transition-colors disabled:opacity-50"
                 >
                   {isProcessingKepub ? (
                     <span className="flex items-center gap-x-1">
@@ -122,9 +113,7 @@ export const OptionalInfoSection = ({
         disabled={disabled}
         render={({ field, fieldState }) => (
           <Field data-invalid={fieldState.invalid} className="gap-y-1">
-            <FieldLabel htmlFor={`${idPrefix}-book-form-series`}>
-              Series
-            </FieldLabel>
+            <FieldLabel htmlFor={`${idPrefix}-book-form-series`}>Series</FieldLabel>
             <SeriesCombobox
               id={`${idPrefix}-book-form-series`}
               value={field.value ?? ""}
@@ -174,11 +163,7 @@ export const OptionalInfoSection = ({
         render={({ field, fieldState }) => (
           <Field data-invalid={fieldState.invalid} className="gap-y-1">
             <FieldLabel htmlFor={`${idPrefix}-book-form-isbn`}>
-              ISBN{" "}
-              <span className="text-muted-foreground text-xs">
-                {" "}
-                (10 or 13 digits)
-              </span>
+              ISBN <span className="text-muted-foreground text-xs"> (10 or 13 digits)</span>
             </FieldLabel>
             <Input
               {...field}
@@ -198,9 +183,7 @@ export const OptionalInfoSection = ({
         disabled={disabled}
         render={({ field, fieldState }) => (
           <Field data-invalid={fieldState.invalid} className="gap-y-1">
-            <FieldLabel htmlFor={`${idPrefix}-book-form-summary`}>
-              Summary
-            </FieldLabel>
+            <FieldLabel htmlFor={`${idPrefix}-book-form-summary`}>Summary</FieldLabel>
             <Textarea
               {...field}
               id={`${idPrefix}-book-form-summary`}
