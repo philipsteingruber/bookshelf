@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo } from "react";
 
+import { getDayOfYear, getDaysInYear } from "date-fns";
 import { toast } from "sonner";
 
 import { READING_GOAL_DEFAULT_THRESHOLD } from "@/lib/constants";
@@ -17,6 +18,9 @@ import { trpc } from "@/trpc/client";
 interface UseReadingGoalsReturn {
   currentGoal: number;
   booksReadThisYear: number;
+  pagesReadThisYear: number;
+  onPaceForBooks: number;
+  onPaceForPages: number;
 
   progressPercentage: number;
   booksRemaining: number;
@@ -85,14 +89,16 @@ export const useReadingGoals = (): UseReadingGoalsReturn => {
   const { data, isPending: isCalculatingYearlyStats } =
     trpc.user.getYearlyBookStats.useQuery();
   const booksFinishedByYear = data?.booksFinishedByYear;
+  const pagesFinishedByYear = data?.pagesFinishedByYear;
 
   const goalHistory = useMemo(
     () =>
       buildGoalHistory({
         readingGoalHistory,
         booksFinishedByYear: booksFinishedByYear ?? [],
+        pagesFinishedByYear: pagesFinishedByYear ?? [],
       }),
-    [readingGoalHistory, booksFinishedByYear],
+    [readingGoalHistory, booksFinishedByYear, pagesFinishedByYear],
   );
 
   const enrichedGoalHistory = useMemo(
@@ -112,6 +118,22 @@ export const useReadingGoals = (): UseReadingGoalsReturn => {
     () => calculateReadingGoalStats(booksFinishedByYear ?? [], readingGoal),
     [booksFinishedByYear, readingGoal],
   );
+
+  const { pagesReadThisYear, onPaceForBooks, onPaceForPages } = useMemo(() => {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const dayOfYear = getDayOfYear(now);
+    const daysInYear = getDaysInYear(now);
+
+    const pagesThisYear =
+      pagesFinishedByYear?.find((p) => p.year === currentYear)?.pages ?? 0;
+
+    return {
+      pagesReadThisYear: pagesThisYear,
+      onPaceForBooks: Math.round((booksReadThisYear / dayOfYear) * daysInYear),
+      onPaceForPages: Math.round((pagesThisYear / dayOfYear) * daysInYear),
+    };
+  }, [booksReadThisYear, pagesFinishedByYear]);
 
   useEffect(() => {
     checkGoalCelebration({
@@ -140,6 +162,9 @@ export const useReadingGoals = (): UseReadingGoalsReturn => {
   return {
     currentGoal,
     booksReadThisYear,
+    pagesReadThisYear,
+    onPaceForBooks,
+    onPaceForPages,
 
     progressPercentage,
     booksRemaining,

@@ -19,6 +19,7 @@ export interface WeeklyStats {
 }
 export interface YearlyStats {
   booksFinishedByYear: { year: number; count: number }[];
+  pagesFinishedByYear: { year: number; pages: number }[];
 }
 export interface OverallStats {
   activeDays: number;

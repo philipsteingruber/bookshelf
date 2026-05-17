@@ -132,7 +132,10 @@ export const userRouter = createTRPCRouter({
 
     const stats = calculateYearlyStats(books, threshold, ctx.currentUser.timezone);
 
-    return { booksFinishedByYear: stats.booksFinishedByYear };
+    return {
+      booksFinishedByYear: stats.booksFinishedByYear,
+      pagesFinishedByYear: stats.pagesFinishedByYear,
+    };
   }),
 
   getUserStats: authedProcedure.query(async ({ ctx }) => {

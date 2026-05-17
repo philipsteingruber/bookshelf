@@ -30,6 +30,14 @@ export const columns: ColumnDef<EnrichedGoalHistoryEntry>[] = [
   },
   { accessorKey: "actual", header: "Actual" },
   {
+    accessorKey: "pages",
+    header: "Pages Read",
+    cell: ({ row }) => {
+      const pages = row.getValue("pages") as number;
+      return pages === 0 ? <span className="text-muted-foreground">—</span> : pages.toLocaleString();
+    },
+  },
+  {
     accessorKey: "progressPercentage",
     header: "Progress",
     cell: ({ row }) => {

@@ -65,6 +65,7 @@ export function calculateReadingGoalStats(
 export function buildGoalHistory({
   readingGoalHistory,
   booksFinishedByYear,
+  pagesFinishedByYear,
 }: BuildGoalHistoryOptions): GoalHistoryEntry[] {
   if (!readingGoalHistory) return [];
 
@@ -72,6 +73,7 @@ export function buildGoalHistory({
     year: entry.year,
     goal: entry.goal,
     actual: booksFinishedByYear.find((b) => b.year === entry.year)?.count ?? 0,
+    pages: pagesFinishedByYear.find((p) => p.year === entry.year)?.pages ?? 0,
   }));
 }
 

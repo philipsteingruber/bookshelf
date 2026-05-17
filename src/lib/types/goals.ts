@@ -12,6 +12,7 @@ export interface GoalHistoryEntry {
   year: number;
   goal: number;
   actual: number;
+  pages: number;
 }
 
 export interface BooksFinishedByYear {
@@ -33,4 +34,5 @@ export interface EnrichedGoalHistoryEntry extends GoalHistoryEntry {
 export interface BuildGoalHistoryOptions {
   readingGoalHistory: ReadingGoalHistoryEntry[] | null;
   booksFinishedByYear: BooksFinishedByYear[];
+  pagesFinishedByYear: { year: number; pages: number }[];
 }

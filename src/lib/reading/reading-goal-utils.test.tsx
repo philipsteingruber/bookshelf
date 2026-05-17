@@ -219,12 +219,14 @@ describe("readingGoalUtils", () => {
       const result = buildGoalHistory({
         readingGoalHistory,
         booksFinishedByYear,
+        pagesFinishedByYear: [],
       });
 
       expect(result[0]).toEqual({
         actual: 1,
         goal: 1,
         year: currentYear,
+        pages: 0,
       } satisfies GoalHistoryEntry);
     });
 
@@ -238,6 +240,7 @@ describe("readingGoalUtils", () => {
       const result = buildGoalHistory({
         readingGoalHistory,
         booksFinishedByYear,
+        pagesFinishedByYear: [],
       });
 
       expect(result[0].actual).toEqual(0);
@@ -248,6 +251,7 @@ describe("readingGoalUtils", () => {
       const result = buildGoalHistory({
         readingGoalHistory: null,
         booksFinishedByYear,
+        pagesFinishedByYear: [],
       });
       expect(result).toEqual([]);
     });
@@ -257,6 +261,7 @@ describe("readingGoalUtils", () => {
       const result = buildGoalHistory({
         readingGoalHistory: [],
         booksFinishedByYear,
+        pagesFinishedByYear: [],
       });
       expect(result).toEqual([]);
     });
@@ -272,6 +277,7 @@ describe("readingGoalUtils", () => {
       const result = buildGoalHistory({
         readingGoalHistory,
         booksFinishedByYear,
+        pagesFinishedByYear: [],
       });
 
       expect(result[0].year).toEqual(currentYear - 1);
@@ -286,6 +292,7 @@ describe("readingGoalUtils", () => {
       const result = buildGoalHistory({
         readingGoalHistory,
         booksFinishedByYear,
+        pagesFinishedByYear: [],
       });
       expect(
         result.find((entry) => entry.year === currentYear)?.actual,
@@ -300,6 +307,7 @@ describe("readingGoalUtils", () => {
       const result = buildGoalHistory({
         readingGoalHistory,
         booksFinishedByYear,
+        pagesFinishedByYear: [],
       });
       expect(
         result.find((entry) => entry.year === currentYear)?.actual,
@@ -320,12 +328,13 @@ describe("readingGoalUtils", () => {
       const result = buildGoalHistory({
         readingGoalHistory,
         booksFinishedByYear,
+        pagesFinishedByYear: [],
       });
 
       expect(result).toEqual([
-        { year: currentYear - 2, goal: 1, actual: 2 },
-        { year: currentYear - 1, goal: 1, actual: 0 },
-        { year: currentYear, goal: 1, actual: 1 },
+        { year: currentYear - 2, goal: 1, actual: 2, pages: 0 },
+        { year: currentYear - 1, goal: 1, actual: 0, pages: 0 },
+        { year: currentYear, goal: 1, actual: 1, pages: 0 },
       ] satisfies GoalHistoryEntry[]);
     });
   });
@@ -479,7 +488,7 @@ describe("readingGoalUtils", () => {
 
     it("should calculate progressPercentage as rounded percentage (actual/goal * 100)", () => {
       const input: GoalHistoryEntry[] = [
-        { year: currentYear, goal: 3, actual: 2 },
+        { year: currentYear, goal: 3, actual: 2, pages: 0 },
       ];
 
       const result = enrichGoalHistory(input);
@@ -489,7 +498,7 @@ describe("readingGoalUtils", () => {
 
     it("should return null for progressPercentage when goal is 0", () => {
       const input: GoalHistoryEntry[] = [
-        { year: currentYear, goal: 0, actual: 5 },
+        { year: currentYear, goal: 0, actual: 5, pages: 0 },
       ];
 
       const result = enrichGoalHistory(input);
@@ -499,7 +508,7 @@ describe("readingGoalUtils", () => {
 
     it("should calculate difference as actual - goal", () => {
       const input: GoalHistoryEntry[] = [
-        { year: currentYear, goal: 10, actual: 12 },
+        { year: currentYear, goal: 10, actual: 12, pages: 0 },
       ];
 
       const result = enrichGoalHistory(input);
@@ -509,8 +518,8 @@ describe("readingGoalUtils", () => {
 
     it("should return null for differenceFromPrevious for the oldest year", () => {
       const input: GoalHistoryEntry[] = [
-        { year: currentYear, goal: 10, actual: 5 },
-        { year: currentYear - 1, goal: 10, actual: 8 },
+        { year: currentYear, goal: 10, actual: 5, pages: 0 },
+        { year: currentYear - 1, goal: 10, actual: 8, pages: 0 },
       ];
 
       const result = enrichGoalHistory(input);
@@ -521,8 +530,8 @@ describe("readingGoalUtils", () => {
 
     it("should calculate differenceFromPrevious as current actual minus previous year's actual", () => {
       const input: GoalHistoryEntry[] = [
-        { year: currentYear, goal: 10, actual: 12 },
-        { year: currentYear - 1, goal: 10, actual: 8 },
+        { year: currentYear, goal: 10, actual: 12, pages: 0 },
+        { year: currentYear - 1, goal: 10, actual: 8, pages: 0 },
       ];
 
       const result = enrichGoalHistory(input);
@@ -533,9 +542,9 @@ describe("readingGoalUtils", () => {
 
     it("should preserve input order (newest-first in, newest-first out)", () => {
       const input: GoalHistoryEntry[] = [
-        { year: currentYear, goal: 10, actual: 5 },
-        { year: currentYear - 1, goal: 10, actual: 8 },
-        { year: currentYear - 2, goal: 10, actual: 3 },
+        { year: currentYear, goal: 10, actual: 5, pages: 0 },
+        { year: currentYear - 1, goal: 10, actual: 8, pages: 0 },
+        { year: currentYear - 2, goal: 10, actual: 3, pages: 0 },
       ];
 
       const result = enrichGoalHistory(input);
@@ -547,7 +556,7 @@ describe("readingGoalUtils", () => {
 
     it("should handle single entry correctly (oldest year case)", () => {
       const input: GoalHistoryEntry[] = [
-        { year: currentYear, goal: 10, actual: 7 },
+        { year: currentYear, goal: 10, actual: 7, pages: 0 },
       ];
 
       const result = enrichGoalHistory(input, mockDate);
@@ -557,6 +566,7 @@ describe("readingGoalUtils", () => {
         year: currentYear,
         goal: 10,
         actual: 7,
+        pages: 0,
         progressPercentage: 70,
         difference: -3,
         differenceFromPrevious: null,
@@ -566,7 +576,7 @@ describe("readingGoalUtils", () => {
 
     it("should compute expectedAtThisPoint for the current year entry", () => {
       const input: GoalHistoryEntry[] = [
-        { year: currentYear, goal: 10, actual: 3 },
+        { year: currentYear, goal: 10, actual: 3, pages: 0 },
       ];
 
       const result = enrichGoalHistory(input, refDate);
@@ -577,8 +587,8 @@ describe("readingGoalUtils", () => {
 
     it("should return null for expectedAtThisPoint for past year entries", () => {
       const input: GoalHistoryEntry[] = [
-        { year: currentYear, goal: 10, actual: 5 },
-        { year: currentYear - 1, goal: 10, actual: 8 },
+        { year: currentYear, goal: 10, actual: 5, pages: 0 },
+        { year: currentYear - 1, goal: 10, actual: 8, pages: 0 },
       ];
 
       const result = enrichGoalHistory(input, refDate);
@@ -589,7 +599,7 @@ describe("readingGoalUtils", () => {
 
     it("should return null for expectedAtThisPoint when goal is 0", () => {
       const input: GoalHistoryEntry[] = [
-        { year: currentYear, goal: 0, actual: 5 },
+        { year: currentYear, goal: 0, actual: 5, pages: 0 },
       ];
 
       const result = enrichGoalHistory(input, refDate);
