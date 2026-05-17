@@ -172,6 +172,7 @@ export const bookRouter = createTRPCRouter({
           publishedYear: input.publishedYear,
           summary: input.summary,
           coverUrl,
+          goodreadsUrl: input.goodreadsUrl || null,
           userId,
           ...alreadyReadData,
         },
