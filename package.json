@@ -22,6 +22,7 @@
     "backfill:cover-urls": "tsx scripts/backfill-cover-urls.ts",
     "enrich:goodreads-url": "tsx scripts/enrich-goodreads-url.ts",
     "sync:calibre": "tsx scripts/sync-calibre.ts",
+    "backfill:sort-fields": "tsx scripts/backfill-sort-fields.ts",
     "seed:dev": "tsx scripts/seed-dev-user.ts"
   },
   "dependencies": {
