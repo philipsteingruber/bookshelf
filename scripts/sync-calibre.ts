@@ -145,7 +145,7 @@ function computeResults(
 
     const derived = deriveStatus(
       calibreBook.readStatus,
-      calibreBook.koboreadpct,
+      calibreBook.readPercent,
       calibreBook.dnf,
     );
 
@@ -174,13 +174,17 @@ function computeResults(
       });
     }
 
-    if (shouldLogProgress(calibreBook.koboreadpct, bookshelfBook.progress)) {
+    if (shouldLogProgress(calibreBook.readPercent, bookshelfBook.progress)) {
       results.progressUpdates.push({
         calibreBook,
         bookshelfBook,
-        newProgress: calibreBook.koboreadpct!,
+        newProgress: calibreBook.readPercent!,
       });
-    } else if (calibreBook.koboreadpct !== null && calibreBook.koboreadpct > 0) {
+    } else if (
+      calibreBook.readPercent !== null &&
+      calibreBook.readPercent > 0 &&
+      bookshelfBook.progress < 100
+    ) {
       results.progressSkips.push({ calibreBook, bookshelfBook });
     }
   }
@@ -212,8 +216,8 @@ function printResults(results: SyncResults, apply: boolean): void {
   const createLabel = apply ? "CREATED" : "WOULD CREATE";
   console.log(`${createLabel} (${results.toCreate.length})`);
   for (const b of results.toCreate) {
-    const derived = deriveStatus(b.readStatus, b.koboreadpct, b.dnf);
-    const pct = b.koboreadpct ? ` (${b.koboreadpct}%)` : "";
+    const derived = deriveStatus(b.readStatus, b.readPercent, b.dnf);
+    const pct = b.readPercent ? ` (${b.readPercent}%)` : "";
     const started = b.datestarted
       ? ` | Started: ${b.datestarted.toISOString().slice(0, 10)}`
       : "";
@@ -253,7 +257,7 @@ function printResults(results: SyncResults, apply: boolean): void {
         `  • ${formatBook(bookshelfBook.title, bookshelfBook.author, calibreBook.seriesName, calibreBook.seriesIndex)}`,
       );
       console.log(
-        `    Already at ${bookshelfBook.progress}%, Calibre reports ${calibreBook.koboreadpct}%`,
+        `    Already at ${bookshelfBook.progress}%, Calibre reports ${calibreBook.readPercent}%`,
       );
     }
   }
@@ -348,7 +352,7 @@ async function applyCreates(toCreate: CalibreBookSync[], userId: string): Promis
     try {
       const coverUrl = await uploadCover(b.coverPath);
       const seriesId = b.seriesName ? await upsertSeries(prisma, b.seriesName, userId) : null;
-      const derived = deriveStatus(b.readStatus, b.koboreadpct, b.dnf);
+      const derived = deriveStatus(b.readStatus, b.readPercent, b.dnf);
 
       await prisma.book.create({
         data: {
@@ -361,7 +365,7 @@ async function applyCreates(toCreate: CalibreBookSync[], userId: string): Promis
           goodreadsUrl: `${GOODREADS_BASE}/${b.goodreadsId}`,
           coverUrl,
           status: derived,
-          progress: b.koboreadpct ?? 0,
+          progress: b.readPercent ?? 0,
           startedAt: b.datestarted,
           finishedAt: derived === "READ" ? b.kobolastread : null,
           userId,
@@ -416,7 +420,6 @@ async function applyProgressUpdates(
             userId,
             bookId: bookshelfBook.id,
             progress: newProgress,
-            createdAt: calibreBook.kobolastread ?? new Date(),
           },
         });
         await tx.book.update({
