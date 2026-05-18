@@ -102,13 +102,19 @@ async function startContainer(): Promise<void> {
 
 // ─── Matching ─────────────────────────────────────────────────────────────────
 
+// Goodreads URLs sometimes include a slug after the ID (e.g. /show/12345-book-title).
+// Normalise to just the numeric ID so both forms match.
+function normaliseGoodreadsUrl(url: string): string {
+  return url.replace(/(\/book\/show\/)(\d+)[^/]*$/, "$1$2");
+}
+
 function computeResults(
   calibreBooks: CalibreBookSync[],
   bookshelfBooks: BookshelfBook[],
 ): SyncResults {
   const bookshelfByUrl = new Map<string, BookshelfBook>();
   for (const b of bookshelfBooks) {
-    if (b.goodreadsUrl) bookshelfByUrl.set(b.goodreadsUrl, b);
+    if (b.goodreadsUrl) bookshelfByUrl.set(normaliseGoodreadsUrl(b.goodreadsUrl), b);
   }
 
   const matchedIds = new Set<number>();
