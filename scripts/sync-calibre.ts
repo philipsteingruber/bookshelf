@@ -261,21 +261,42 @@ function printResults(results: SyncResults, apply: boolean): void {
     }
   }
 
+  if (!apply) {
+    const pad = (n: number) => String(n).padStart(3);
+    console.log("\n=== Summary ===");
+    console.log(`Would create:    ${pad(results.toCreate.length)}`);
+    console.log(`Would update:    ${pad(bookUpdatesWithStatus.length)}`);
+    console.log(`Would log:       ${pad(results.progressUpdates.length)}`);
+    if (results.progressSkips.length > 0) {
+      console.log(`Skipped (no change):  ${pad(results.progressSkips.length)}`);
+    }
+    console.log(`Not in Calibre:       ${pad(results.notInCalibre.length)}`);
+    if (results.noGoodreadsId.length > 0) {
+      console.log(`No Goodreads ID:      ${pad(results.noGoodreadsId.length)}`);
+    }
+    console.log("\nRun with --apply to write changes.");
+  }
+}
+
+function printApplySummary(
+  results: SyncResults,
+  createErrors: string[],
+  updateErrors: string[],
+  progressErrors: string[],
+): void {
   const pad = (n: number) => String(n).padStart(3);
+  const bookUpdatesWithStatus = results.bookUpdates.filter((u) => u.newStatus !== null);
+
   console.log("\n=== Summary ===");
-  console.log(`${apply ? "Created:         " : "Would create:    "}  ${pad(results.toCreate.length)}`);
-  console.log(`${apply ? "Updated status:  " : "Would update:    "}  ${pad(bookUpdatesWithStatus.length)}`);
-  console.log(`${apply ? "Logged progress: " : "Would log:       "}  ${pad(results.progressUpdates.length)}`);
+  console.log(`Created:         ${pad(results.toCreate.length - createErrors.length)}`);
+  console.log(`Updated status:  ${pad(bookUpdatesWithStatus.length - updateErrors.length)}`);
+  console.log(`Logged progress: ${pad(results.progressUpdates.length - progressErrors.length)}`);
   if (results.progressSkips.length > 0) {
     console.log(`Skipped (no change):  ${pad(results.progressSkips.length)}`);
   }
   console.log(`Not in Calibre:       ${pad(results.notInCalibre.length)}`);
   if (results.noGoodreadsId.length > 0) {
     console.log(`No Goodreads ID:      ${pad(results.noGoodreadsId.length)}`);
-  }
-
-  if (!apply) {
-    console.log("\nRun with --apply to write changes.");
   }
 }
 
@@ -481,19 +502,20 @@ async function main(): Promise<void> {
     printResults(results, apply);
 
     if (apply) {
-      const errors = [
-        ...(await applyCreates(results.toCreate, user.id)),
-        ...(await applyBookUpdates(results.bookUpdates)),
-        ...(await applyProgressUpdates(results.progressUpdates, user.id)),
-      ];
+      const createErrors = await applyCreates(results.toCreate, user.id);
+      const updateErrors = await applyBookUpdates(results.bookUpdates);
+      const progressErrors = await applyProgressUpdates(results.progressUpdates, user.id);
 
       if (results.progressUpdates.length > 0) {
         await recalculateAllUserStats(prisma, user);
       }
 
-      if (errors.length > 0) {
-        console.log(`\n=== Errors (${errors.length}) ===`);
-        for (const msg of errors) {
+      printApplySummary(results, createErrors, updateErrors, progressErrors);
+
+      const allErrors = [...createErrors, ...updateErrors, ...progressErrors];
+      if (allErrors.length > 0) {
+        console.log(`\n=== Errors (${allErrors.length}) ===`);
+        for (const msg of allErrors) {
           console.error(`  ✗ ${msg}`);
         }
         process.exit(1);
