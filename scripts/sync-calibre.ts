@@ -259,6 +259,9 @@ function printResults(results: SyncResults, apply: boolean): void {
   }
 
   console.log(`\nNOT IN CALIBRE (${results.notInCalibre.length})`);
+  for (const b of results.notInCalibre) {
+    console.log(`  • ${formatBook(b.title, b.author, b.series?.name ?? null, b.seriesIndex)}`);
+  };
 
   if (results.noGoodreadsId.length > 0) {
     console.log(`\nNO GOODREADS ID — SKIPPED (${results.noGoodreadsId.length})`);
