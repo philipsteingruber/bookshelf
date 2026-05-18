@@ -305,8 +305,8 @@ async function uploadCover(coverPath: string | null): Promise<string | null> {
   }
 }
 
-async function applyCreates(toCreate: CalibreBookSync[], userId: string): Promise<number> {
-  let failures = 0;
+async function applyCreates(toCreate: CalibreBookSync[], userId: string): Promise<string[]> {
+  const errors: string[] = [];
   for (const b of toCreate) {
     try {
       const coverUrl = await uploadCover(b.coverPath);
@@ -337,21 +337,18 @@ async function applyCreates(toCreate: CalibreBookSync[], userId: string): Promis
           ["seriesId", "seriesIndex"].includes(f),
         );
 
-      if (isSeriesConflict) {
-        console.error(
-          `  ✗ Series conflict for "${b.title}": another book in "${b.seriesName}" already has index ${b.seriesIndex}. Fix the series index in Calibre and rerun.`,
-        );
-      } else {
-        console.error(`  ✗ Failed to create "${b.title}":`, err);
-      }
-      failures++;
+      errors.push(
+        isSeriesConflict
+          ? `Series conflict: "${b.title}" — another book in "${b.seriesName}" already has index ${b.seriesIndex}. Fix the series index in Calibre and rerun.`
+          : `Failed to create "${b.title}": ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
   }
-  return failures;
+  return errors;
 }
 
-async function applyBookUpdates(bookUpdates: BookUpdate[]): Promise<number> {
-  let failures = 0;
+async function applyBookUpdates(bookUpdates: BookUpdate[]): Promise<string[]> {
+  const errors: string[] = [];
   for (const { bookshelfBook, newStatus, newStartedAt, newFinishedAt } of bookUpdates) {
     try {
       const data: { status?: ReadStatus; startedAt?: Date; finishedAt?: Date } = {};
@@ -361,18 +358,19 @@ async function applyBookUpdates(bookUpdates: BookUpdate[]): Promise<number> {
 
       await prisma.book.update({ where: { id: bookshelfBook.id }, data });
     } catch (err) {
-      console.error(`  ✗ Failed to update "${bookshelfBook.title}":`, err);
-      failures++;
+      errors.push(
+        `Failed to update "${bookshelfBook.title}": ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
   }
-  return failures;
+  return errors;
 }
 
 async function applyProgressUpdates(
   progressUpdates: ProgressUpdate[],
   userId: string,
-): Promise<number> {
-  let failures = 0;
+): Promise<string[]> {
+  const errors: string[] = [];
   for (const { calibreBook, bookshelfBook, newProgress } of progressUpdates) {
     try {
       await prisma.$transaction(async (tx) => {
@@ -390,11 +388,12 @@ async function applyProgressUpdates(
         });
       });
     } catch (err) {
-      console.error(`  ✗ Failed to log progress for "${bookshelfBook.title}":`, err);
-      failures++;
+      errors.push(
+        `Failed to log progress for "${bookshelfBook.title}": ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
   }
-  return failures;
+  return errors;
 }
 
 // ─── Entry point ──────────────────────────────────────────────────────────────
@@ -475,17 +474,21 @@ async function main(): Promise<void> {
     printResults(results, apply);
 
     if (apply) {
-      let totalFailures = 0;
-      totalFailures += await applyCreates(results.toCreate, user.id);
-      totalFailures += await applyBookUpdates(results.bookUpdates);
-      totalFailures += await applyProgressUpdates(results.progressUpdates, user.id);
+      const errors = [
+        ...(await applyCreates(results.toCreate, user.id)),
+        ...(await applyBookUpdates(results.bookUpdates)),
+        ...(await applyProgressUpdates(results.progressUpdates, user.id)),
+      ];
 
       if (results.progressUpdates.length > 0) {
         await recalculateAllUserStats(prisma, user);
       }
 
-      if (totalFailures > 0) {
-        console.error(`\n${totalFailures} write(s) failed. See errors above.`);
+      if (errors.length > 0) {
+        console.log(`\n=== Errors (${errors.length}) ===`);
+        for (const msg of errors) {
+          console.error(`  ✗ ${msg}`);
+        }
         process.exit(1);
       }
     }
