@@ -2,12 +2,14 @@ $ProjectRoot = "C:\Users\Philip\code\bookshelf"
 $LogFile = "$ProjectRoot\logs\calibre-sync.log"
 
 New-Item -ItemType Directory -Force -Path "$ProjectRoot\logs" | Out-Null
+Set-Location $ProjectRoot
 
 $Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-Add-Content -Path $LogFile -Value "`n=== Calibre Sync started at $Timestamp ==="
+"`n=== Calibre Sync started at $Timestamp ===" | Out-File -FilePath $LogFile -Append -Encoding UTF8
 
-& "$ProjectRoot\node_modules\.bin\tsx" "$ProjectRoot\scripts\sync-calibre.ts" --apply >> $LogFile 2>&1
+$Output = & "C:\Program Files\nodejs\node.exe" "$ProjectRoot\node_modules\tsx\dist\cli.mjs" "$ProjectRoot\scripts\sync-calibre.ts" --apply 2>&1
+$Output | Out-File -FilePath $LogFile -Append -Encoding UTF8
 
 $ExitCode = $LASTEXITCODE
-Add-Content -Path $LogFile -Value "=== Finished with exit code $ExitCode ==="
+"=== Finished with exit code $ExitCode ===" | Out-File -FilePath $LogFile -Append -Encoding UTF8
 exit $ExitCode
