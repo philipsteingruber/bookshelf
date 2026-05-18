@@ -466,6 +466,7 @@ async function main(): Promise<void> {
 
   await stopContainer();
 
+  let exitCode = 0;
   try {
     console.log(`Reading Calibre library from: ${calibreDbPath}`);
     console.log(`Reading CWA database from: ${cwaDbPath}`);
@@ -518,12 +519,14 @@ async function main(): Promise<void> {
         for (const msg of allErrors) {
           console.error(`  ✗ ${msg}`);
         }
-        process.exit(1);
+        exitCode = 1;
       }
     }
   } finally {
     await startContainer();
   }
+
+  if (exitCode !== 0) process.exit(exitCode);
 }
 
 main()
