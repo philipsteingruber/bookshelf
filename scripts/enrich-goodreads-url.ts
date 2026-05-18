@@ -36,6 +36,7 @@ interface Results {
   notInBookshelf: CalibreBook[];
   noGoodreadsId: CalibreBook[];
   ambiguous: CalibreBook[];
+  duplicateCalibreId: CalibreBook[];
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -69,17 +70,33 @@ function match(calibreBooks: CalibreBook[], bookshelfBooks: BookshelfBook[]): Re
     bookshelfByKey.set(key, existing);
   }
 
+  const goodreadsIdCounts = new Map<string, number>();
+  for (const book of calibreBooks) {
+    if (book.goodreadsId) {
+      goodreadsIdCounts.set(book.goodreadsId, (goodreadsIdCounts.get(book.goodreadsId) ?? 0) + 1);
+    }
+  }
+  const duplicateGoodreadsIds = new Set(
+    [...goodreadsIdCounts.entries()].filter(([, count]) => count > 1).map(([id]) => id),
+  );
+
   const results: Results = {
     toUpdate: [],
     alreadyEnriched: [],
     notInBookshelf: [],
     noGoodreadsId: [],
     ambiguous: [],
+    duplicateCalibreId: [],
   };
 
   for (const calibreBook of calibreBooks) {
     if (!calibreBook.goodreadsId) {
       results.noGoodreadsId.push(calibreBook);
+      continue;
+    }
+
+    if (duplicateGoodreadsIds.has(calibreBook.goodreadsId)) {
+      results.duplicateCalibreId.push(calibreBook);
       continue;
     }
 
@@ -146,6 +163,15 @@ function printResults(results: Results, apply: boolean): void {
     }
   }
 
+  if (results.duplicateCalibreId.length > 0) {
+    console.log(`\nDUPLICATE GOODREADS ID IN CALIBRE — SKIPPED (${results.duplicateCalibreId.length})`);
+    for (const book of results.duplicateCalibreId) {
+      console.log(
+        `  ⚠ ${formatBook(book)} — Goodreads ID ${book.goodreadsId} appears on multiple Calibre books`,
+      );
+    }
+  }
+
   console.log("\n=== Summary ===");
   const updateSummaryLabel = apply ? "Updated:        " : "Would update:   ";
   console.log(`${updateSummaryLabel}  ${String(results.toUpdate.length).padStart(3)}`);
@@ -154,6 +180,9 @@ function printResults(results: Results, apply: boolean): void {
   console.log(`No Goodreads ID:    ${String(results.noGoodreadsId.length).padStart(3)}`);
   if (results.ambiguous.length > 0) {
     console.log(`Ambiguous matches:  ${String(results.ambiguous.length).padStart(3)}`);
+  }
+  if (results.duplicateCalibreId.length > 0) {
+    console.log(`Duplicate Calibre ID:${String(results.duplicateCalibreId.length).padStart(3)}`);
   }
 
   if (!apply && results.toUpdate.length > 0) {

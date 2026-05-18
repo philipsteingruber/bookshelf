@@ -13,16 +13,17 @@ const QUERY = `
   SELECT
     b.id,
     b.title,
-    a.name        AS author,
-    s.name        AS series_name,
+    MIN(a.name)    AS author,
+    s.name         AS series_name,
     b.series_index AS series_index,
-    i.val         AS goodreads_id
+    i.val          AS goodreads_id
   FROM books b
   LEFT JOIN books_authors_link bal ON b.id = bal.book
   LEFT JOIN authors a              ON bal.author = a.id
   LEFT JOIN books_series_link bsl  ON b.id = bsl.book
   LEFT JOIN series s               ON bsl.series = s.id
   LEFT JOIN identifiers i          ON b.id = i.book AND i.type = 'goodreads'
+  GROUP BY b.id, b.title, s.name, b.series_index, i.val
   ORDER BY b.title
 `;
 
