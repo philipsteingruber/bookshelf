@@ -281,6 +281,13 @@ function printResults(results: SyncResults, apply: boolean): void {
 
 // ─── Apply ────────────────────────────────────────────────────────────────────
 
+function extractErrorMessage(err: unknown): string {
+  if (!(err instanceof Error)) return String(err);
+  // Prisma errors include file/line context before the actual message — take the last non-empty line
+  const lines = err.message.split("\n").map((l) => l.trim()).filter(Boolean);
+  return lines.at(-1) ?? err.message;
+}
+
 async function uploadCover(coverPath: string | null): Promise<string | null> {
   if (!coverPath || !existsSync(coverPath)) return null;
   try {
@@ -331,16 +338,18 @@ async function applyCreates(toCreate: CalibreBookSync[], userId: string): Promis
         },
       });
     } catch (err) {
+      const prismaErr = err as { code?: string; meta?: { target?: string | string[] } };
+      const target = prismaErr.meta?.target;
+      const targetStr = Array.isArray(target) ? target.join(",") : (target ?? "");
       const isSeriesConflict =
-        (err as { code?: string; meta?: { target?: string[] } }).code === "P2002" &&
-        (err as { meta?: { target?: string[] } }).meta?.target?.some((f) =>
-          ["seriesId", "seriesIndex"].includes(f),
-        );
+        prismaErr.code === "P2002" &&
+        targetStr.includes("seriesId") &&
+        targetStr.includes("seriesIndex");
 
       errors.push(
         isSeriesConflict
           ? `Series conflict: "${b.title}" — another book in "${b.seriesName}" already has index ${b.seriesIndex}. Fix the series index in Calibre and rerun.`
-          : `Failed to create "${b.title}": ${err instanceof Error ? err.message : String(err)}`,
+          : `Failed to create "${b.title}": ${extractErrorMessage(err)}`,
       );
     }
   }
@@ -358,9 +367,7 @@ async function applyBookUpdates(bookUpdates: BookUpdate[]): Promise<string[]> {
 
       await prisma.book.update({ where: { id: bookshelfBook.id }, data });
     } catch (err) {
-      errors.push(
-        `Failed to update "${bookshelfBook.title}": ${err instanceof Error ? err.message : String(err)}`,
-      );
+      errors.push(`Failed to update "${bookshelfBook.title}": ${extractErrorMessage(err)}`);
     }
   }
   return errors;
@@ -389,7 +396,7 @@ async function applyProgressUpdates(
       });
     } catch (err) {
       errors.push(
-        `Failed to log progress for "${bookshelfBook.title}": ${err instanceof Error ? err.message : String(err)}`,
+        `Failed to log progress for "${bookshelfBook.title}": ${extractErrorMessage(err)}`,
       );
     }
   }
