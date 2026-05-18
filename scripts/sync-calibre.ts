@@ -331,7 +331,19 @@ async function applyCreates(toCreate: CalibreBookSync[], userId: string): Promis
         },
       });
     } catch (err) {
-      console.error(`  ✗ Failed to create "${b.title}":`, err);
+      const isSeriesConflict =
+        (err as { code?: string; meta?: { target?: string[] } }).code === "P2002" &&
+        (err as { meta?: { target?: string[] } }).meta?.target?.some((f) =>
+          ["seriesId", "seriesIndex"].includes(f),
+        );
+
+      if (isSeriesConflict) {
+        console.error(
+          `  ✗ Series conflict for "${b.title}": another book in "${b.seriesName}" already has index ${b.seriesIndex}. Fix the series index in Calibre and rerun.`,
+        );
+      } else {
+        console.error(`  ✗ Failed to create "${b.title}":`, err);
+      }
       failures++;
     }
   }
