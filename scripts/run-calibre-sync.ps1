@@ -3,6 +3,7 @@ $LogFile = "$ProjectRoot\logs\calibre-sync.log"
 
 New-Item -ItemType Directory -Force -Path "$ProjectRoot\logs" | Out-Null
 Set-Location $ProjectRoot
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
 $Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 "`n=== Calibre Sync started at $Timestamp ===" | Out-File -FilePath $LogFile -Append -Encoding UTF8
