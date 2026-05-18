@@ -400,7 +400,15 @@ async function main(): Promise<void> {
   const apply = values.apply ?? false;
   const calibreDbPath = (values["calibre-db"] as string | undefined) ?? DEFAULT_CALIBRE_DB;
   const cwaDbPath = (values["cwa-db"] as string | undefined) ?? DEFAULT_CWA_DB;
-  const userEmail = values["user-email"] as string | undefined;
+  const userEmail =
+    (values["user-email"] as string | undefined) ?? process.env.CALIBRE_SYNC_USER_EMAIL;
+
+  if (!userEmail) {
+    console.error(
+      "Error: No user specified. Set CALIBRE_SYNC_USER_EMAIL in .env or pass --user-email",
+    );
+    process.exit(1);
+  }
 
   if (!process.env.DATABASE_URL) {
     console.error("Error: DATABASE_URL environment variable is not set");
@@ -425,12 +433,10 @@ async function main(): Promise<void> {
     const calibreBooks = readCalibreSyncData(calibreDbPath, cwaDbPath);
     console.log(`Loaded ${calibreBooks.length} books from Calibre`);
 
-    const user = userEmail
-      ? await prisma.user.findFirst({ where: { email: userEmail } })
-      : await prisma.user.findFirst();
+    const user = await prisma.user.findFirst({ where: { email: userEmail } });
 
     if (!user) {
-      console.error("Error: No bookshelf user found");
+      console.error(`Error: No bookshelf user found with email "${userEmail}"`);
       process.exit(1);
     }
 
