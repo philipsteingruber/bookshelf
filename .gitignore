@@ -55,6 +55,7 @@ NUL
 .vscode/tasks.json
 /.claude
 .husky/logs/
+/logs/
 /src/generated/
 /checklists/
 DOCKER_GUIDE.md
