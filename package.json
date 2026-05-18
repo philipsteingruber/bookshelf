@@ -20,6 +20,7 @@
     "cleanup:covers": "tsx scripts/cleanup-orphaned-covers.ts",
     "backfill:user-stats": "tsx scripts/backfill-user-stats.ts",
     "backfill:cover-urls": "tsx scripts/backfill-cover-urls.ts",
+    "enrich:goodreads-url": "tsx scripts/enrich-goodreads-url.ts",
     "seed:dev": "tsx scripts/seed-dev-user.ts"
   },
   "dependencies": {
@@ -110,6 +111,7 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^14.6.1",
+    "@types/better-sqlite3": "^7.6.13",
     "@types/he": "^1.2.3",
     "@types/node": "^20",
     "@types/pg": "^8.16.0",
@@ -118,6 +120,7 @@
     "@vitejs/plugin-react": "^5.1.2",
     "@vitest/coverage-v8": "^4.0.17",
     "babel-plugin-react-compiler": "1.0.0",
+    "better-sqlite3": "^12.10.0",
     "dotenv": "^17.2.3",
     "eslint": "^9",
     "eslint-config-next": "16.1.1",
