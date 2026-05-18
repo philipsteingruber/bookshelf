@@ -1,10 +1,10 @@
 import "dotenv/config";
 
-import { execSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { parseArgs } from "node:util";
 
+import Docker from "dockerode";
 import { UTApi } from "uploadthing/server";
 
 import type { ReadStatus } from "@/generated/prisma/enums";
@@ -67,22 +67,36 @@ interface SyncResults {
 
 // ─── Container lifecycle ──────────────────────────────────────────────────────
 
-function stopContainer(): void {
+const docker = new Docker();
+
+async function stopContainer(): Promise<void> {
+  const container = docker.getContainer(CONTAINER_NAME);
   try {
-    execSync(`docker stop ${CONTAINER_NAME}`, { stdio: "pipe" });
+    await container.stop();
     console.log(`Stopped ${CONTAINER_NAME}.`);
-  } catch (error) {
-    console.error(`Failed to stop ${CONTAINER_NAME}:`, error);
+  } catch (err) {
+    const status = (err as { statusCode?: number }).statusCode;
+    if (status === 304) {
+      console.log(`${CONTAINER_NAME} was already stopped.`);
+      return;
+    }
+    console.error(`Failed to stop ${CONTAINER_NAME}:`, err);
     process.exit(1);
   }
 }
 
-function startContainer(): void {
+async function startContainer(): Promise<void> {
+  const container = docker.getContainer(CONTAINER_NAME);
   try {
-    execSync(`docker start ${CONTAINER_NAME}`, { stdio: "pipe" });
+    await container.start();
     console.log(`Started ${CONTAINER_NAME}.`);
-  } catch (error) {
-    console.error(`Failed to restart ${CONTAINER_NAME} — restart it manually:`, error);
+  } catch (err) {
+    const status = (err as { statusCode?: number }).statusCode;
+    if (status === 304) {
+      console.log(`${CONTAINER_NAME} was already running.`);
+      return;
+    }
+    console.error(`Failed to restart ${CONTAINER_NAME} — restart it manually:`, err);
   }
 }
 
@@ -403,7 +417,7 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  stopContainer();
+  await stopContainer();
 
   try {
     console.log(`Reading Calibre library from: ${calibreDbPath}`);
@@ -458,7 +472,7 @@ async function main(): Promise<void> {
       }
     }
   } finally {
-    startContainer();
+    await startContainer();
   }
 }
 
