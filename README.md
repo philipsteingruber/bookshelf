@@ -32,7 +32,8 @@ A full-stack web application for tracking your personal reading journey, built w
 - **Form Management:** React Hook Form with Zod validation
 - **State Management:** TanStack React Query
 - **Charts:** Recharts
-- **Logging:** Pino with pino-pretty
+- **Logging:** Pino with pino-pretty and Logtail for remote log draining
+- **URL State:** nuqs for type-safe URL query string management
 - **Testing:** Vitest with React Testing Library
 
 ---
@@ -257,6 +258,17 @@ pnpm backfill:page-count        # Dry run — populate pageCount from local EPUB
 pnpm backfill:page-count -- --apply
 pnpm backfill:sort-fields       # Dry run — fix stale titleSort / authorSort fields
 pnpm backfill:sort-fields -- --apply
+pnpm backfill:user-stats        # Recompute and persist UserStats records
+pnpm backfill:cover-urls        # Backfill missing cover URLs
+
+# Maintenance / enrichment
+pnpm maintenance                # Run all maintenance tasks (orchestrator with dry-run support)
+pnpm cleanup:covers             # Remove orphaned cover images from UploadThing
+pnpm enrich:goodreads-url       # Enrich books with GoodReads URLs
+
+# Development utilities
+pnpm seed:dev                   # Seed a local dev user
+pnpm preflight                  # Run preflight checks
 ```
 
 ---
@@ -329,5 +341,8 @@ Built with modern web technologies:
 - [UploadThing](https://uploadthing.com/) - File uploads made easy
 - [Vitest](https://vitest.dev/) - Fast unit testing framework
 - [Pino](https://getpino.io/) - Fast and low overhead logging
+- [Logtail](https://betterstack.com/logtail) - Remote log draining and search
+- [nuqs](https://nuqs.47ng.com/) - Type-safe URL query string state management
+- [Scrapfly](https://scrapfly.io/) - Web scraping for GoodReads data extraction
 - [TanStack Query](https://tanstack.com/query) - Powerful data synchronization
 - [Recharts](https://recharts.org/) - Composable charting library
