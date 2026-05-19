@@ -1,13 +1,13 @@
 import JSZip from "jszip";
 
-const getSpineFilePaths = async (zip: JSZip): Promise<string[]> => {
+const getSpineFilePaths = async (zip: JSZip, parser: DOMParser): Promise<string[]> => {
   const opfEntry = Object.values(zip.files).find(
     (f) => !f.dir && f.name.endsWith(".opf"),
   );
   if (!opfEntry) throw new Error("No .opf file found in KEPUB");
 
   const opfText = await opfEntry.async("text");
-  const doc = new DOMParser().parseFromString(opfText, "application/xml");
+  const doc = parser.parseFromString(opfText, "application/xml");
 
   const manifestItems = new Map<string, string>();
   doc.querySelectorAll("manifest item").forEach((item) => {
@@ -32,12 +32,12 @@ const getSpineFilePaths = async (zip: JSZip): Promise<string[]> => {
 
 // Equivalent to Python's _get_body_text: extract text nodes from <body> only.
 // Matches BeautifulSoup's body_tag.strings behaviour used in the calibre plugin.
-const getBodyText = (html: string): string => {
-  const doc = new DOMParser().parseFromString(html, "text/html");
+const getBodyText = (html: string, parser: DOMParser): string => {
+  const doc = parser.parseFromString(html, "text/html");
   return doc.body?.textContent ?? "";
 };
 
-const countPagesAccurate = (rawHtml: string, htmlParts: string[]): number => {
+const countPagesAccurate = (rawHtml: string, htmlParts: string[], parser: DOMParser): number => {
   // Python computes num_divs/num_paras on the original (non-lowercased) html.
   // len(epub_html.split('<div')) == occurrences + 1, so the comparison is identical
   // to (occurrences_p > occurrences_d), which is what we compute here.
@@ -101,24 +101,27 @@ const countPagesAccurate = (rawHtml: string, htmlParts: string[]): number => {
     return accurateCount;
   }
 
-  const bodyText = htmlParts.map(getBodyText).join(" ");
+  const bodyText = htmlParts.map((part) => getBodyText(part, parser)).join(" ");
   const fastCount = Math.floor(bodyText.length / 2400) + 1;
 
   return Math.max(accurateCount, fastCount);
 };
 
-export const estimateKepubPageCount = async (file: File): Promise<number> => {
-  const zip = await JSZip.loadAsync(file);
-  const spinePaths = await getSpineFilePaths(zip);
+export const estimateKepubPageCount = async (
+  data: ArrayBuffer | Buffer,
+  parser: DOMParser,
+): Promise<number> => {
+  const zip = await JSZip.loadAsync(data);
+  const spinePaths = await getSpineFilePaths(zip, parser);
 
   const htmlParts = await Promise.all(
-    spinePaths.map(async (path) => {
-      const entry = zip.file(path);
+    spinePaths.map(async (filePath) => {
+      const entry = zip.file(filePath);
       if (!entry) return "";
       return entry.async("text");
     }),
   );
 
   const rawHtml = htmlParts.join(" ");
-  return countPagesAccurate(rawHtml, htmlParts);
+  return countPagesAccurate(rawHtml, htmlParts, parser);
 };

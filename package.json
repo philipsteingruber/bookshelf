@@ -117,6 +117,7 @@
     "@types/better-sqlite3": "^7.6.13",
     "@types/dockerode": "^4.0.1",
     "@types/he": "^1.2.3",
+    "@types/jsdom": "^28.0.3",
     "@types/node": "^20",
     "@types/pg": "^8.16.0",
     "@types/react": "^19",

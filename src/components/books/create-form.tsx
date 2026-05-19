@@ -70,7 +70,7 @@ const CreateBookForm = (): React.ReactElement => {
   const handleKepubSelect = async (file: File): Promise<void> => {
     setIsProcessingKepub(true);
     try {
-      const count = await estimateKepubPageCount(file);
+      const count = await estimateKepubPageCount(await file.arrayBuffer(), new DOMParser());
       form.setValue("pageCount", count, { shouldValidate: true });
     } catch {
       toast.error("Could not estimate page count", {

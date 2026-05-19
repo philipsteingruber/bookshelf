@@ -10,6 +10,7 @@ export interface CalibreBookSync {
   seriesIndex: number | null;
   goodreadsId: string | null;
   coverPath: string | null;
+  bookFilePath: string | null;
   // CWA reading state (null if book not in CWA)
   readStatus: number | null;
   // KOReader progress from CWA (null if book hasn't been opened in KOReader)
@@ -61,6 +62,12 @@ interface CalibreRawRow {
   dnf: number | null;
 }
 
+interface CalibreDataRow {
+  book: number;
+  format: string;
+  name: string;
+}
+
 interface CwaReadRow {
   book_id: number;
   read_status: number;
@@ -102,6 +109,19 @@ export function readCalibreSyncData(
       }
     }
 
+    const dataRows = calibreDb
+      .prepare("SELECT book, format, name FROM data WHERE format IN ('KEPUB', 'EPUB')")
+      .all() as CalibreDataRow[];
+
+    // Per book, prefer KEPUB over EPUB
+    const fileByBookId = new Map<number, string>();
+    for (const row of dataRows) {
+      const existing = fileByBookId.get(row.book);
+      if (!existing || row.format === "KEPUB") {
+        fileByBookId.set(row.book, `${row.name}.${row.format.toLowerCase()}`);
+      }
+    }
+
     const libraryRoot = path.dirname(calibreDbPath);
 
     return calibreRows.map((row) => ({
@@ -113,6 +133,9 @@ export function readCalibreSyncData(
       goodreadsId: row.goodreads_id,
       coverPath:
         row.has_cover === 1 ? path.join(libraryRoot, row.path, "cover.jpg") : null,
+      bookFilePath: fileByBookId.has(row.id)
+        ? path.join(libraryRoot, row.path, fileByBookId.get(row.id)!)
+        : null,
       readStatus: cwaReadByBookId.get(row.id) ?? null,
       readPercent: cwaProgressByBookId.get(row.id) ?? null,
       kobolastread: row.kobolastread ? new Date(row.kobolastread) : null,
