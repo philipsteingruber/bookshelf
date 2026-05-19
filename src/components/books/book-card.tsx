@@ -41,11 +41,6 @@ const BookCard = ({
   const utils = trpc.useUtils();
   const handleMouseEnter = (): void => {
     utils.book.getBook.prefetch(book.id);
-
-    if (book.coverUrl) {
-      const img = new window.Image();
-      img.src = book.coverUrl;
-    }
   };
 
   return (
