@@ -4,7 +4,6 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { parseArgs } from "node:util";
 
-import Docker from "dockerode";
 import { UTApi } from "uploadthing/server";
 
 import type { ReadStatus } from "@/generated/prisma/enums";
@@ -12,15 +11,16 @@ import { createAuthorSort, createTitleSort, upsertSeries } from "@/lib/book";
 import prisma from "@/lib/prisma";
 import { recalculateAllUserStats } from "@/lib/reading/stats-updates";
 
+import {
+  DEFAULT_CALIBRE_DB,
+  DEFAULT_CWA_DB,
+  extractErrorMessage,
+  GOODREADS_BASE,
+  normaliseGoodreadsUrl,
+} from "./lib/calibre-constants";
 import { readCalibreSyncData, type CalibreBookSync } from "./lib/calibre-sync-reader";
+import { startContainer, stopContainer } from "./lib/docker";
 import { deriveStatus, shouldLogProgress, shouldUpdateStatus } from "./lib/sync-utils";
-
-// ─── Constants ────────────────────────────────────────────────────────────────
-
-const DEFAULT_CALIBRE_DB = "E:\\Calibre Library\\metadata.db";
-const DEFAULT_CWA_DB = "E:\\cwa\\config\\app.db";
-const GOODREADS_BASE = "https://www.goodreads.com/book/show";
-const CONTAINER_NAME = "calibre-web-automated";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -65,48 +65,7 @@ interface SyncResults {
   noGoodreadsId: CalibreBookSync[];
 }
 
-// ─── Container lifecycle ──────────────────────────────────────────────────────
-
-const docker = new Docker();
-
-async function stopContainer(): Promise<void> {
-  const container = docker.getContainer(CONTAINER_NAME);
-  try {
-    await container.stop();
-    console.log(`Stopped ${CONTAINER_NAME}.`);
-  } catch (err) {
-    const status = (err as { statusCode?: number }).statusCode;
-    if (status === 304) {
-      console.log(`${CONTAINER_NAME} was already stopped.`);
-      return;
-    }
-    console.error(`Failed to stop ${CONTAINER_NAME}:`, err);
-    process.exit(1);
-  }
-}
-
-async function startContainer(): Promise<void> {
-  const container = docker.getContainer(CONTAINER_NAME);
-  try {
-    await container.start();
-    console.log(`Started ${CONTAINER_NAME}.`);
-  } catch (err) {
-    const status = (err as { statusCode?: number }).statusCode;
-    if (status === 304) {
-      console.log(`${CONTAINER_NAME} was already running.`);
-      return;
-    }
-    console.error(`Failed to restart ${CONTAINER_NAME} — restart it manually:`, err);
-  }
-}
-
 // ─── Matching ─────────────────────────────────────────────────────────────────
-
-// Goodreads URLs sometimes include a slug after the ID (e.g. /show/12345-book-title).
-// Normalise to just the numeric ID so both forms match.
-function normaliseGoodreadsUrl(url: string): string {
-  return url.replace(/(\/book\/show\/)(\d+)[^/]*$/, "$1$2");
-}
 
 function computeResults(
   calibreBooks: CalibreBookSync[],
@@ -314,13 +273,6 @@ function printApplySummary(
 }
 
 // ─── Apply ────────────────────────────────────────────────────────────────────
-
-function extractErrorMessage(err: unknown): string {
-  if (!(err instanceof Error)) return String(err);
-  // Prisma errors include file/line context before the actual message — take the last non-empty line
-  const lines = err.message.split("\n").map((l) => l.trim()).filter(Boolean);
-  return lines.at(-1) ?? err.message;
-}
 
 async function uploadCover(coverPath: string | null): Promise<string | null> {
   if (!coverPath || !existsSync(coverPath)) return null;

@@ -1,5 +1,3 @@
-// scripts/enrich-goodreads-url.ts
-
 import "dotenv/config";
 
 import { existsSync } from "node:fs";
@@ -7,10 +5,9 @@ import { parseArgs } from "node:util";
 
 import prisma from "@/lib/prisma";
 
+import { DEFAULT_CALIBRE_DB } from "./lib/calibre-constants";
 import { readCalibreBooks, type CalibreBook } from "./lib/calibre-reader";
 import { buildCompositeKey } from "./lib/normalizer";
-
-const DEFAULT_CALIBRE_DB = "E:\\Calibre Library\\metadata.db";
 
 const GOODREADS_BASE_URL = "https://www.goodreads.com/book/show";
 

@@ -3,60 +3,18 @@ import "dotenv/config";
 import { existsSync, readFileSync } from "node:fs";
 import { parseArgs } from "node:util";
 
-import Docker from "dockerode";
 import { estimateKepubPageCount } from "@/lib/book";
 import prisma from "@/lib/prisma";
 
+import {
+  DEFAULT_CALIBRE_DB,
+  DEFAULT_CWA_DB,
+  GOODREADS_BASE,
+  normaliseGoodreadsUrl,
+} from "./lib/calibre-constants";
 import { readCalibreSyncData } from "./lib/calibre-sync-reader";
+import { startContainer, stopContainer } from "./lib/docker";
 import { makeScriptParser } from "./lib/script-parser";
-
-// ─── Constants ────────────────────────────────────────────────────────────────
-
-const DEFAULT_CALIBRE_DB = "E:\\Calibre Library\\metadata.db";
-const DEFAULT_CWA_DB = "E:\\cwa\\config\\app.db";
-const GOODREADS_BASE = "https://www.goodreads.com/book/show";
-const CONTAINER_NAME = "calibre-web-automated";
-
-// ─── Container lifecycle ──────────────────────────────────────────────────────
-
-const docker = new Docker();
-
-async function stopContainer(): Promise<void> {
-  const container = docker.getContainer(CONTAINER_NAME);
-  try {
-    await container.stop();
-    console.log(`Stopped ${CONTAINER_NAME}.`);
-  } catch (err) {
-    const status = (err as { statusCode?: number }).statusCode;
-    if (status === 304) {
-      console.log(`${CONTAINER_NAME} was already stopped.`);
-      return;
-    }
-    console.error(`Failed to stop ${CONTAINER_NAME}:`, err);
-    process.exit(1);
-  }
-}
-
-async function startContainer(): Promise<void> {
-  const container = docker.getContainer(CONTAINER_NAME);
-  try {
-    await container.start();
-    console.log(`Started ${CONTAINER_NAME}.`);
-  } catch (err) {
-    const status = (err as { statusCode?: number }).statusCode;
-    if (status === 304) {
-      console.log(`${CONTAINER_NAME} was already running.`);
-      return;
-    }
-    console.error(`Failed to restart ${CONTAINER_NAME} — restart it manually:`, err);
-  }
-}
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function normaliseGoodreadsUrl(url: string): string {
-  return url.replace(/(\/book\/show\/)(\d+)[^/]*$/, "$1$2");
-}
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
