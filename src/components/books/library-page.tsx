@@ -163,7 +163,7 @@ const LibraryPage = (): React.ReactElement => {
   }
 
   return (
-    <div className="flex w-full flex-col items-center gap-y-4 px-2 sm:px-0">
+    <div className="flex w-full flex-col items-center gap-y-4 px-2 pb-2 sm:px-0">
       <LibraryFilterPicker
         selectedSorting={params.sort}
         onSortingChange={(newSort) => setParams({ sort: newSort, page: null })}
