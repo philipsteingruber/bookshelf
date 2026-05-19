@@ -8,6 +8,9 @@ A full-stack web application for tracking your personal reading journey, built w
 - **Reading Progress** - Track your reading progress with page-based or percentage-based updates
 - **Reading Goals** - Set yearly reading goals with progress visualization and pace tracking
 - **Reading Statistics** - View pages read today, weekly totals, average reading pace, and reading streaks
+- **Reading Streaks** - Track daily reading streaks with configurable minimum-pages threshold
+- **AI Recommendations** - Claude-powered book recommendations based on your reading history
+- **Import / Export** - Back up and restore your library as JSON or CSV
 - **GoodReads Integration** - Import book details directly from GoodReads URLs
 - **Smart Sorting** - Sort by title, author, date added, or last updated with proper name handling (e.g., "Abnett, Dan" instead of "Dan Abnett")
 - **Search & Filter** - Search across title, author, series, and ISBN with status and rating filters
@@ -42,6 +45,8 @@ clerkId                 String   (Unique, Indexed)
 name                    String
 email                   String   (Unique, Indexed)
 defaultReadingThreshold Int      (Default: 200)
+minimumPagesForStreak   Int      (Default: 0)
+timezone                String   (Default: "UTC")
 createdAt               DateTime
 updatedAt               DateTime
 ```
@@ -54,8 +59,8 @@ title           String    (Required)
 titleSort       String    (For sorting, e.g., "Lords of Silence, The")
 author          String    (Required)
 authorSort      String    (For sorting, e.g., "Abnett, Dan")
-publishedYear   Int       (Required, 1800-current+1)
-pageCount       Int       (Default: 0)
+publishedYear   Int?      (Optional)
+pageCount       Int?      (Optional)
 progress        Int       (0-100%, Default: 0)
 rating          Int?      (1-5 stars, Optional)
 goodreadsRating Decimal?  (Optional)
@@ -64,15 +69,24 @@ googleBooksUrl  String?   (Optional)
 review          Text?     (Optional)
 coverUrl        String?   (Optional)
 isbn            String?   (Unique per user, Optional)
-series          String?   (Optional)
-seriesIndex     Int?      (Unique with series per user, Optional)
-summary         Text?     (Optional, max 2000 chars)
+seriesId        String?   (Foreign Key to Series, Optional)
+seriesIndex     Float?    (Unique with seriesId, Optional)
+summary         Text?     (Optional)
 status          Enum      (TO_READ, READING, READ, READ_NEXT, DNF)
 startedAt       DateTime? (Optional)
 finishedAt      DateTime? (Optional)
 userId          String    (Foreign Key to User, Indexed)
 createdAt       DateTime
 updatedAt       DateTime
+```
+
+### Series
+
+```prisma
+id       String (CUID, Primary Key)
+name     String (Unique per user)
+nameSort String
+userId   String (Foreign Key to User, Indexed)
 ```
 
 ### ReadingProgress
@@ -98,6 +112,20 @@ goal      Int      (Target number of books, Default: 20)
 @@unique([userId, year])
 ```
 
+### UserStats
+
+```prisma
+id                        String    (CUID, Primary Key)
+userId                    String    (Unique, Foreign Key to User)
+currentStreak             Int       (Default: 0)
+longestStreak             Int       (Default: 0)
+lastQualifyingReadingDate DateTime? (Optional)
+lastReadingDate           DateTime? (Optional)
+totalPagesRead            Int       (Default: 0)
+totalActiveDays           Int       (Default: 0)
+updatedAt                 DateTime
+```
+
 ---
 
 ## API Endpoints (tRPC)
@@ -108,32 +136,54 @@ goal      Int      (Target number of books, Default: 20)
 | ---------------------------------------- | -------- | ---------------------------------------------------------------- |
 | `getBooks(filters?)`                     | Query    | Get all books with optional filtering, searching, and sorting    |
 | `getBook(bookId)`                        | Query    | Get single book details with ownership verification              |
+| `getDashBoardBooks()`                    | Query    | Get books relevant to the dashboard (currently reading etc.)     |
+| `getSeriesList()`                        | Query    | Get all series with their books                                  |
+| `getSeriesNames()`                       | Query    | Get a flat list of series names for autocomplete                 |
 | `createBook(input)`                      | Mutation | Create new book with validation                                  |
+| `updateBook(input)`                      | Mutation | Update book metadata (title, author, cover, series, etc.)        |
 | `updateReadingStatus(bookId, newStatus)` | Mutation | Update book reading status with automatic progress/date handling |
 | `updatePageCount(bookId, newPageCount)`  | Mutation | Update book's page count                                         |
+| `updateRating(bookId, rating)`           | Mutation | Set or clear a book's star rating                                |
+| `deleteBook(bookId)`                     | Mutation | Delete a book and clean up orphaned series                       |
 
 ### User Router (`user.*`)
 
-| Endpoint                                | Type     | Description                                                   |
-| --------------------------------------- | -------- | ------------------------------------------------------------- |
-| `getReadingGoal()`                      | Query    | Get current year's reading goal (auto-creates if none exists) |
-| `getReadingGoalHistory()`               | Query    | Get reading goals from all years                              |
-| `setReadingGoal(newGoal)`               | Mutation | Set or update current year's reading goal                     |
-| `setReadingGoalThreshold(newThreshold)` | Mutation | Set minimum page threshold for books to count toward goals    |
+| Endpoint                                | Type     | Description                                                            |
+| --------------------------------------- | -------- | ---------------------------------------------------------------------- |
+| `getReadingGoal()`                      | Query    | Get current year's reading goal (auto-creates if none exists)          |
+| `getReadingGoalHistory()`               | Query    | Get reading goals from all years                                       |
+| `getYearlyBookStats()`                  | Query    | Get books and pages finished grouped by year                           |
+| `getUserStats()`                        | Query    | Get streak, total pages read, active days, and streak threshold        |
+| `getTimezone()`                         | Query    | Get the user's configured timezone                                     |
+| `setReadingGoal(newGoal)`               | Mutation | Set or update current year's reading goal                              |
+| `setReadingGoalThreshold(newThreshold)` | Mutation | Set minimum page count for a book to count toward the reading goal     |
+| `setStreakThreshold(newThreshold)`      | Mutation | Set minimum pages-per-day required for a day to count toward a streak  |
+| `setTimezone(timezone)`                 | Mutation | Update the user's timezone and recalculate streaks accordingly         |
+| `getExportData()`                       | Mutation | Export all user data (books, progress, goals, stats) as a JSON payload |
+| `importData(input)`                     | Mutation | Import data from a JSON export or CSV files                            |
 
 ### Reading Progress Router (`readingProgress.*`)
 
-| Endpoint                               | Type     | Description                                                 |
-| -------------------------------------- | -------- | ----------------------------------------------------------- |
-| `getAllReadingProgress()`              | Query    | Get all reading progress entries for statistics calculation |
-| `getProgressHistory(bookId)`           | Query    | Get reading progress history for a specific book            |
-| `createReadingProgressInstance(input)` | Mutation | Create new progress entry (by page or percentage)           |
+| Endpoint                               | Type     | Description                                             |
+| -------------------------------------- | -------- | ------------------------------------------------------- |
+| `getAllReadingProgress()`              | Query    | Get all reading progress entries for statistics         |
+| `getProgressHistory(bookId)`           | Query    | Get reading progress history for a specific book        |
+| `getRecentReadingProgress(input)`      | Query    | Get progress entries within a recent time window        |
+| `createReadingProgressInstance(input)` | Mutation | Create new progress entry (by page count or percentage) |
+| `updateReadingProgressInstance(input)` | Mutation | Edit an existing progress entry's value or comment      |
+| `deleteReadingProgressInstance(id)`    | Mutation | Delete a progress entry and recalculate stats           |
 
 ### GoodReads Router (`goodReads.*`)
 
 | Endpoint      | Type     | Description                              |
 | ------------- | -------- | ---------------------------------------- |
 | `scrape(url)` | Mutation | Scrape book details from a GoodReads URL |
+
+### Recommendations Router (`recommendations.*`)
+
+| Endpoint      | Type     | Description                                                          |
+| ------------- | -------- | -------------------------------------------------------------------- |
+| `chat(input)` | Mutation | AI-powered book recommendations via a chat interface (Claude-backed) |
 
 ---
 
@@ -166,8 +216,8 @@ pnpm install
 # Generate Prisma client
 pnpm exec prisma generate
 
-# Run database migrations
-pnpm exec prisma migrate dev
+# Push the schema to the database
+pnpm exec prisma db push
 
 # Start development server
 pnpm dev
