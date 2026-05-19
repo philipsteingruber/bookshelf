@@ -7,7 +7,7 @@ import { parseArgs } from "node:util";
 import { UTApi } from "uploadthing/server";
 
 import type { ReadStatus } from "@/generated/prisma/enums";
-import { createAuthorSort, createTitleSort, upsertSeries } from "@/lib/book";
+import { createAuthorSort, createTitleSort, estimateKepubPageCount, upsertSeries } from "@/lib/book";
 import prisma from "@/lib/prisma";
 import { recalculateAllUserStats } from "@/lib/reading/stats-updates";
 
@@ -20,6 +20,7 @@ import {
 } from "./lib/calibre-constants";
 import { readCalibreSyncData, type CalibreBookSync } from "./lib/calibre-sync-reader";
 import { startContainer, stopContainer } from "./lib/docker";
+import { makeScriptParser } from "./lib/script-parser";
 import { deriveStatus, shouldLogProgress, shouldUpdateStatus } from "./lib/sync-utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -155,6 +156,27 @@ function computeResults(
   return results;
 }
 
+// ─── Page count ───────────────────────────────────────────────────────────────
+
+async function computePageCounts(
+  books: CalibreBookSync[],
+): Promise<Map<number, number>> {
+  const map = new Map<number, number>();
+  if (books.length === 0) return map;
+
+  const parser = makeScriptParser();
+  for (const b of books) {
+    if (!b.bookFilePath || !existsSync(b.bookFilePath)) continue;
+    try {
+      const buffer = readFileSync(b.bookFilePath);
+      map.set(b.calibreId, await estimateKepubPageCount(buffer, parser));
+    } catch (err) {
+      console.warn(`  ⚠ Could not estimate page count for "${b.title}": ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+  return map;
+}
+
 // ─── Output ───────────────────────────────────────────────────────────────────
 
 function formatBook(
@@ -168,7 +190,11 @@ function formatBook(
   return `${title} — ${author}${series}`;
 }
 
-function printResults(results: SyncResults, apply: boolean): void {
+function printResults(
+  results: SyncResults,
+  apply: boolean,
+  pageCountMap: Map<number, number>,
+): void {
   const mode = apply ? "APPLYING" : "DRY RUN";
   console.log(`\n=== Calibre Sync — ${mode} ===\n`);
 
@@ -177,11 +203,12 @@ function printResults(results: SyncResults, apply: boolean): void {
   for (const b of results.toCreate) {
     const derived = deriveStatus(b.readStatus, b.readPercent, b.dnf);
     const pct = b.readPercent ? ` (${b.readPercent}%)` : "";
+    const pages = pageCountMap.has(b.calibreId) ? ` | Pages: ${pageCountMap.get(b.calibreId)}` : "";
     const started = b.datestarted
       ? ` | Started: ${b.datestarted.toISOString().slice(0, 10)}`
       : "";
     console.log(`  • ${formatBook(b.title, b.author, b.seriesName, b.seriesIndex)}`);
-    console.log(`    Status: ${derived}${pct}${started}`);
+    console.log(`    Status: ${derived}${pct}${pages}${started}`);
   }
 
   const bookUpdatesWithStatus = results.bookUpdates.filter((u) => u.newStatus !== null);
@@ -298,7 +325,11 @@ async function uploadCover(coverPath: string | null): Promise<string | null> {
   }
 }
 
-async function applyCreates(toCreate: CalibreBookSync[], userId: string): Promise<string[]> {
+async function applyCreates(
+  toCreate: CalibreBookSync[],
+  userId: string,
+  pageCountMap: Map<number, number>,
+): Promise<string[]> {
   const errors: string[] = [];
   for (const b of toCreate) {
     try {
@@ -316,6 +347,7 @@ async function applyCreates(toCreate: CalibreBookSync[], userId: string): Promis
           seriesIndex: b.seriesIndex,
           goodreadsUrl: `${GOODREADS_BASE}/${b.goodreadsId}`,
           coverUrl,
+          pageCount: pageCountMap.get(b.calibreId) ?? null,
           status: derived,
           progress: b.readPercent ?? 0,
           startedAt: b.datestarted,
@@ -464,10 +496,11 @@ async function main(): Promise<void> {
     console.log(`Loaded ${bookshelfBooks.length} books from bookshelf`);
 
     const results = computeResults(calibreBooks, bookshelfBooks);
-    printResults(results, apply);
+    const pageCountMap = await computePageCounts(results.toCreate);
+    printResults(results, apply, pageCountMap);
 
     if (apply) {
-      const createErrors = await applyCreates(results.toCreate, user.id);
+      const createErrors = await applyCreates(results.toCreate, user.id, pageCountMap);
       const updateErrors = await applyBookUpdates(results.bookUpdates);
       const progressErrors = await applyProgressUpdates(results.progressUpdates, user.id);
 
