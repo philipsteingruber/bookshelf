@@ -1,5 +1,7 @@
 import "dotenv/config";
 
+import { parseArgs } from "node:util";
+
 import prisma from "@/lib/prisma";
 import {
   calculateOverallStats,
@@ -7,20 +9,32 @@ import {
   getQualifyingDays,
 } from "@/lib/reading";
 
-/**
- * Helper to parse a date key (YYYY-MM-DD) into a Date object (UTC midnight).
- */
 const parseDateKey = (dateKey: string): Date => {
   const [year, month, day] = dateKey.split("-").map(Number);
-  return new Date(Date.UTC(year, month - 1, day));
+  return new Date(Date.UTC(year!, month! - 1, day!));
+};
+
+const datesMatch = (a: Date | null, b: Date | null): boolean => {
+  if (a === null && b === null) return true;
+  if (a === null || b === null) return false;
+  return a.getTime() === b.getTime();
 };
 
 const backfillUserStats = async (): Promise<void> => {
+  const { values } = parseArgs({
+    options: { apply: { type: "boolean", default: false } },
+  });
+  const apply = values.apply ?? false;
+
   const users = await prisma.user.findMany({
     select: { id: true, minimumPagesForStreak: true, timezone: true },
   });
 
-  console.log(`Backfilling stats for ${users.length} users...`);
+  const mode = apply ? "APPLYING" : "DRY RUN";
+  console.log(`\n=== User Stats Backfill — ${mode} ===\n`);
+  console.log(`Processing ${users.length} user(s)...`);
+
+  let changesCount = 0;
 
   for (const user of users) {
     const progress = await prisma.readingProgress.findMany({
@@ -30,32 +44,46 @@ const backfillUserStats = async (): Promise<void> => {
     });
 
     if (progress.length === 0) {
-      await prisma.userStats.upsert({
-        where: { userId: user.id },
-        create: { userId: user.id },
-        update: {},
-      });
-    } else {
-      const streakDetails = calculateStreakDetails(
-        progress,
-        user.minimumPagesForStreak,
-        user.timezone,
-      );
-      const { totalPagesRead, activeDays: totalActiveDays } =
-        calculateOverallStats(progress, user.timezone);
+      if (apply) {
+        await prisma.userStats.upsert({
+          where: { userId: user.id },
+          create: { userId: user.id },
+          update: {},
+        });
+        console.log(`  ${user.id}: no progress — stats record ensured`);
+      } else {
+        const stored = await prisma.userStats.findUnique({ where: { userId: user.id } });
+        if (!stored) {
+          console.log(`  ${user.id}: WOULD CREATE stats record (no progress, no existing record)`);
+          changesCount++;
+        } else {
+          console.log(`  ${user.id}: no progress, stats record already exists — skip`);
+        }
+      }
+      continue;
+    }
 
-      const lastReadingDate = progress[progress.length - 1].createdAt;
+    const streakDetails = calculateStreakDetails(
+      progress,
+      user.minimumPagesForStreak,
+      user.timezone,
+    );
+    const { totalPagesRead, activeDays: totalActiveDays } = calculateOverallStats(
+      progress,
+      user.timezone,
+    );
+    const lastReadingDate = progress[progress.length - 1]!.createdAt;
+    const qualifyingDayKeys = getQualifyingDays(
+      progress,
+      user.minimumPagesForStreak,
+      user.timezone,
+    );
+    const lastQualifyingReadingDate =
+      qualifyingDayKeys.length > 0
+        ? parseDateKey(qualifyingDayKeys[qualifyingDayKeys.length - 1]!)
+        : null;
 
-      const qualifyingDayKeys = getQualifyingDays(
-        progress,
-        user.minimumPagesForStreak,
-        user.timezone,
-      );
-      const lastQualifyingReadingDate =
-        qualifyingDayKeys.length > 0
-          ? parseDateKey(qualifyingDayKeys[qualifyingDayKeys.length - 1])
-          : null;
-
+    if (apply) {
       await prisma.userStats.upsert({
         where: { userId: user.id },
         create: {
@@ -76,10 +104,48 @@ const backfillUserStats = async (): Promise<void> => {
           totalActiveDays,
         },
       });
+      console.log(`  ${user.id}: updated`);
+    } else {
+      const stored = await prisma.userStats.findUnique({ where: { userId: user.id } });
+      const hasChanges =
+        !stored ||
+        stored.currentStreak !== streakDetails.currentStreak ||
+        stored.longestStreak !== streakDetails.longestStreak ||
+        stored.totalPagesRead !== totalPagesRead ||
+        stored.totalActiveDays !== totalActiveDays ||
+        !datesMatch(stored.lastReadingDate, lastReadingDate) ||
+        !datesMatch(stored.lastQualifyingReadingDate, lastQualifyingReadingDate);
+
+      if (hasChanges) {
+        console.log(`  ${user.id}: WOULD UPDATE`);
+        if (stored) {
+          if (stored.currentStreak !== streakDetails.currentStreak)
+            console.log(`    currentStreak: ${stored.currentStreak} → ${streakDetails.currentStreak}`);
+          if (stored.longestStreak !== streakDetails.longestStreak)
+            console.log(`    longestStreak: ${stored.longestStreak} → ${streakDetails.longestStreak}`);
+          if (stored.totalPagesRead !== totalPagesRead)
+            console.log(`    totalPagesRead: ${stored.totalPagesRead} → ${totalPagesRead}`);
+          if (stored.totalActiveDays !== totalActiveDays)
+            console.log(`    totalActiveDays: ${stored.totalActiveDays} → ${totalActiveDays}`);
+        }
+        changesCount++;
+      } else {
+        console.log(`  ${user.id}: up to date — skip`);
+      }
     }
-    console.log(`Backfilled user ${user.id}`);
   }
-  console.log("Backfill complete");
+
+  if (apply) {
+    console.log("\nBackfill complete.");
+  } else {
+    if (changesCount === 0) {
+      console.log("\nAll user stats are up to date.");
+    } else {
+      console.log(`\n${changesCount} user(s) have outdated stats.`);
+      console.log("Run with --apply to write changes.");
+    }
+    console.log(`MAINTENANCE_RESULT: changes=${changesCount}`);
+  }
 };
 
 backfillUserStats()

@@ -137,9 +137,6 @@ function printResults(results: Results, apply: boolean): void {
   }
 
   console.log(`\nALREADY ENRICHED — SKIP (${results.alreadyEnriched.length})`);
-  for (const { calibreBook } of results.alreadyEnriched) {
-    console.log(`  • ${formatBook(calibreBook)}`);
-  }
 
   console.log(`\nNOT FOUND IN BOOKSHELF (${results.notInBookshelf.length})`);
   for (const book of results.notInBookshelf) {
@@ -184,6 +181,10 @@ function printResults(results: Results, apply: boolean): void {
 
   if (!apply && results.toUpdate.length > 0) {
     console.log("\nRun with --apply to write changes.");
+  }
+
+  if (!apply) {
+    console.log(`MAINTENANCE_RESULT: changes=${results.toUpdate.length}`);
   }
 }
 

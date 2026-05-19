@@ -24,7 +24,8 @@
     "sync:calibre": "tsx scripts/sync-calibre.ts",
     "backfill:sort-fields": "tsx scripts/backfill-sort-fields.ts",
     "seed:dev": "tsx scripts/seed-dev-user.ts",
-    "backfill:page-count": "tsx scripts/backfill-page-count.ts"
+    "backfill:page-count": "tsx scripts/backfill-page-count.ts",
+    "maintenance": "tsx scripts/maintenance.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.80.0",

@@ -21,6 +21,7 @@ const main = async (): Promise<void> => {
 
   if (uploadThingFiles.length === 0) {
     console.log("No files in UploadThing, exiting.");
+    if (isDryRun) console.log("MAINTENANCE_RESULT: changes=0");
     return;
   }
 
@@ -50,6 +51,7 @@ const main = async (): Promise<void> => {
 
   if (orphanedFiles.length === 0) {
     console.log("No orphaned files found, exiting.");
+    if (isDryRun) console.log("MAINTENANCE_RESULT: changes=0");
     return;
   }
 
@@ -57,6 +59,7 @@ const main = async (): Promise<void> => {
 
   if (isDryRun) {
     console.log("Dry run complete. Run with --delete to remove those files.");
+    console.log(`MAINTENANCE_RESULT: changes=${orphanedFiles.length}`);
   } else {
     console.log("Deleting orphaned files...");
     const keysToDelete = orphanedFiles.map((f) => f.key);
@@ -66,13 +69,14 @@ const main = async (): Promise<void> => {
       console.log(`Deleted ${result.deletedCount} files successfully.`);
     } catch (error) {
       console.error("Error deleting files:", error);
-      process.exit(1);
+      throw error;
     }
   }
-  process.exit(0);
 };
 
-main().catch((error) => {
-  console.error("Script failed:", error);
-  process.exit(1);
-});
+main()
+  .then(() => process.exit(0))
+  .catch((error) => {
+    console.error("Script failed:", error);
+    process.exit(1);
+  });

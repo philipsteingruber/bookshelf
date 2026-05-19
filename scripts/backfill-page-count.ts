@@ -147,6 +147,7 @@ async function main(): Promise<void> {
 
     if (!apply) {
       console.log("\nRun with --apply to write changes.");
+      console.log(`MAINTENANCE_RESULT: changes=${matches.length}`);
       return;
     }
 

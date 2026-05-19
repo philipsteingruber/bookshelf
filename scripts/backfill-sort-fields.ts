@@ -21,6 +21,7 @@ async function main(): Promise<void> {
 
   if (stale.length === 0) {
     console.log("All sort fields are up to date.");
+    console.log("MAINTENANCE_RESULT: changes=0");
     return;
   }
 
@@ -42,6 +43,7 @@ async function main(): Promise<void> {
 
   if (!apply) {
     console.log("\nRun with --apply to write changes.");
+    console.log(`MAINTENANCE_RESULT: changes=${stale.length}`);
     return;
   }
 
