@@ -47,6 +47,12 @@ const SCRIPTS: ScriptDef[] = [
     applyCmd: "pnpm enrich:goodreads-url -- --apply",
     note: "Requires Calibre library to be accessible",
   },
+  {
+    name: "Consolidate Calibre Tags",
+    file: "scripts/consolidate-tags.ts",
+    applyCmd: "pwsh -File E:\\cwa\\Cleanup\\consolidate_tags.ps1",
+    note: "Stops and restarts the CWA Docker container",
+  },
 ];
 
 interface RunResult {

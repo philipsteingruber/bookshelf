@@ -25,6 +25,7 @@
     "backfill:sort-fields": "tsx scripts/backfill-sort-fields.ts",
     "seed:dev": "tsx scripts/seed-dev-user.ts",
     "backfill:page-count": "tsx scripts/backfill-page-count.ts",
+    "consolidate:tags": "tsx scripts/consolidate-tags.ts",
     "maintenance": "tsx scripts/maintenance.ts"
   },
   "dependencies": {
