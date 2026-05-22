@@ -4,9 +4,6 @@
 
 @custom-variant dark (&:is(.dark *));
 
-@import "uploadthing/tw/v4";
-@source "../../node_modules/@uploadthing/react/dist";
-
 @theme inline {
   /* Custom breakpoint to match use-breakpoint.ts (1440p and up) */
   --breakpoint-2xl: 2560px;
