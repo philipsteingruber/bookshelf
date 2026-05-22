@@ -8,7 +8,6 @@ import ReactMarkdown from "react-markdown";
 
 import BookCoverFallback from "@/components/books/book-cover-fallback";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { useImageError } from "@/hooks/ui";
 import { cn } from "@/lib/utils";
 
@@ -150,14 +149,6 @@ export const RecommendationCard = ({ recommendation }: RecommendationCardProps):
           >
             {recommendation.reason}
           </ReactMarkdown>
-        </div>
-        <div className="flex w-full items-center justify-between">
-          <Link
-            href={`https://annas-archive.gl/search?index=&page=1&sort=smallest&ext=epub&src=zlib&lang=en&display=&q=${encodeURIComponent(recommendation.title)}+${encodeURIComponent(recommendation.author)}`}
-            target="_blank"
-          >
-            <Button size={"sm"}>Download</Button>
-          </Link>
         </div>
       </div>
     </div>
