@@ -107,4 +107,19 @@ describe("RecommendationCard", () => {
     expect(screen.queryByAltText("Cover of The Name of the Wind")).not.toBeInTheDocument();
     expect(screen.getAllByText("The Name of the Wind")).toHaveLength(2);
   });
+
+  it("renders 'In your library' badge when inLibrary is true", () => {
+    render(<RecommendationCard recommendation={makeBook({ inLibrary: true })} />);
+    expect(screen.getByText("In your library")).toBeInTheDocument();
+  });
+
+  it("does not render 'In your library' badge when inLibrary is false", () => {
+    render(<RecommendationCard recommendation={makeBook({ inLibrary: false })} />);
+    expect(screen.queryByText("In your library")).not.toBeInTheDocument();
+  });
+
+  it("does not render 'In your library' badge when inLibrary is absent", () => {
+    render(<RecommendationCard recommendation={makeBook()} />);
+    expect(screen.queryByText("In your library")).not.toBeInTheDocument();
+  });
 });

@@ -270,6 +270,84 @@ describe("recommendationsRouter", () => {
       expect(lastMessage.content).toContain("Dune");
     });
 
+    // --- Library splitting ---
+
+    it("sets inLibrary: true on recommendations whose titles match owned-unread books", async () => {
+      const { caller } = createMockCaller(recommendationsRouter, { mockDb });
+
+      vi.mocked(mockDb.book.findMany)
+        .mockResolvedValueOnce([]) // readBooks
+        .mockResolvedValueOnce([createFakeBook({ title: "Book A", author: "Author A", status: "TO_READ" })]);
+
+      mockMessagesCreate
+        .mockResolvedValueOnce(makeClassifyResponse("recommendation"))
+        .mockResolvedValueOnce(makeRecommendResponse());
+
+      const result = await caller.chat({
+        prompt: "What should I read next?",
+        includeHistory: false,
+        priorMessages: [],
+      });
+
+      expect(result.type).toBe("recommendations");
+      if (result.type !== "recommendations") return;
+      const bookA = result.books.find((b) => b.title === "Book A");
+      expect(bookA?.inLibrary).toBe(true);
+      const bookB = result.books.find((b) => b.title === "Book B");
+      expect(bookB?.inLibrary).toBe(false);
+    });
+
+    it("does not retry when a recommended book is an owned-unread (TO_READ) book", async () => {
+      const { caller } = createMockCaller(recommendationsRouter, { mockDb });
+
+      vi.mocked(mockDb.book.findMany)
+        .mockResolvedValueOnce([]) // readBooks
+        .mockResolvedValueOnce([createFakeBook({ title: "Book A", author: "Author A", status: "TO_READ" })]);
+
+      mockMessagesCreate
+        .mockResolvedValueOnce(makeClassifyResponse("recommendation"))
+        .mockResolvedValueOnce(makeRecommendResponse());
+
+      const result = await caller.chat({
+        prompt: "What should I read next?",
+        includeHistory: false,
+        priorMessages: [],
+      });
+
+      expect(result.type).toBe("recommendations");
+      if (result.type !== "recommendations") return;
+      expect(result.retried).toBe(false);
+      expect(mockMessagesCreate).toHaveBeenCalledTimes(2);
+    });
+
+    it("retries when a recommended book matches a DNF book", async () => {
+      const { caller } = createMockCaller(recommendationsRouter, { mockDb });
+
+      vi.mocked(mockDb.book.findMany)
+        .mockResolvedValueOnce([]) // readBooks
+        .mockResolvedValueOnce([createFakeBook({ title: "Book A", author: "Author A", status: "DNF" })]);
+
+      const replacementBooks = [
+        { title: "Book F", author: "Author F", reason: "Reason F", type: "safe" },
+        ...DEFAULT_BOOKS.slice(1),
+      ];
+
+      mockMessagesCreate
+        .mockResolvedValueOnce(makeClassifyResponse("recommendation"))
+        .mockResolvedValueOnce(makeRecommendResponse())
+        .mockResolvedValueOnce(makeRecommendResponse(replacementBooks));
+
+      const result = await caller.chat({
+        prompt: "Recommend me a book",
+        includeHistory: false,
+        priorMessages: [],
+      });
+
+      expect(result.type).toBe("recommendations");
+      if (result.type !== "recommendations") return;
+      expect(result.retried).toBe(true);
+    });
+
     // --- Error paths ---
 
     it("throws INTERNAL_SERVER_ERROR when classification call fails", async () => {

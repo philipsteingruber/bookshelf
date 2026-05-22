@@ -19,6 +19,7 @@ export type RecommendationBook = {
   type?: "safe" | "standard" | "stretch" | "risky";
   coverUrl: string | null;
   pageCount: number | null;
+  inLibrary?: boolean;
 };
 
 type StyleConfig = {
@@ -105,6 +106,14 @@ export const RecommendationCard = ({ recommendation }: RecommendationCardProps):
         >
           {badgeConfig?.label ?? "placeholder"}
         </Badge>
+        {recommendation.inLibrary && (
+          <Badge
+            variant="secondary"
+            className="self-start rounded px-1.5 py-0.5 text-[0.65rem] font-semibold tracking-wide uppercase"
+          >
+            In your library
+          </Badge>
+        )}
         <Link
           href={goodreadsUrl}
           target="_blank"

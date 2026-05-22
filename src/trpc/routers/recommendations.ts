@@ -31,7 +31,9 @@ Series guidance: Strongly prefer recommending the first book in a series. If you
 
 Publication date: Strongly prefer books published after 2000. Only recommend older books when they are exceptionally well-suited to the user's tastes or nothing more recent fills that niche.
 
-Do not recommend any book already in the user's library.
+Two sets of library context may be provided:
+- Excluded books (already read, currently reading, or did not finish) — never recommend these.
+- Owned unread books (in the library but not yet started) — you may recommend these; note in the reason that the user already owns it. At least one recommendation must be a book not currently in the user's library.
 
 blurb is 2–3 sentences: a conversational intro summarizing your reasoning across the set and how the recommendations fulfill the request.`;
 
@@ -50,7 +52,9 @@ Series guidance: Strongly prefer recommending the first book in a series. If you
 
 Publication date: Strongly prefer books published after 2000. Only recommend older books when they are exceptionally well-suited to the user's request or nothing more recent fills that niche.
 
-The user's library is provided solely to exclude those titles from your response — do not use it to infer their tastes, genres, or preferences.
+Two sets of library context may be provided:
+- Excluded books (already read, currently reading, or did not finish) — never recommend these.
+- Owned unread books (in the library but not yet started) — you may recommend these; note in the reason that the user already owns it. Do not use owned unread books to infer tastes or preferences. At least one recommendation must be a book not currently in the user's library.
 
 blurb is 2–3 sentences: a conversational intro summarizing your reasoning across the set and how the recommendations fulfil the request.`;
 
@@ -68,7 +72,7 @@ Each included book must have a reason that explains specifically why it is relev
 
 Book titles must be exact published titles. Never invent or approximate a title.
 
-The reading history is the signal for personalizing your answer. The library list is provided solely to exclude those titles — do not use it as an additional taste signal beyond what the reading history already tells you.`;
+The reading history is the signal for personalizing your answer. Excluded books and owned unread books are provided as library context — do not use them as additional taste signals beyond what the reading history already tells you.`;
 
 const ANSWER_SYSTEM_PROMPT_NO_HISTORY = `You are a knowledgeable book assistant. Answer the user's question about books conversationally and helpfully.
 
@@ -78,7 +82,7 @@ Each included book must have a reason that explains specifically why it is relev
 
 Book titles must be exact published titles. Never invent or approximate a title.
 
-The user's library is provided solely to exclude those titles from your response — do not use it to infer their tastes, genres, or preferences.`;
+Library context (excluded and owned unread books) is provided solely to avoid recommending titles the user already has — do not use it to infer their tastes, genres, or preferences.`;
 
 // --- Tools ---
 
@@ -417,18 +421,40 @@ export const recommendationsRouter = createTRPCRouter({
         }),
         ctx.db.book.findMany({
           where: { userId: ctx.currentUser.id },
-          select: { title: true, author: true },
+          select: { title: true, author: true, status: true },
         }),
       ]);
       fetchHistoryTimer.end({ readCount: readBooks.length, totalCount: allBooks.length });
 
-      const readBooksContext = readBooks.map((b) => `- ${b.title} by ${b.author} ${ratingStars(b.rating)}`).join("\n");
-      const allBooksContext = allBooks.map((b) => `${b.title} by ${b.author}`).join(", ");
+      const excludedStatuses: ReadStatus[] = [ReadStatus.READ, ReadStatus.READING, ReadStatus.DNF];
+      const ownedUnreadStatuses: ReadStatus[] = [ReadStatus.TO_READ, ReadStatus.READ_NEXT];
 
-      const userMessage =
-        input.includeHistory && readBooksContext
-          ? `My reading history (highest rated first):\n${readBooksContext}\n\nBooks already in my library (do not recommend these):\n${allBooksContext}\n\n---\n${input.prompt}`
-          : `Books already in my library (do not recommend these): ${allBooksContext}\n\n---\n${input.prompt}`;
+      const excludedBooks = allBooks.filter((b) => excludedStatuses.includes(b.status));
+      const ownedUnreadBooks = allBooks.filter((b) => ownedUnreadStatuses.includes(b.status));
+
+      const excludedSet = new Set(excludedBooks.map((b) => b.title.trim().toLowerCase()));
+      const ownedUnreadSet = new Set(ownedUnreadBooks.map((b) => b.title.trim().toLowerCase()));
+
+      const readBooksContext = readBooks.map((b) => `- ${b.title} by ${b.author} ${ratingStars(b.rating)}`).join("\n");
+      const excludedContext = excludedBooks.map((b) => `${b.title} by ${b.author}`).join(", ");
+      const ownedUnreadContext = ownedUnreadBooks.map((b) => `${b.title} by ${b.author}`).join(", ");
+
+      const messageParts: string[] = [];
+      if (input.includeHistory && readBooksContext) {
+        messageParts.push(`My reading history (highest rated first):\n${readBooksContext}`);
+      }
+      if (excludedContext) {
+        messageParts.push(
+          `Books to exclude (already read, currently reading, or DNF — do not recommend these):\n${excludedContext}`,
+        );
+      }
+      if (ownedUnreadContext) {
+        messageParts.push(
+          `Books already in your library but not yet read (you may recommend these — note in the reason that the user already owns it):\n${ownedUnreadContext}`,
+        );
+      }
+      messageParts.push(`---\n${input.prompt}`);
+      const userMessage = messageParts.join("\n\n");
 
       const conversationMessages: Anthropic.MessageParam[] = [
         ...input.priorMessages,
@@ -441,15 +467,13 @@ export const recommendationsRouter = createTRPCRouter({
       const answerSystemPrompt = input.includeHistory ? ANSWER_SYSTEM_PROMPT : ANSWER_SYSTEM_PROMPT_NO_HISTORY;
 
       if (intent === "recommendation") {
-        const allBooksSet = new Set(allBooks.map((b) => b.title.trim().toLowerCase()));
-
         let claudeResponse = await callRecommendations(conversationMessages, recommendSystemPrompt, ctx.logger);
         let parsed = parseRecommendResponse(claudeResponse, ctx.logger);
 
-        // Duplicate detection + retry
+        // Retry if Claude recommended an excluded book
         const duplicates: string[] = [];
         for (const book of parsed.data.books) {
-          if (allBooksSet.has(book.title.trim().toLowerCase())) {
+          if (excludedSet.has(book.title.trim().toLowerCase())) {
             duplicates.push(book.title);
           }
         }
@@ -465,7 +489,7 @@ export const recommendationsRouter = createTRPCRouter({
                   { type: "tool_result", tool_use_id: parsed.toolId, content: "Received" },
                   {
                     type: "text",
-                    text: `The following books you recommended are already in my library and must not appear in your response: ${duplicates.join(", ")}. Return exactly 5 books total — replace each disallowed book with a different one not in my library, and keep all other recommendations unchanged.`,
+                    text: `The following books you recommended are in my excluded list and must not appear in your response: ${duplicates.join(", ")}. Return exactly 5 books total — replace each disallowed book with a different one, and keep all other recommendations unchanged.`,
                   },
                 ],
               },
@@ -473,12 +497,17 @@ export const recommendationsRouter = createTRPCRouter({
             recommendSystemPrompt,
             ctx.logger,
           );
-          parsed = parseRecommendResponse(claudeResponse, ctx.logger, allBooksSet);
+          parsed = parseRecommendResponse(claudeResponse, ctx.logger, excludedSet);
         }
+
+        const booksWithLibraryFlag = parsed.data.books.map((b) => ({
+          ...b,
+          inLibrary: ownedUnreadSet.has(b.title.trim().toLowerCase()),
+        }));
 
         const enrichTimer = performanceLogger("Google Books: Enrich recommendations", 5000, ctx.logger);
         enrichTimer.start();
-        const enrichedBooks = await enrichBooks(parsed.data.books, ctx.logger);
+        const enrichedBooks = await enrichBooks(booksWithLibraryFlag, ctx.logger);
         enrichTimer.end({ count: enrichedBooks.length });
 
         ctx.logger.info({ bookCount: enrichedBooks.length }, "Recommendations generated successfully");
