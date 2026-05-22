@@ -2,9 +2,9 @@ import "dotenv/config";
 
 import { parseArgs } from "node:util";
 
-import { UTApi } from "uploadthing/server";
+import { put } from "@vercel/blob";
 
-import { isUploadThingUrl } from "@/lib/common";
+import { isBlobUrl } from "@/lib/common";
 import prisma from "@/lib/prisma";
 
 const backfillCoverUrls = async (): Promise<void> => {
@@ -13,15 +13,13 @@ const backfillCoverUrls = async (): Promise<void> => {
   });
   const apply = values.apply ?? false;
 
-  const utApi = new UTApi();
-
   const books = await prisma.book.findMany({
     where: { coverUrl: { not: null } },
     select: { id: true, title: true, coverUrl: true },
   });
 
   const externalBooks = books.filter(
-    (book) => book.coverUrl && !isUploadThingUrl(book.coverUrl),
+    (book) => book.coverUrl && !isBlobUrl(book.coverUrl),
   );
 
   const mode = apply ? "APPLYING" : "DRY RUN";
@@ -41,7 +39,7 @@ const backfillCoverUrls = async (): Promise<void> => {
   }
 
   if (!apply) {
-    console.log("\nRun with --apply to migrate covers to UploadThing.");
+    console.log("\nRun with --apply to migrate covers to Vercel Blob.");
     console.log(`MAINTENANCE_RESULT: changes=${externalBooks.length}`);
     return;
   }
@@ -53,21 +51,39 @@ const backfillCoverUrls = async (): Promise<void> => {
     const url = book.coverUrl!;
     process.stdout.write(`  [${book.id}] "${book.title}" ... `);
 
-    const result = await utApi.uploadFilesFromUrl(url);
-
-    if (result.error || !result.data) {
-      console.log(`FAILED (${result.error?.message ?? "unknown error"})`);
+    let response: Response;
+    try {
+      response = await fetch(url);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.log(`FAILED (fetch: ${message})`);
       failed++;
       continue;
     }
 
-    await prisma.book.update({
-      where: { id: book.id },
-      data: { coverUrl: result.data.ufsUrl },
-    });
+    const buffer = await response.arrayBuffer();
+    const contentType = response.headers.get("content-type") ?? "image/jpeg";
 
-    console.log(`OK → ${result.data.ufsUrl}`);
-    succeeded++;
+    try {
+      const blob = await put(`covers/${book.id}`, buffer, {
+        access: "public",
+        contentType,
+        addRandomSuffix: false,
+      });
+
+      await prisma.book.update({
+        where: { id: book.id },
+        data: { coverUrl: blob.url },
+      });
+
+      console.log(`OK → ${blob.url}`);
+      succeeded++;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.log(`FAILED (upload: ${message})`);
+      failed++;
+    }
   }
 
   console.log(`\nDone. ${succeeded} succeeded, ${failed} failed.`);

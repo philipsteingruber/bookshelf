@@ -14,17 +14,12 @@ import {
 
 import { bookRouter } from "./book";
 
-const { mockDeleteFiles } = vi.hoisted(() => ({ mockDeleteFiles: vi.fn() }));
-const mockUploadFilesFromUrl = vi.fn();
+const { mockDel } = vi.hoisted(() => ({ mockDel: vi.fn() }));
 
-vi.mock("uploadthing/server", () => {
-  return {
-    UTApi: class {
-      deleteFiles = mockDeleteFiles;
-      uploadFilesFromUrl = mockUploadFilesFromUrl;
-    },
-  };
-});
+vi.mock("@vercel/blob", () => ({
+  del: mockDel,
+  put: vi.fn(),
+}));
 
 describe("bookRouter", () => {
   describe("createBook", () => {
@@ -1092,7 +1087,7 @@ describe("bookRouter", () => {
 
   describe("deleteBook", () => {
     beforeEach(() => {
-      mockDeleteFiles.mockClear();
+      mockDel.mockClear();
       vi.clearAllMocks();
     });
 
@@ -1111,20 +1106,18 @@ describe("bookRouter", () => {
       });
     });
 
-    it("should delete associated cover image from UploadThing when book has cover", async () => {
+    it("should delete associated cover image from Vercel Blob when book has cover", async () => {
       const { mockDb, caller } = createMockCaller(bookRouter);
 
-      const fileKey = "abc123-cover.jpg";
-      const fakeBook = createFakeBook({
-        coverUrl: `https://utfs.io/f/${fileKey}`,
-      });
+      const coverUrl = "https://test.public.blob.vercel-storage.com/covers/123";
+      const fakeBook = createFakeBook({ coverUrl });
 
       vi.mocked(mockDb.book.findUnique).mockResolvedValue(fakeBook);
-      mockDeleteFiles.mockResolvedValue({ success: true });
+      mockDel.mockResolvedValue(undefined);
 
       await caller.deleteBook(fakeBook.id);
 
-      expect(mockDeleteFiles).toHaveBeenCalledWith(fileKey);
+      expect(mockDel).toHaveBeenCalledWith(coverUrl);
     });
 
     it("should throw NOT_FOUND when book doesn't exist", async () => {
@@ -1298,27 +1291,25 @@ describe("bookRouter", () => {
       });
     });
 
-    it("should delete old cover from UploadThing when cover URL changes", async () => {
+    it("should delete old cover from Vercel Blob when cover URL changes", async () => {
       const { mockDb, caller } = createMockCaller(bookRouter);
 
-      const oldFileKey = "old-cover-key.jpg";
-      const fakeBook = createFakeBook({
-        coverUrl: `https://utfs.io/f/${oldFileKey}`,
-      });
+      const oldCoverUrl = "https://test.public.blob.vercel-storage.com/covers/old";
+      const fakeBook = createFakeBook({ coverUrl: oldCoverUrl });
 
-      const newCoverUrl = "https://utfs.io/f/new-cover-key.jpg";
+      const newCoverUrl = "https://test.public.blob.vercel-storage.com/covers/new";
       const updatedBook = createFakeBook({ coverUrl: newCoverUrl });
 
       vi.mocked(mockDb.book.findUnique).mockResolvedValue(fakeBook);
       vi.mocked(mockDb.book.update).mockResolvedValue(updatedBook);
-      mockDeleteFiles.mockResolvedValue({ success: true });
+      mockDel.mockResolvedValue(undefined);
 
       await caller.updateBook({
         bookId: fakeBook.id,
         data: { coverUrl: newCoverUrl },
       });
 
-      expect(mockDeleteFiles).toHaveBeenCalledWith(oldFileKey);
+      expect(mockDel).toHaveBeenCalledWith(oldCoverUrl);
     });
 
     it("should throw NOT_FOUND when book doesn't exist", async () => {

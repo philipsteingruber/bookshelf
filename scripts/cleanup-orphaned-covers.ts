@@ -1,26 +1,29 @@
 import "dotenv/config";
 
-import { UTApi } from "uploadthing/server";
+import { del, list } from "@vercel/blob";
 
-import { extractFileKeyFromUrl } from "@/lib/common";
 import prisma from "@/lib/prisma";
-
-const utApi = new UTApi();
 
 const main = async (): Promise<void> => {
   const isDryRun = !process.argv.includes("--delete");
 
-  console.log("=== Cleaning Up Orphaned Covers From UploadThing ===");
+  console.log("=== Cleaning Up Orphaned Covers From Vercel Blob ===");
   console.log(
     `Mode: ${isDryRun ? "DRY RUN (use --delete to actually delete)" : "DELETE"}\n`,
   );
 
-  console.log("Fetching files from UploadThing...");
-  const { files: uploadThingFiles } = await utApi.listFiles();
-  console.log(`Found ${uploadThingFiles.length} files in UploadThing\n`);
+  console.log("Fetching files from Vercel Blob...");
+  const blobFiles = [];
+  let cursor: string | undefined;
+  do {
+    const result = await list({ prefix: "covers/", cursor, limit: 1000 });
+    blobFiles.push(...result.blobs);
+    cursor = result.hasMore ? result.cursor : undefined;
+  } while (cursor);
+  console.log(`Found ${blobFiles.length} files in Vercel Blob\n`);
 
-  if (uploadThingFiles.length === 0) {
-    console.log("No files in UploadThing, exiting.");
+  if (blobFiles.length === 0) {
+    console.log("No files in Vercel Blob, exiting.");
     if (isDryRun) console.log("MAINTENANCE_RESULT: changes=0");
     return;
   }
@@ -32,22 +35,13 @@ const main = async (): Promise<void> => {
   });
   console.log(`Found ${booksWithCovers.length} books with covers\n`);
 
-  const databaseFileKeys = new Set<string>();
-  booksWithCovers.forEach((book) => {
-    if (book.coverUrl) {
-      const key = extractFileKeyFromUrl(book.coverUrl);
-      if (key) {
-        databaseFileKeys.add(key);
-      }
-    }
-  });
-  console.log(
-    `Extracted ${databaseFileKeys.size} unique file keys from database\n`,
+  const databaseUrls = new Set<string>(
+    booksWithCovers
+      .map((book) => book.coverUrl)
+      .filter((url): url is string => url !== null),
   );
 
-  const orphanedFiles = uploadThingFiles.filter(
-    (file) => !databaseFileKeys.has(file.key),
-  );
+  const orphanedFiles = blobFiles.filter((blob) => !databaseUrls.has(blob.url));
 
   if (orphanedFiles.length === 0) {
     console.log("No orphaned files found, exiting.");
@@ -56,17 +50,19 @@ const main = async (): Promise<void> => {
   }
 
   console.log(`Found ${orphanedFiles.length} orphaned files:\n`);
+  for (const file of orphanedFiles) {
+    console.log(`  • ${file.url}`);
+  }
 
   if (isDryRun) {
-    console.log("Dry run complete. Run with --delete to remove those files.");
+    console.log("\nDry run complete. Run with --delete to remove those files.");
     console.log(`MAINTENANCE_RESULT: changes=${orphanedFiles.length}`);
   } else {
-    console.log("Deleting orphaned files...");
-    const keysToDelete = orphanedFiles.map((f) => f.key);
-
+    console.log("\nDeleting orphaned files...");
+    const urlsToDelete = orphanedFiles.map((f) => f.url);
     try {
-      const result = await utApi.deleteFiles(keysToDelete);
-      console.log(`Deleted ${result.deletedCount} files successfully.`);
+      await del(urlsToDelete);
+      console.log(`Deleted ${orphanedFiles.length} files successfully.`);
     } catch (error) {
       console.error("Error deleting files:", error);
       throw error;

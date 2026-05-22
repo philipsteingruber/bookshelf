@@ -22,8 +22,8 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Spinner } from "@/components/ui/spinner";
-import { useUploadThing } from "@/components/uploadthing";
 import { handleTRPCError, handleUploadError } from "@/lib/common";
+import { useCoverUpload } from "@/hooks/upload";
 import { estimateKepubPageCount } from "@/lib/book";
 import { createFormSchema } from "@/lib/schemas/book";
 import type { BookWithSeries } from "@/lib/types/book";
@@ -33,8 +33,8 @@ export const EditBookForm = ({ book }: { book: BookWithSeries }): React.ReactEle
   const [coverValue, setCoverValue] = useState<CoverValue>({ type: "unchanged" });
   const [isProcessingKepub, setIsProcessingKepub] = useState<boolean>(false);
 
-  const { startUpload, isUploading } = useUploadThing("imageUploader", {
-    onUploadError: (error) => {
+  const { startUpload, isUploading } = useCoverUpload({
+    onError: (error) => {
       handleUploadError(error, "Cover upload");
     },
   });
@@ -75,12 +75,12 @@ export const EditBookForm = ({ book }: { book: BookWithSeries }): React.ReactEle
     let coverUrl: string | undefined;
 
     if (coverValue.type === "file") {
-      const uploadResults = await startUpload([coverValue.file]);
-      if (!uploadResults?.length) {
+      const uploadResult = await startUpload(coverValue.file);
+      if (!uploadResult) {
         handleUploadError(new Error("Failed to upload cover. Try again."));
         return;
       }
-      coverUrl = uploadResults[0].ufsUrl;
+      coverUrl = uploadResult.url;
     } else if (coverValue.type === "url") {
       coverUrl = coverValue.url;
     } else if (coverValue.type === "removed") {

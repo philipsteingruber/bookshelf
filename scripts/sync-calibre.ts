@@ -4,7 +4,7 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { parseArgs } from "node:util";
 
-import { UTApi } from "uploadthing/server";
+import { put } from "@vercel/blob";
 
 import type { ReadStatus } from "@/generated/prisma/enums";
 import { createAuthorSort, createTitleSort, estimateKepubPageCount, upsertSeries } from "@/lib/book";
@@ -304,18 +304,12 @@ function printApplySummary(
 async function uploadCover(coverPath: string | null): Promise<string | null> {
   if (!coverPath || !existsSync(coverPath)) return null;
   try {
-    const utapi = new UTApi();
     const buffer = readFileSync(coverPath);
-    const file = new File([buffer], "cover.jpg", { type: "image/jpeg" });
-    const { data, error } = await utapi.uploadFiles(file);
-    if (error) {
-      console.error(
-        `  ⚠ Cover upload failed for ${path.basename(path.dirname(coverPath))}:`,
-        error.message,
-      );
-      return null;
-    }
-    return data?.ufsUrl ?? null;
+    const blob = await put(`covers/${Date.now()}`, buffer, {
+      access: "public",
+      contentType: "image/jpeg",
+    });
+    return blob.url;
   } catch (err) {
     console.error(
       `  ⚠ Cover upload failed for ${path.basename(path.dirname(coverPath))}:`,
