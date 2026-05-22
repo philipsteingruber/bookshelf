@@ -10,8 +10,8 @@ import type z from "zod";
 
 import CoverSection, { type CoverValue } from "@/components/books/create-form/form-sections/cover-section";
 import GoodreadsImportPanel from "@/components/books/create-form/goodreads-import-panel";
-import { useUploadThing } from "@/components/uploadthing";
 import { handleTRPCError, handleUploadError } from "@/lib/common";
+import { useCoverUpload } from "@/hooks/upload";
 import { estimateKepubPageCount } from "@/lib/book";
 import { createBookInputSchema } from "@/lib/schemas/book";
 import type { ScrapeData } from "@/lib/types";
@@ -40,8 +40,8 @@ const CreateBookForm = (): React.ReactElement => {
     useState<boolean>(false);
   const [isProcessingKepub, setIsProcessingKepub] = useState<boolean>(false);
 
-  const { startUpload, isUploading } = useUploadThing("imageUploader", {
-    onUploadError: (error) => {
+  const { startUpload, isUploading } = useCoverUpload({
+    onError: (error) => {
       handleUploadError(error, "Cover upload");
     },
   });
@@ -126,13 +126,9 @@ const CreateBookForm = (): React.ReactElement => {
     let coverUrl = "";
 
     if (coverValue.type === "file") {
-      try {
-        const uploadResult = await startUpload([coverValue.file]);
-        if (!uploadResult?.length) return;
-        coverUrl = uploadResult[0].ufsUrl;
-      } catch {
-        return;
-      }
+      const uploadResult = await startUpload(coverValue.file);
+      if (!uploadResult) return;
+      coverUrl = uploadResult.url;
     } else if (coverValue.type === "url") {
       coverUrl = coverValue.url;
     }

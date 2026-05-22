@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { subWeeks } from "date-fns";
-import { UTApi } from "uploadthing/server";
+import { del } from "@vercel/blob";
 import z from "zod";
 
 import { Prisma } from "@/generated/prisma/client";
@@ -13,7 +13,7 @@ import {
   toOrderBy,
   upsertSeries,
 } from "@/lib/book";
-import { extractFileKeyFromUrl, isUploadThingUrl, uploadCoverFromUrl } from "@/lib/common";
+import { isBlobUrl, uploadCoverFromUrl } from "@/lib/common";
 import { performanceLogger } from "@/lib/common/logger";
 import { VALIDATION_LIMITS } from "@/lib/constants";
 import { createBookInputSchema, createFormSchema } from "@/lib/schemas/book";
@@ -131,12 +131,12 @@ export const bookRouter = createTRPCRouter({
       }
     }
 
-    // Upload external cover URL to UploadThing so all covers share one domain
+    // Upload external cover URL to Vercel Blob so all covers share one domain
     let coverUrl = input.coverUrl || null;
-    if (coverUrl && !isUploadThingUrl(coverUrl)) {
-      ctx.logger.info({ url: coverUrl }, "Uploading external cover URL to UploadThing");
+    if (coverUrl && !isBlobUrl(coverUrl)) {
+      ctx.logger.info({ url: coverUrl }, "Uploading external cover URL to Vercel Blob");
       coverUrl = await uploadCoverFromUrl(coverUrl);
-      ctx.logger.info({ ufsUrl: coverUrl }, "External cover uploaded to UploadThing");
+      ctx.logger.info({ blobUrl: coverUrl }, "External cover uploaded to Vercel Blob");
     }
 
     // Upsert series if provided
@@ -322,16 +322,12 @@ export const bookRouter = createTRPCRouter({
       await cleanupOrphanedSeries(ctx.db, book.seriesId);
     }
 
-    if (book.coverUrl) {
-      const fileKey = extractFileKeyFromUrl(book.coverUrl);
-      if (fileKey) {
-        try {
-          const utApi = new UTApi();
-          await utApi.deleteFiles(fileKey);
-          ctx.logger.info({ fileKey, bookId }, "Cover image deleted from UploadThing");
-        } catch (error) {
-          ctx.logger.error({ fileKey, bookId, error }, "Failed to delete cover from UploadThing");
-        }
+    if (book.coverUrl && isBlobUrl(book.coverUrl)) {
+      try {
+        await del(book.coverUrl);
+        ctx.logger.info({ url: book.coverUrl, bookId }, "Cover image deleted from Vercel Blob");
+      } catch (error) {
+        ctx.logger.error({ url: book.coverUrl, bookId, error }, "Failed to delete cover from Vercel Blob");
       }
     }
 
@@ -389,31 +385,26 @@ export const bookRouter = createTRPCRouter({
         }
       }
 
-      // Upload external cover URL to UploadThing so all covers share one domain
+      // Upload external cover URL to Vercel Blob so all covers share one domain
       let resolvedCoverUrl = data.coverUrl;
-      if (resolvedCoverUrl && !isUploadThingUrl(resolvedCoverUrl)) {
-        ctx.logger.info({ url: resolvedCoverUrl, bookId: input.bookId }, "Uploading external cover URL to UploadThing");
+      if (resolvedCoverUrl && !isBlobUrl(resolvedCoverUrl)) {
+        ctx.logger.info({ url: resolvedCoverUrl, bookId: input.bookId }, "Uploading external cover URL to Vercel Blob");
         resolvedCoverUrl = await uploadCoverFromUrl(resolvedCoverUrl);
-        ctx.logger.info({ ufsUrl: resolvedCoverUrl, bookId: input.bookId }, "External cover uploaded to UploadThing");
+        ctx.logger.info({ blobUrl: resolvedCoverUrl, bookId: input.bookId }, "External cover uploaded to Vercel Blob");
       }
 
-      if (book.coverUrl && resolvedCoverUrl !== undefined && resolvedCoverUrl !== book.coverUrl) {
-        const fileKeyToDelete = extractFileKeyFromUrl(book.coverUrl);
-        const utAPI = new UTApi();
-
-        if (fileKeyToDelete) {
-          try {
-            await utAPI.deleteFiles(fileKeyToDelete);
-            ctx.logger.info(
-              { fileKey: fileKeyToDelete, bookId: input.bookId },
-              "Old cover image deleted from UploadThing",
-            );
-          } catch (error) {
-            ctx.logger.warn(
-              { error, fileKey: fileKeyToDelete, bookId: input.bookId },
-              "Failed to delete old cover from UploadThing",
-            );
-          }
+      if (book.coverUrl && isBlobUrl(book.coverUrl) && resolvedCoverUrl !== undefined && resolvedCoverUrl !== book.coverUrl) {
+        try {
+          await del(book.coverUrl);
+          ctx.logger.info(
+            { url: book.coverUrl, bookId: input.bookId },
+            "Old cover image deleted from Vercel Blob",
+          );
+        } catch (error) {
+          ctx.logger.warn(
+            { error, url: book.coverUrl, bookId: input.bookId },
+            "Failed to delete old cover from Vercel Blob",
+          );
         }
       }
 

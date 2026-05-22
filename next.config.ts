@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       new URL("https://3k01dt1q3i.ufs.sh/**/*"),
+      new URL("https://9ostrido5oryl0p5.public.blob.vercel-storage.com/**/*"),
       {
         protocol: "https",
         hostname: "books.google.com",
