@@ -11,7 +11,6 @@ vi.mock("@/env", () => ({
     DATABASE_URL: "postgresql://test:test@localhost:5432/test",
     CLERK_SECRET_KEY: "test_clerk_secret",
     CLERK_WEBHOOK_SIGNING_SECRET: "test_webhook_secret",
-    UPLOADTHING_TOKEN: "test_uploadthing_token",
     SCRAPFLY_API_KEY: "test_scrapfly_key",
     ANTHROPIC_API_KEY: "test_anthropic_key",
     BETTERSTACK_TOKEN: undefined,

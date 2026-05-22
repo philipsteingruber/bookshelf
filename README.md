@@ -28,7 +28,7 @@ A full-stack web application for tracking your personal reading journey, built w
 - **Database:** PostgreSQL with Prisma ORM
 - **Authentication:** Clerk
 - **Styling:** Tailwind CSS 4 with ShadCN UI components
-- **File Upload:** UploadThing
+- **File Storage:** Vercel Blob
 - **Form Management:** React Hook Form with Zod validation
 - **State Management:** TanStack React Query
 - **Charts:** Recharts
@@ -198,7 +198,7 @@ updatedAt                 DateTime
 - pnpm (package manager)
 - PostgreSQL database
 - Clerk account for authentication
-- UploadThing account for file uploads
+- Vercel project (for Vercel Blob file storage)
 
 ### Environment Variables
 
@@ -207,7 +207,7 @@ DATABASE_URL="postgresql://..."
 CLERK_SECRET_KEY="..."
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="..."
 CLERK_WEBHOOK_SIGNING_SECRET="..."
-UPLOADTHING_TOKEN="..."
+BLOB_READ_WRITE_TOKEN="..."
 ```
 
 ### Installation
@@ -263,8 +263,9 @@ pnpm backfill:cover-urls        # Backfill missing cover URLs
 
 # Maintenance / enrichment
 pnpm maintenance                # Run all maintenance tasks (orchestrator with dry-run support)
-pnpm cleanup:covers             # Remove orphaned cover images from UploadThing
+pnpm cleanup:covers             # Remove orphaned cover images from Vercel Blob
 pnpm enrich:goodreads-url       # Enrich books with GoodReads URLs
+pnpm consolidate:tags           # Consolidate duplicate Calibre tags
 
 # Development utilities
 pnpm seed:dev                   # Seed a local dev user
@@ -279,13 +280,16 @@ pnpm preflight                  # Run preflight checks
 src/
 ├── app/                    # Next.js App Router pages
 │   ├── layout.tsx          # Root layout with providers
-│   ├── page.tsx            # Landing/redirect page
+│   ├── (landing)/          # Unauthenticated landing page
 │   ├── (authed)/           # Authenticated routes
-│   │   ├── dashboard/      # Dashboard pages
-│   │   └── books/          # Book management pages
+│   │   ├── dashboard/      # Dashboard page
+│   │   ├── books/          # Book management pages
+│   │   ├── series/         # Series overview page
+│   │   ├── recommendations/ # AI book recommendations page
+│   │   └── history/        # Reading history page
 │   └── api/                # API routes
 │       ├── trpc/           # tRPC API handler
-│       ├── uploadthing/    # File upload endpoints
+│       ├── upload/         # Vercel Blob upload handler
 │       └── webhooks/       # Clerk webhook handler
 ├── components/             # React components
 │   ├── ui/                 # Base UI components (ShadCN/Radix)
@@ -293,24 +297,26 @@ src/
 │   ├── dashboard/          # Dashboard components
 │   └── layout/             # Layout components (header, etc.)
 ├── hooks/                  # Custom React hooks
-│   ├── use-books.ts        # Books data fetching
-│   ├── use-book.ts         # Single book fetching
-│   ├── use-reading-stats.ts # Reading statistics
-│   └── use-reading-history.ts # Progress history
+│   ├── book/               # Book data fetching hooks
+│   ├── reading/            # Reading stats and goal hooks
+│   ├── ui/                 # UI utility hooks (mobile, breakpoint, etc.)
+│   └── upload/             # Cover upload hooks
 ├── trpc/                   # tRPC setup and routers
 │   ├── client.tsx          # tRPC client configuration
 │   ├── server.tsx          # tRPC server caller
 │   ├── init.ts             # tRPC initialization
 │   └── routers/            # API route handlers
 ├── lib/                    # Utilities and helpers
+│   ├── book/               # Book utilities (sorting, series, EPUB page count)
+│   ├── reading/            # Reading utilities (stats, streaks, goals, charts)
+│   ├── common/             # Shared utilities (logger, error handler, cover utils)
+│   ├── export/             # Export logic
+│   ├── import/             # Import logic (JSON and CSV)
+│   ├── user-stats/         # User stats computation
+│   ├── schemas/            # Zod validation schemas
+│   ├── types/              # Shared TypeScript types
 │   ├── prisma.ts           # Prisma client instance
-│   ├── logger.ts           # Pino logger configuration
-│   ├── error-handler.ts    # Centralized error handling
-│   ├── book-utils.ts       # Book sorting utilities
-│   ├── reading-stats-utils.ts # Statistics calculations
-│   ├── reading-goal-utils.ts  # Goal progress utilities
-│   └── goodreads-scraper.ts   # GoodReads data extraction
-├── schemas/                # Zod validation schemas
+│   └── goodreads-scraper.ts # GoodReads data extraction
 └── generated/prisma/       # Generated Prisma client
 ```
 
@@ -338,7 +344,7 @@ Built with modern web technologies:
 - [Clerk](https://clerk.com/) - Authentication and user management
 - [shadcn/ui](https://ui.shadcn.com/) - Beautifully designed components
 - [Tailwind CSS](https://tailwindcss.com/) - Utility-first CSS framework
-- [UploadThing](https://uploadthing.com/) - File uploads made easy
+- [Vercel Blob](https://vercel.com/docs/storage/vercel-blob) - File storage
 - [Vitest](https://vitest.dev/) - Fast unit testing framework
 - [Pino](https://getpino.io/) - Fast and low overhead logging
 - [Logtail](https://betterstack.com/logtail) - Remote log draining and search

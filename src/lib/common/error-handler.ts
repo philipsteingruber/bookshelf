@@ -73,7 +73,7 @@ export const handleTRPCError = (
 };
 
 /**
- * Centralized upload error handler for file uploads (UploadThing)
+ * Centralized upload error handler for file uploads
  * @param error - The upload error
  * @param context - Optional context string (e.g., "Cover upload")
  */
