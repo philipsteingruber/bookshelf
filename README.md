@@ -276,7 +276,7 @@ pnpm preflight                  # Run preflight checks
 
 ## Project Structure
 
-```Typescript
+```typescript
 src/
 ├── app/                    # Next.js App Router pages
 │   ├── layout.tsx          # Root layout with providers
