@@ -305,7 +305,7 @@ function printResults(
     console.log(`Would create:    ${pad(results.toCreate.length)}`);
     console.log(`Would update:    ${pad(bookUpdatesWithStatus.length)}`);
     console.log(`Would log:       ${pad(results.progressUpdates.length)}`);
-    console.log(`Would update metadata:${pad(results.metadataUpdates.length)}`);
+    console.log(`Would update meta:     ${pad(results.metadataUpdates.length)}`);
     if (results.progressSkips.length > 0) {
       console.log(`Skipped (no change):  ${pad(results.progressSkips.length)}`);
     }
