@@ -78,6 +78,19 @@ interface SyncResults {
   noGoodreadsId: CalibreBookSync[];
 }
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function formatBook(
+  title: string,
+  author: string,
+  seriesName: string | null,
+  seriesIndex: number | null,
+): string {
+  const series =
+    seriesName !== null && seriesIndex !== null ? ` [${seriesName} #${seriesIndex}]` : "";
+  return `${title} — ${author}${series}`;
+}
+
 // ─── Matching ─────────────────────────────────────────────────────────────────
 
 function computeResults(
@@ -207,17 +220,6 @@ async function computePageCounts(
 
 // ─── Output ───────────────────────────────────────────────────────────────────
 
-function formatBook(
-  title: string,
-  author: string,
-  seriesName: string | null,
-  seriesIndex: number | null,
-): string {
-  const series =
-    seriesName !== null && seriesIndex !== null ? ` [${seriesName} #${seriesIndex}]` : "";
-  return `${title} — ${author}${series}`;
-}
-
 function printResults(
   results: SyncResults,
   apply: boolean,
@@ -250,6 +252,15 @@ function printResults(
       `  • ${formatBook(bookshelfBook.title, bookshelfBook.author, calibreBook.seriesName, calibreBook.seriesIndex)}`,
     );
     console.log(`    ${bookshelfBook.status} → ${newStatus}${finished}`);
+  }
+
+  const metadataLabel = apply ? "UPDATED METADATA" : "WOULD UPDATE METADATA";
+  console.log(`\n${metadataLabel} (${results.metadataUpdates.length})`);
+  for (const { bookshelfBook, newIsbn, newPublishedYear, newSummary } of results.metadataUpdates) {
+    console.log(`  • ${formatBook(bookshelfBook.title, bookshelfBook.author, null, null)}`);
+    if (newIsbn !== null) console.log(`    ISBN: ${newIsbn}`);
+    if (newPublishedYear !== null) console.log(`    Year: ${newPublishedYear}`);
+    if (newSummary !== null) console.log(`    Summary: ${newSummary.slice(0, 80)}…`);
   }
 
   const progressLabel = apply ? "LOGGED PROGRESS" : "WOULD LOG PROGRESS";
@@ -293,6 +304,7 @@ function printResults(
     console.log("\n=== Summary ===");
     console.log(`Would create:    ${pad(results.toCreate.length)}`);
     console.log(`Would update:    ${pad(bookUpdatesWithStatus.length)}`);
+    console.log(`Would update metadata: ${pad(results.metadataUpdates.length)}`);
     console.log(`Would log:       ${pad(results.progressUpdates.length)}`);
     if (results.progressSkips.length > 0) {
       console.log(`Skipped (no change):  ${pad(results.progressSkips.length)}`);
@@ -309,6 +321,7 @@ function printApplySummary(
   results: SyncResults,
   createErrors: string[],
   updateErrors: string[],
+  metadataErrors: string[],
   progressErrors: string[],
 ): void {
   const pad = (n: number) => String(n).padStart(3);
@@ -317,6 +330,7 @@ function printApplySummary(
   console.log("\n=== Summary ===");
   console.log(`Created:         ${pad(results.toCreate.length - createErrors.length)}`);
   console.log(`Updated status:  ${pad(bookUpdatesWithStatus.length - updateErrors.length)}`);
+  console.log(`Updated metadata: ${pad(results.metadataUpdates.length - metadataErrors.length)}`);
   console.log(`Logged progress: ${pad(results.progressUpdates.length - progressErrors.length)}`);
   if (results.progressSkips.length > 0) {
     console.log(`Skipped (no change):  ${pad(results.progressSkips.length)}`);
@@ -548,15 +562,16 @@ async function main(): Promise<void> {
     if (apply) {
       const createErrors = await applyCreates(results.toCreate, user.id, pageCountMap);
       const updateErrors = await applyBookUpdates(results.bookUpdates);
+      const metadataErrors = await applyMetadataUpdates(results.metadataUpdates);
       const progressErrors = await applyProgressUpdates(results.progressUpdates, user.id);
 
       if (results.progressUpdates.length > 0) {
         await recalculateAllUserStats(prisma, user);
       }
 
-      printApplySummary(results, createErrors, updateErrors, progressErrors);
+      printApplySummary(results, createErrors, updateErrors, metadataErrors, progressErrors);
 
-      const allErrors = [...createErrors, ...updateErrors, ...progressErrors];
+      const allErrors = [...createErrors, ...updateErrors, ...metadataErrors, ...progressErrors];
       if (allErrors.length > 0) {
         console.log(`\n=== Errors (${allErrors.length}) ===`);
         for (const msg of allErrors) {
