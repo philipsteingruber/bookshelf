@@ -9,6 +9,9 @@ export interface CalibreBookSync {
   seriesName: string | null;
   seriesIndex: number | null;
   goodreadsId: string | null;
+  isbn: string | null;
+  publishedYear: number | null;
+  summary: string | null;
   coverPath: string | null;
   bookFilePath: string | null;
   // CWA reading state (null if book not in CWA)
@@ -25,26 +28,32 @@ const CALIBRE_QUERY = `
   SELECT
     b.id,
     b.title,
-    MIN(a.name)    AS author,
-    s.name         AS series_name,
-    b.series_index AS series_index,
+    MIN(a.name)                AS author,
+    s.name                     AS series_name,
+    b.series_index             AS series_index,
     b.path,
     b.has_cover,
-    i.val          AS goodreads_id,
-    cc5.value      AS kobolastread,
-    cc23.value     AS datestarted,
-    cc29.value     AS dnf
+    i.val                      AS goodreads_id,
+    COALESCE(i13.val, i10.val) AS isbn,
+    b.pubdate                  AS pubdate,
+    cm.text                    AS description,
+    cc5.value                  AS kobolastread,
+    cc23.value                 AS datestarted,
+    cc29.value                 AS dnf
   FROM books b
   LEFT JOIN books_authors_link bal  ON b.id = bal.book
   LEFT JOIN authors a               ON bal.author = a.id
   LEFT JOIN books_series_link bsl   ON b.id = bsl.book
   LEFT JOIN series s                ON bsl.series = s.id
   LEFT JOIN identifiers i           ON b.id = i.book AND i.type = 'goodreads'
+  LEFT JOIN identifiers i13         ON b.id = i13.book AND i13.type = 'isbn13'
+  LEFT JOIN identifiers i10         ON b.id = i10.book AND i10.type = 'isbn'
+  LEFT JOIN comments    cm          ON cm.book = b.id
   LEFT JOIN custom_column_5  cc5    ON cc5.book  = b.id
   LEFT JOIN custom_column_23 cc23   ON cc23.book = b.id
   LEFT JOIN custom_column_29 cc29   ON cc29.book = b.id
   GROUP BY b.id, b.title, s.name, b.series_index, b.path, b.has_cover,
-           i.val, cc5.value, cc23.value, cc29.value
+           i.val, i13.val, i10.val, b.pubdate, cm.text, cc5.value, cc23.value, cc29.value
   ORDER BY b.title
 `;
 
@@ -57,6 +66,9 @@ interface CalibreRawRow {
   path: string;
   has_cover: number;
   goodreads_id: string | null;
+  isbn: string | null;
+  pubdate: string | null;
+  description: string | null;
   kobolastread: string | null;
   datestarted: string | null;
   dnf: number | null;
@@ -76,6 +88,26 @@ interface CwaReadRow {
 interface CwaProgressRow {
   book_id: number;
   progress_percent: number | null;
+}
+
+function stripHtml(html: string): string {
+  return html
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// Calibre stores "0101-01-01" as a placeholder for unknown publication dates.
+function extractYear(pubdate: string | null): number | null {
+  if (!pubdate) return null;
+  const year = parseInt(pubdate.slice(0, 4), 10);
+  return isNaN(year) || year < 100 ? null : year;
 }
 
 export function readCalibreSyncData(
@@ -131,6 +163,9 @@ export function readCalibreSyncData(
       seriesName: row.series_name,
       seriesIndex: row.series_index,
       goodreadsId: row.goodreads_id,
+      isbn: row.isbn ?? null,
+      publishedYear: extractYear(row.pubdate),
+      summary: row.description ? (stripHtml(row.description) || null) : null,
       coverPath:
         row.has_cover === 1 ? path.join(libraryRoot, row.path, "cover.jpg") : null,
       bookFilePath: fileByBookId.has(row.id)
