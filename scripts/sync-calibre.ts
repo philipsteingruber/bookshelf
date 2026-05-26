@@ -36,6 +36,9 @@ interface BookshelfBook {
   finishedAt: Date | null;
   series: { name: string } | null;
   seriesIndex: number | null;
+  isbn: string | null;
+  publishedYear: number | null;
+  summary: string | null;
 }
 
 interface BookUpdate {
@@ -57,11 +60,20 @@ interface ProgressSkip {
   bookshelfBook: BookshelfBook;
 }
 
+interface MetadataUpdate {
+  calibreBook: CalibreBookSync;
+  bookshelfBook: BookshelfBook;
+  newIsbn: string | null;
+  newPublishedYear: number | null;
+  newSummary: string | null;
+}
+
 interface SyncResults {
   toCreate: CalibreBookSync[];
   bookUpdates: BookUpdate[];
   progressUpdates: ProgressUpdate[];
   progressSkips: ProgressSkip[];
+  metadataUpdates: MetadataUpdate[];
   notInCalibre: BookshelfBook[];
   noGoodreadsId: CalibreBookSync[];
 }
@@ -83,6 +95,7 @@ function computeResults(
     bookUpdates: [],
     progressUpdates: [],
     progressSkips: [],
+    metadataUpdates: [],
     notInCalibre: [],
     noGoodreadsId: [],
   };
@@ -146,6 +159,21 @@ function computeResults(
       bookshelfBook.progress < 100
     ) {
       results.progressSkips.push({ calibreBook, bookshelfBook });
+    }
+
+    const newIsbn = bookshelfBook.isbn === null && calibreBook.isbn !== null ? calibreBook.isbn : null;
+    const newPublishedYear =
+      bookshelfBook.publishedYear === null && calibreBook.publishedYear !== null ? calibreBook.publishedYear : null;
+    const newSummary = bookshelfBook.summary === null && calibreBook.summary !== null ? calibreBook.summary : null;
+
+    if (newIsbn !== null || newPublishedYear !== null || newSummary !== null) {
+      results.metadataUpdates.push({
+        calibreBook,
+        bookshelfBook,
+        newIsbn,
+        newPublishedYear,
+        newSummary,
+      });
     }
   }
 
@@ -485,6 +513,9 @@ async function main(): Promise<void> {
         finishedAt: true,
         series: { select: { name: true } },
         seriesIndex: true,
+        isbn: true,
+        publishedYear: true,
+        summary: true,
       },
     });
     console.log(`Loaded ${bookshelfBooks.length} books from bookshelf`);
