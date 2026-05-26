@@ -177,7 +177,10 @@ function computeResults(
     const newIsbn = bookshelfBook.isbn === null && calibreBook.isbn !== null ? calibreBook.isbn : null;
     const newPublishedYear =
       bookshelfBook.publishedYear === null && calibreBook.publishedYear !== null ? calibreBook.publishedYear : null;
-    const newSummary = bookshelfBook.summary === null && calibreBook.summary !== null ? calibreBook.summary : null;
+    const newSummary =
+      calibreBook.summary !== null && bookshelfBook.summary !== calibreBook.summary
+        ? calibreBook.summary
+        : null;
 
     if (newIsbn !== null || newPublishedYear !== null || newSummary !== null) {
       results.metadataUpdates.push({
