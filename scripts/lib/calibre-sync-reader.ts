@@ -107,7 +107,7 @@ function stripHtml(html: string): string {
 function extractYear(pubdate: string | null): number | null {
   if (!pubdate) return null;
   const year = parseInt(pubdate.slice(0, 4), 10);
-  return isNaN(year) || year < 100 ? null : year;
+  return isNaN(year) || year < 1000 ? null : year;
 }
 
 export function readCalibreSyncData(
