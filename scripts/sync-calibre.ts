@@ -304,8 +304,8 @@ function printResults(
     console.log("\n=== Summary ===");
     console.log(`Would create:    ${pad(results.toCreate.length)}`);
     console.log(`Would update:    ${pad(bookUpdatesWithStatus.length)}`);
-    console.log(`Would update metadata: ${pad(results.metadataUpdates.length)}`);
     console.log(`Would log:       ${pad(results.progressUpdates.length)}`);
+    console.log(`Would update metadata:${pad(results.metadataUpdates.length)}`);
     if (results.progressSkips.length > 0) {
       console.log(`Skipped (no change):  ${pad(results.progressSkips.length)}`);
     }
@@ -330,8 +330,8 @@ function printApplySummary(
   console.log("\n=== Summary ===");
   console.log(`Created:         ${pad(results.toCreate.length - createErrors.length)}`);
   console.log(`Updated status:  ${pad(bookUpdatesWithStatus.length - updateErrors.length)}`);
-  console.log(`Updated metadata: ${pad(results.metadataUpdates.length - metadataErrors.length)}`);
   console.log(`Logged progress: ${pad(results.progressUpdates.length - progressErrors.length)}`);
+  console.log(`Updated metadata:     ${pad(results.metadataUpdates.length - metadataErrors.length)}`);
   if (results.progressSkips.length > 0) {
     console.log(`Skipped (no change):  ${pad(results.progressSkips.length)}`);
   }
