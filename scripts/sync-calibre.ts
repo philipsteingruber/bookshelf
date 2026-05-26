@@ -368,6 +368,9 @@ async function applyCreates(
           seriesId,
           seriesIndex: b.seriesIndex,
           goodreadsUrl: `${GOODREADS_BASE}/${b.goodreadsId}`,
+          isbn: b.isbn,
+          publishedYear: b.publishedYear,
+          summary: b.summary,
           coverUrl,
           pageCount: pageCountMap.get(b.calibreId) ?? null,
           status: derived,
@@ -408,6 +411,24 @@ async function applyBookUpdates(bookUpdates: BookUpdate[]): Promise<string[]> {
       await prisma.book.update({ where: { id: bookshelfBook.id }, data });
     } catch (err) {
       errors.push(`Failed to update "${bookshelfBook.title}": ${extractErrorMessage(err)}`);
+    }
+  }
+  return errors;
+}
+
+async function applyMetadataUpdates(metadataUpdates: MetadataUpdate[]): Promise<string[]> {
+  const errors: string[] = [];
+  for (const { bookshelfBook, newIsbn, newPublishedYear, newSummary } of metadataUpdates) {
+    try {
+      const data: { isbn?: string; publishedYear?: number; summary?: string } = {};
+      if (newIsbn !== null) data.isbn = newIsbn;
+      if (newPublishedYear !== null) data.publishedYear = newPublishedYear;
+      if (newSummary !== null) data.summary = newSummary;
+      await prisma.book.update({ where: { id: bookshelfBook.id }, data });
+    } catch (err) {
+      errors.push(
+        `Failed to update metadata for "${bookshelfBook.title}": ${extractErrorMessage(err)}`,
+      );
     }
   }
   return errors;
