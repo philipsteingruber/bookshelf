@@ -964,15 +964,17 @@ describe("bookRouter", () => {
   describe("getDashBoardBooks", () => {
     beforeEach(() => vi.clearAllMocks());
 
-    it("should return reading books ordered by updatedAt desc", async () => {
+    it("should return reading books sorted by latest reading progress", async () => {
       const { mockDb, caller } = createMockCaller(bookRouter);
 
+      const progressDate = new Date();
       const readingBook = createFakeBook({
         status: "READING",
         updatedAt: new Date(),
       });
+      const mockBook = { ...readingBook, readingProgresses: [{ createdAt: progressDate }] };
 
-      vi.mocked(mockDb.book.findMany).mockResolvedValue([readingBook]);
+      vi.mocked(mockDb.book.findMany).mockResolvedValue([mockBook]);
       vi.mocked(mockDb.book.count).mockResolvedValue(1);
 
       const result = await caller.getDashBoardBooks();
@@ -981,8 +983,13 @@ describe("bookRouter", () => {
       expect(mockDb.book.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({ status: "READING" }),
-          orderBy: { updatedAt: "desc" },
           take: 10,
+          include: expect.objectContaining({
+            readingProgresses: expect.objectContaining({
+              take: 1,
+              orderBy: { createdAt: "desc" },
+            }),
+          }),
         }),
       );
     });

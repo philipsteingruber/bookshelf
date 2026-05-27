@@ -18,6 +18,7 @@ import { performanceLogger } from "@/lib/common/logger";
 import { VALIDATION_LIMITS } from "@/lib/constants";
 import { createBookInputSchema, createFormSchema } from "@/lib/schemas/book";
 import { bookFiltersSchema } from "@/lib/schemas/book-filters";
+import type { BookWithSeries } from "@/lib/types/book";
 
 import { requireOwnedBook } from "../helpers";
 import { authedProcedure, createTRPCRouter } from "../init";
@@ -492,9 +493,11 @@ export const bookRouter = createTRPCRouter({
     const [readingBooks, readingBooksCount, readNextBooks, readNextBooksCount, recentlyReadBooks] = await Promise.all([
       ctx.db.book.findMany({
         where: { status: "READING", userId: ctx.currentUser.id },
-        orderBy: { updatedAt: "desc" },
         take: 10,
-        include: SERIES_INCLUDE,
+        include: {
+          ...SERIES_INCLUDE,
+          readingProgresses: { take: 1, orderBy: { createdAt: "desc" }, select: { createdAt: true } },
+        },
       }),
       ctx.db.book.count({
         where: { status: "READING", userId: ctx.currentUser.id },
@@ -522,8 +525,19 @@ export const bookRouter = createTRPCRouter({
       }),
     ]);
 
+    const sortedReadingBooks = [...readingBooks]
+      .sort((a, b) => {
+        const aDate = a.readingProgresses[0]?.createdAt ?? null;
+        const bDate = b.readingProgresses[0]?.createdAt ?? null;
+        if (aDate === null && bDate === null) return 0;
+        if (aDate === null) return 1;
+        if (bDate === null) return -1;
+        return bDate.getTime() - aDate.getTime();
+      })
+      .map(({ readingProgresses: _, ...book }) => book as BookWithSeries);
+
     return {
-      readingBooks,
+      readingBooks: sortedReadingBooks,
       readingBooksCount,
       readNextBooks,
       readNextBooksCount,
