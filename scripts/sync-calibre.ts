@@ -76,6 +76,7 @@ interface SyncResults {
   metadataUpdates: MetadataUpdate[];
   notInCalibre: BookshelfBook[];
   noGoodreadsId: CalibreBookSync[];
+  readNextRemovals: CalibreBookSync[];
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -111,6 +112,7 @@ function computeResults(
     metadataUpdates: [],
     notInCalibre: [],
     noGoodreadsId: [],
+    readNextRemovals: [],
   };
 
   for (const calibreBook of calibreBooks) {
@@ -133,6 +135,7 @@ function computeResults(
       calibreBook.readStatus,
       calibreBook.readPercent,
       calibreBook.dnf,
+      calibreBook.isReadNext,
     );
 
     const newStatus = shouldUpdateStatus(bookshelfBook.status, derived) ? derived : null;
@@ -195,6 +198,12 @@ function computeResults(
     if (!matchedIds.has(b.id)) results.notInCalibre.push(b);
   }
 
+  for (const calibreBook of calibreBooks) {
+    if (!calibreBook.isReadNext) continue;
+    const base = deriveStatus(calibreBook.readStatus, calibreBook.readPercent, calibreBook.dnf);
+    if (base !== "TO_READ") results.readNextRemovals.push(calibreBook);
+  }
+
   return results;
 }
 
@@ -232,7 +241,7 @@ function printResults(
   const createLabel = apply ? "CREATED" : "WOULD CREATE";
   console.log(`${createLabel} (${results.toCreate.length})`);
   for (const b of results.toCreate) {
-    const derived = deriveStatus(b.readStatus, b.readPercent, b.dnf);
+    const derived = deriveStatus(b.readStatus, b.readPercent, b.dnf, b.isReadNext);
     const pct = b.readPercent ? ` (${b.readPercent}%)` : "";
     const pages = pageCountMap.has(b.calibreId) ? ` | Pages: ${pageCountMap.get(b.calibreId)}` : "";
     const started = b.datestarted
@@ -288,6 +297,14 @@ function printResults(
     }
   }
 
+  const removeLabel = apply ? "REMOVED FROM CWA READ NEXT SHELF" : "WOULD REMOVE FROM CWA READ NEXT SHELF";
+  console.log(`\n${removeLabel} (${results.readNextRemovals.length})`);
+  for (const b of results.readNextRemovals) {
+    const base = deriveStatus(b.readStatus, b.readPercent, b.dnf);
+    console.log(`  • ${formatBook(b.title, b.author, b.seriesName, b.seriesIndex)}`);
+    console.log(`    Reason: ${base}`);
+  }
+
   console.log(`\nNOT IN CALIBRE (${results.notInCalibre.length})`);
   for (const b of results.notInCalibre) {
     console.log(`  • ${formatBook(b.title, b.author, b.series?.name ?? null, b.seriesIndex)}`);
@@ -303,10 +320,11 @@ function printResults(
   if (!apply) {
     const pad = (n: number) => String(n).padStart(3);
     console.log("\n=== Summary ===");
-    console.log(`Would create:    ${pad(results.toCreate.length)}`);
-    console.log(`Would update:    ${pad(bookUpdatesWithStatus.length)}`);
-    console.log(`Would log:       ${pad(results.progressUpdates.length)}`);
-    console.log(`Would update meta:     ${pad(results.metadataUpdates.length)}`);
+    console.log(`Would create:         ${pad(results.toCreate.length)}`);
+    console.log(`Would update:         ${pad(bookUpdatesWithStatus.length)}`);
+    console.log(`Would log:            ${pad(results.progressUpdates.length)}`);
+    console.log(`Would update meta:    ${pad(results.metadataUpdates.length)}`);
+    console.log(`Would remove from Read Next (CWA):  ${pad(results.readNextRemovals.length)}`);
     if (results.progressSkips.length > 0) {
       console.log(`Skipped (no change):  ${pad(results.progressSkips.length)}`);
     }
@@ -324,15 +342,17 @@ function printApplySummary(
   updateErrors: string[],
   metadataErrors: string[],
   progressErrors: string[],
+  readNextErrors: string[],
 ): void {
   const pad = (n: number) => String(n).padStart(3);
   const bookUpdatesWithStatus = results.bookUpdates.filter((u) => u.newStatus !== null);
 
   console.log("\n=== Summary ===");
-  console.log(`Created:         ${pad(results.toCreate.length - createErrors.length)}`);
-  console.log(`Updated status:  ${pad(bookUpdatesWithStatus.length - updateErrors.length)}`);
-  console.log(`Logged progress: ${pad(results.progressUpdates.length - progressErrors.length)}`);
+  console.log(`Created:              ${pad(results.toCreate.length - createErrors.length)}`);
+  console.log(`Updated status:       ${pad(bookUpdatesWithStatus.length - updateErrors.length)}`);
+  console.log(`Logged progress:      ${pad(results.progressUpdates.length - progressErrors.length)}`);
   console.log(`Updated metadata:     ${pad(results.metadataUpdates.length - metadataErrors.length)}`);
+  console.log(`Removed from Read Next (CWA):  ${pad(results.readNextRemovals.length - readNextErrors.length)}`);
   if (results.progressSkips.length > 0) {
     console.log(`Skipped (no change):  ${pad(results.progressSkips.length)}`);
   }
@@ -372,7 +392,7 @@ async function applyCreates(
     try {
       const coverUrl = await uploadCover(b.coverPath);
       const seriesId = b.seriesName ? await upsertSeries(prisma, b.seriesName, userId) : null;
-      const derived = deriveStatus(b.readStatus, b.readPercent, b.dnf);
+      const derived = deriveStatus(b.readStatus, b.readPercent, b.dnf, b.isReadNext);
 
       await prisma.book.create({
         data: {
@@ -478,6 +498,38 @@ async function applyProgressUpdates(
   return errors;
 }
 
+async function applyReadNextRemovals(
+  cwaDbPath: string,
+  books: CalibreBookSync[],
+): Promise<string[]> {
+  if (books.length === 0) return [];
+  const errors: string[] = [];
+  let db: import("better-sqlite3").Database | null = null;
+  try {
+    const Database = (await import("better-sqlite3")).default;
+    db = new Database(cwaDbPath);
+    const shelf = db
+      .prepare("SELECT id FROM shelf WHERE name = 'Read Next' LIMIT 1")
+      .get() as { id: number } | undefined;
+    if (!shelf) return [];
+    const del = db.prepare("DELETE FROM book_shelf_link WHERE shelf = ? AND book_id = ?");
+    for (const b of books) {
+      try {
+        del.run(shelf.id, b.calibreId);
+      } catch (err) {
+        errors.push(
+          `Failed to remove "${b.title}" from Read Next shelf: ${extractErrorMessage(err)}`,
+        );
+      }
+    }
+  } catch (err) {
+    errors.push(`Failed to open CWA database: ${extractErrorMessage(err)}`);
+  } finally {
+    db?.close();
+  }
+  return errors;
+}
+
 // ─── Entry point ──────────────────────────────────────────────────────────────
 
 async function main(): Promise<void> {
@@ -565,14 +617,15 @@ async function main(): Promise<void> {
       const updateErrors = await applyBookUpdates(results.bookUpdates);
       const metadataErrors = await applyMetadataUpdates(results.metadataUpdates);
       const progressErrors = await applyProgressUpdates(results.progressUpdates, user.id);
+      const readNextErrors = await applyReadNextRemovals(cwaDbPath, results.readNextRemovals);
 
       if (results.progressUpdates.length > 0) {
         await recalculateAllUserStats(prisma, user);
       }
 
-      printApplySummary(results, createErrors, updateErrors, metadataErrors, progressErrors);
+      printApplySummary(results, createErrors, updateErrors, metadataErrors, progressErrors, readNextErrors);
 
-      const allErrors = [...createErrors, ...updateErrors, ...metadataErrors, ...progressErrors];
+      const allErrors = [...createErrors, ...updateErrors, ...metadataErrors, ...progressErrors, ...readNextErrors];
       if (allErrors.length > 0) {
         console.log(`\n=== Errors (${allErrors.length}) ===`);
         for (const msg of allErrors) {

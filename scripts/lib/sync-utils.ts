@@ -16,11 +16,13 @@ export function deriveStatus(
   readStatus: number | null,
   koboreadpct: number | null,
   dnf: boolean,
+  isReadNext: boolean = false,
 ): ReadStatus {
   if (dnf) return "DNF";
   if (readStatus === 1 || koboreadpct === 100) return "READ";
   if (readStatus === 2 || (koboreadpct !== null && koboreadpct > 0 && koboreadpct < 100))
     return "READING";
+  if (isReadNext) return "READ_NEXT";
   return "TO_READ";
 }
 

@@ -22,6 +22,7 @@ export interface CalibreBookSync {
   kobolastread: Date | null;
   datestarted: Date | null;
   dnf: boolean;
+  isReadNext: boolean;
 }
 
 const CALIBRE_QUERY = `
@@ -146,6 +147,17 @@ export function readCalibreSyncData(
       }
     }
 
+    const readNextShelf = cwaDb
+      .prepare("SELECT id FROM shelf WHERE name = 'Read Next' LIMIT 1")
+      .get() as { id: number } | undefined;
+    const readNextBookIds = new Set<number>();
+    if (readNextShelf) {
+      const readNextRows = cwaDb
+        .prepare("SELECT book_id FROM book_shelf_link WHERE shelf = ?")
+        .all(readNextShelf.id) as { book_id: number }[];
+      for (const r of readNextRows) readNextBookIds.add(r.book_id);
+    }
+
     const dataRows = calibreDb
       .prepare("SELECT book, format, name FROM data WHERE format IN ('KEPUB', 'EPUB')")
       .all() as CalibreDataRow[];
@@ -181,6 +193,7 @@ export function readCalibreSyncData(
       kobolastread: row.kobolastread ? new Date(row.kobolastread) : null,
       datestarted: row.datestarted ? new Date(row.datestarted) : null,
       dnf: row.dnf === 1,
+      isReadNext: readNextBookIds.has(row.id),
     }));
   } finally {
     calibreDb.close();
