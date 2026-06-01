@@ -4,7 +4,7 @@ A full-stack web application for tracking your personal reading journey, built w
 
 ## Features
 
-- **Book Management** - Add, organize, and track your personal library with cover images, series info, and metadata
+- **Book Management** - Add, organize, and track your personal library with cover images, series info, metadata, and page count displayed on each book card
 - **Reading Progress** - Track your reading progress with page-based or percentage-based updates
 - **Reading Goals** - Set yearly reading goals with progress visualization and pace tracking
 - **Reading Statistics** - View pages read today, weekly totals, average reading pace, and reading streaks
@@ -12,7 +12,7 @@ A full-stack web application for tracking your personal reading journey, built w
 - **AI Recommendations** - Claude-powered book recommendations based on your reading history
 - **Import / Export** - Back up and restore your library as JSON or CSV
 - **GoodReads Integration** - Import book details directly from GoodReads URLs
-- **Calibre Sync** - Sync reading status, progress, and dates from a local Calibre/CWA library; automatically imports new books with cover art and estimated page count
+- **Calibre Sync** - Sync reading status (including Read Next shelf), progress, and dates from a local Calibre/CWA library; automatically imports new books with cover art and estimated page count; enriches existing books with metadata (ISBN, published year, summary) from Calibre
 - **EPUB Page Count** - Estimate page count from a local EPUB or KEPUB file when adding or editing a book, or automatically during Calibre sync
 - **Smart Sorting** - Sort by title, author, date added, or last updated with proper name handling (e.g., "Abnett, Dan" instead of "Dan Abnett")
 - **Search & Filter** - Search across title, author, series, and ISBN with status and rating filters
@@ -32,6 +32,8 @@ A full-stack web application for tracking your personal reading journey, built w
 - **Form Management:** React Hook Form with Zod validation
 - **State Management:** TanStack React Query
 - **Charts:** Recharts
+- **Animations:** Framer Motion
+- **Markdown:** react-markdown for rendering review/summary content
 - **Logging:** Pino with pino-pretty and Logtail for remote log draining
 - **URL State:** nuqs for type-safe URL query string management
 - **Testing:** Vitest with React Testing Library
@@ -352,3 +354,5 @@ Built with modern web technologies:
 - [Scrapfly](https://scrapfly.io/) - Web scraping for GoodReads data extraction
 - [TanStack Query](https://tanstack.com/query) - Powerful data synchronization
 - [Recharts](https://recharts.org/) - Composable charting library
+- [Framer Motion](https://www.framer.com/motion/) - Animation library for React
+- [react-markdown](https://github.com/remarkjs/react-markdown) - Markdown rendering in React
