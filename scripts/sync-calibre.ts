@@ -144,10 +144,8 @@ function computeResults(
         : null;
 
     const newFinishedAt =
-      bookshelfBook.finishedAt === null &&
-      effectiveStatus === "READ" &&
-      calibreBook.kobolastread !== null
-        ? calibreBook.kobolastread
+      bookshelfBook.finishedAt === null && effectiveStatus === "READ"
+        ? new Date()
         : null;
 
     if (newStatus !== null || newStartedAt !== null || newFinishedAt !== null) {
@@ -393,7 +391,7 @@ async function applyCreates(
           status: derived,
           progress: b.readPercent ?? 0,
           startedAt: b.datestarted,
-          finishedAt: derived === "READ" ? b.kobolastread : null,
+          finishedAt: derived === "READ" ? new Date() : null,
           userId,
         },
       });
