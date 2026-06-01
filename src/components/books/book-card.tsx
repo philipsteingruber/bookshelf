@@ -84,7 +84,14 @@ const BookCard = ({
                 )}
               </div>
             )}
-            {showStatusButton && <ReadStatusButton book={book} />}
+            {showStatusButton && (
+              <div className="flex items-center justify-between">
+                <ReadStatusButton book={book} />
+                <span className={cn("text-muted-foreground pr-2 font-serif text-sm font-light", !book.pageCount && "invisible")}>
+                  {book.pageCount} pages
+                </span>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
