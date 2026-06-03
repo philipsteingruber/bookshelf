@@ -26,6 +26,7 @@
     "seed:dev": "tsx scripts/seed-dev-user.ts",
     "backfill:page-count": "tsx scripts/backfill-page-count.ts",
     "consolidate:tags": "tsx scripts/consolidate-tags.ts",
+    "check:missing-goodreads-ids": "tsx scripts/check-missing-goodreads-ids.ts",
     "maintenance": "tsx scripts/maintenance.ts"
   },
   "dependencies": {
