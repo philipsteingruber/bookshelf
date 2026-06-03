@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { resolve } from "node:path";
 
-const SCRIPT = resolve("E:\\cwa\\Cleanup\\consolidate_tags.py");
+const SCRIPT = resolve("E:\\docker\\data\\cwa\\Cleanup\\consolidate_tags.py");
 
 function parseChanges(output: string): number {
   let total = 0;

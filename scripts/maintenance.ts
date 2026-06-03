@@ -50,7 +50,13 @@ const SCRIPTS: ScriptDef[] = [
   {
     name: "Consolidate Calibre Tags",
     file: "scripts/consolidate-tags.ts",
-    applyCmd: "pwsh -File E:\\cwa\\Cleanup\\consolidate_tags.ps1",
+    applyCmd: "pwsh -File E:\\docker\\data\\cwa\\Cleanup\\consolidate_tags.ps1",
+    note: "Stops and restarts the CWA Docker container",
+  },
+  {
+    name: "Check Missing Goodreads IDs",
+    file: "scripts/check-missing-goodreads-ids.ts",
+    applyCmd: "pnpm check:missing-goodreads-ids",
     note: "Stops and restarts the CWA Docker container",
   },
 ];
