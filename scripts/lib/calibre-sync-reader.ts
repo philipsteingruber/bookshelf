@@ -19,7 +19,6 @@ export interface CalibreBookSync {
   // KOReader progress from CWA (null if book hasn't been opened in KOReader)
   readPercent: number | null;
   // Calibre custom column data
-  kobolastread: Date | null;
   datestarted: Date | null;
   dnf: boolean;
   isReadNext: boolean;
@@ -38,7 +37,6 @@ const CALIBRE_QUERY = `
     i10.val                    AS isbn,
     b.pubdate                  AS pubdate,
     cm.text                    AS description,
-    cc5.value                  AS kobolastread,
     cc23.value                 AS datestarted,
     cc29.value                 AS dnf
   FROM books b
@@ -49,11 +47,10 @@ const CALIBRE_QUERY = `
   LEFT JOIN identifiers i           ON b.id = i.book AND i.type = 'goodreads'
   LEFT JOIN identifiers i10         ON b.id = i10.book AND i10.type = 'isbn'
   LEFT JOIN comments    cm          ON cm.book = b.id
-  LEFT JOIN custom_column_5  cc5    ON cc5.book  = b.id
   LEFT JOIN custom_column_23 cc23   ON cc23.book = b.id
   LEFT JOIN custom_column_29 cc29   ON cc29.book = b.id
   GROUP BY b.id, b.title, s.name, b.series_index, b.path, b.has_cover,
-           i.val, i10.val, b.pubdate, cm.text, cc5.value, cc23.value, cc29.value
+           i.val, i10.val, b.pubdate, cm.text, cc23.value, cc29.value
   ORDER BY b.title
 `;
 
@@ -69,7 +66,6 @@ interface CalibreRawRow {
   isbn: string | null;
   pubdate: string | null;
   description: string | null;
-  kobolastread: string | null;
   datestarted: string | null;
   dnf: number | null;
 }
@@ -189,7 +185,6 @@ export function readCalibreSyncData(
         : null,
       readStatus: cwaReadByBookId.get(row.id) ?? null,
       readPercent: cwaProgressByBookId.get(row.id) ?? null,
-      kobolastread: row.kobolastread ? new Date(row.kobolastread) : null,
       datestarted: row.datestarted ? new Date(row.datestarted) : null,
       dnf: row.dnf === 1,
       isReadNext: readNextBookIds.has(row.id),

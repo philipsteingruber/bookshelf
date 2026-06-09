@@ -242,7 +242,10 @@ function printResults(
   console.log(`\n=== Calibre Sync — ${mode} ===\n`);
 
   const createLabel = apply ? "CREATED" : "WOULD CREATE";
-  console.log(`${createLabel} (${results.toCreate.length})`);
+  const createdWithProgress = results.toCreate.filter((b) => (b.readPercent ?? 0) > 0).length;
+  const createdProgressSuffix =
+    createdWithProgress > 0 ? ` (${createdWithProgress} with progress logged)` : "";
+  console.log(`${createLabel} (${results.toCreate.length})${createdProgressSuffix}`);
   for (const b of results.toCreate) {
     const derived = deriveStatus(b.readStatus, b.readPercent, b.dnf, b.isReadNext);
     const pct = b.readPercent ? ` (${b.readPercent}%)` : "";
@@ -268,7 +271,11 @@ function printResults(
   }
 
   const metadataLabel = apply ? "UPDATED METADATA" : "WOULD UPDATE METADATA";
-  console.log(`\n${metadataLabel} (${results.metadataUpdates.length})`);
+  const renameCount = results.metadataUpdates.filter(
+    (u) => u.newTitle !== null || u.newAuthor !== null,
+  ).length;
+  const renameSuffix = renameCount > 0 ? ` (${renameCount} renames)` : "";
+  console.log(`\n${metadataLabel} (${results.metadataUpdates.length})${renameSuffix}`);
   for (const { bookshelfBook, newTitle, newAuthor, newIsbn, newPublishedYear, newSummary } of results.metadataUpdates) {
     console.log(`  • ${formatBook(bookshelfBook.title, bookshelfBook.author, null, null)}`);
     if (newTitle !== null) console.log(`    Title: "${bookshelfBook.title}" → "${newTitle}"`);
@@ -281,13 +288,10 @@ function printResults(
   const progressLabel = apply ? "LOGGED PROGRESS" : "WOULD LOG PROGRESS";
   console.log(`\n${progressLabel} (${results.progressUpdates.length})`);
   for (const { calibreBook, bookshelfBook, newProgress } of results.progressUpdates) {
-    const lastRead = calibreBook.kobolastread
-      ? calibreBook.kobolastread.toISOString().slice(0, 10)
-      : "unknown";
     console.log(
       `  • ${formatBook(bookshelfBook.title, bookshelfBook.author, calibreBook.seriesName, calibreBook.seriesIndex)}`,
     );
-    console.log(`    ${bookshelfBook.progress}% → ${newProgress}% (kobolastread: ${lastRead})`);
+    console.log(`    ${bookshelfBook.progress}% → ${newProgress}%`);
   }
 
   if (results.progressSkips.length > 0) {
@@ -386,33 +390,49 @@ async function applyCreates(
   toCreate: CalibreBookSync[],
   userId: string,
   pageCountMap: Map<number, number>,
-): Promise<string[]> {
+): Promise<{ errors: string[]; progressLogged: number }> {
   const errors: string[] = [];
+  let progressLogged = 0;
   for (const b of toCreate) {
     try {
       const coverUrl = await uploadCover(b.coverPath);
       const seriesId = b.seriesName ? await upsertSeries(prisma, b.seriesName, userId) : null;
       const derived = deriveStatus(b.readStatus, b.readPercent, b.dnf, b.isReadNext);
+      const initialProgress = b.readPercent ?? 0;
 
-      await prisma.book.create({
-        data: {
-          title: b.title,
-          titleSort: createTitleSort(b.title),
-          author: b.author,
-          authorSort: createAuthorSort(b.author),
-          seriesId,
-          seriesIndex: b.seriesIndex,
-          isbn: b.isbn,
-          publishedYear: b.publishedYear,
-          summary: b.summary,
-          coverUrl,
-          pageCount: pageCountMap.get(b.calibreId) ?? null,
-          status: derived,
-          progress: b.readPercent ?? 0,
-          startedAt: b.datestarted,
-          finishedAt: derived === "READ" ? new Date() : null,
-          userId,
-        },
+      await prisma.$transaction(async (tx) => {
+        const created = await tx.book.create({
+          data: {
+            title: b.title,
+            titleSort: createTitleSort(b.title),
+            author: b.author,
+            authorSort: createAuthorSort(b.author),
+            seriesId,
+            seriesIndex: b.seriesIndex,
+            isbn: b.isbn,
+            publishedYear: b.publishedYear,
+            summary: b.summary,
+            coverUrl,
+            pageCount: pageCountMap.get(b.calibreId) ?? null,
+            status: derived,
+            progress: initialProgress,
+            startedAt: b.datestarted,
+            finishedAt: derived === "READ" ? new Date() : null,
+            userId,
+          },
+        });
+
+        // Mirror the web UI's "log progress" action (createReadingProgressInstance):
+        // a book imported with real reading progress gets a ReadingProgress row,
+        // dated now exactly as the UI does, so it counts toward page/streak stats.
+        // Without it, an imported in-progress/finished book would be invisible to
+        // the ReadingProgress-derived stats.
+        if (initialProgress > 0) {
+          await tx.readingProgress.create({
+            data: { userId, bookId: created.id, progress: initialProgress },
+          });
+          progressLogged++;
+        }
       });
     } catch (err) {
       const prismaErr = err as { code?: string; meta?: { target?: string | string[] } };
@@ -430,7 +450,7 @@ async function applyCreates(
       );
     }
   }
-  return errors;
+  return { errors, progressLogged };
 }
 
 async function applyBookUpdates(bookUpdates: BookUpdate[]): Promise<string[]> {
@@ -579,6 +599,17 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
+  // Resolve the user before stopping the container. Any process.exit() here
+  // bypasses the finally block below, so all early exits must happen while the
+  // container is still running — once it's stopped, the finally is the only
+  // thing that brings it back.
+  const user = await prisma.user.findFirst({ where: { email: userEmail } });
+
+  if (!user) {
+    console.error(`Error: No bookshelf user found with email "${userEmail}"`);
+    process.exit(1);
+  }
+
   await stopContainer();
 
   let exitCode = 0;
@@ -587,13 +618,6 @@ async function main(): Promise<void> {
     console.log(`Reading CWA database from: ${cwaDbPath}`);
     const calibreBooks = readCalibreSyncData(calibreDbPath, cwaDbPath);
     console.log(`Loaded ${calibreBooks.length} books from Calibre`);
-
-    const user = await prisma.user.findFirst({ where: { email: userEmail } });
-
-    if (!user) {
-      console.error(`Error: No bookshelf user found with email "${userEmail}"`);
-      process.exit(1);
-    }
 
     console.log(`Syncing for user: ${user.email}`);
 
@@ -621,13 +645,17 @@ async function main(): Promise<void> {
     printResults(results, apply, pageCountMap);
 
     if (apply) {
-      const createErrors = await applyCreates(results.toCreate, user.id, pageCountMap);
+      const { errors: createErrors, progressLogged: createdProgressLogged } = await applyCreates(
+        results.toCreate,
+        user.id,
+        pageCountMap,
+      );
       const updateErrors = await applyBookUpdates(results.bookUpdates);
       const metadataErrors = await applyMetadataUpdates(results.metadataUpdates);
       const progressErrors = await applyProgressUpdates(results.progressUpdates, user.id);
       const readNextErrors = await applyReadNextRemovals(cwaDbPath, results.readNextRemovals);
 
-      if (results.progressUpdates.length > 0) {
+      if (results.progressUpdates.length > 0 || createdProgressLogged > 0) {
         await recalculateAllUserStats(prisma, user);
       }
 

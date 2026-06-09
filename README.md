@@ -251,7 +251,7 @@ pnpm test:ui          # Run tests with Vitest UI
 # Database
 pnpm prisma:studio    # Open Prisma Studio
 
-# Calibre / CWA sync (requires CWA container to be stopped first)
+# Calibre / CWA sync (stops the CWA container while reading, then always restarts it)
 pnpm sync:calibre               # Dry run — preview changes
 pnpm sync:calibre -- --apply    # Apply changes
 
