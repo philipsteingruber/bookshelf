@@ -11,15 +11,10 @@ import { createAuthorSort, createTitleSort, estimateKepubPageCount, upsertSeries
 import prisma from "@/lib/prisma";
 import { recalculateAllUserStats } from "@/lib/reading/stats-updates";
 
-import {
-  DEFAULT_CALIBRE_DB,
-  DEFAULT_CWA_DB,
-  extractErrorMessage,
-  GOODREADS_BASE,
-  normaliseGoodreadsUrl,
-} from "./lib/calibre-constants";
+import { DEFAULT_CALIBRE_DB, DEFAULT_CWA_DB, extractErrorMessage } from "./lib/calibre-constants";
 import { readCalibreSyncData, type CalibreBookSync } from "./lib/calibre-sync-reader";
 import { startContainer, stopContainer } from "./lib/docker";
+import { buildCompositeKey } from "./lib/normalizer";
 import { makeScriptParser } from "./lib/script-parser";
 import { deriveStatus, shouldLogProgress, shouldUpdateStatus } from "./lib/sync-utils";
 
@@ -31,7 +26,6 @@ interface BookshelfBook {
   author: string;
   status: ReadStatus;
   progress: number;
-  goodreadsUrl: string | null;
   startedAt: Date | null;
   finishedAt: Date | null;
   series: { name: string } | null;
@@ -75,7 +69,6 @@ interface SyncResults {
   progressSkips: ProgressSkip[];
   metadataUpdates: MetadataUpdate[];
   notInCalibre: BookshelfBook[];
-  noGoodreadsId: CalibreBookSync[];
   readNextRemovals: CalibreBookSync[];
 }
 
@@ -98,9 +91,11 @@ function computeResults(
   calibreBooks: CalibreBookSync[],
   bookshelfBooks: BookshelfBook[],
 ): SyncResults {
-  const bookshelfByUrl = new Map<string, BookshelfBook>();
+  const bookshelfByIsbn = new Map<string, BookshelfBook>();
+  const bookshelfByKey = new Map<string, BookshelfBook>();
   for (const b of bookshelfBooks) {
-    if (b.goodreadsUrl) bookshelfByUrl.set(normaliseGoodreadsUrl(b.goodreadsUrl), b);
+    if (b.isbn) bookshelfByIsbn.set(b.isbn, b);
+    bookshelfByKey.set(buildCompositeKey(b.title, b.author, b.series?.name ?? null, b.seriesIndex), b);
   }
 
   const matchedIds = new Set<number>();
@@ -111,18 +106,20 @@ function computeResults(
     progressSkips: [],
     metadataUpdates: [],
     notInCalibre: [],
-    noGoodreadsId: [],
     readNextRemovals: [],
   };
 
   for (const calibreBook of calibreBooks) {
-    if (!calibreBook.goodreadsId) {
-      results.noGoodreadsId.push(calibreBook);
-      continue;
-    }
-
-    const url = `${GOODREADS_BASE}/${calibreBook.goodreadsId}`;
-    const bookshelfBook = bookshelfByUrl.get(url);
+    const bookshelfBook =
+      (calibreBook.isbn ? bookshelfByIsbn.get(calibreBook.isbn) : undefined) ??
+      bookshelfByKey.get(
+        buildCompositeKey(
+          calibreBook.title,
+          calibreBook.author,
+          calibreBook.seriesName,
+          calibreBook.seriesIndex,
+        ),
+      );
 
     if (!bookshelfBook) {
       results.toCreate.push(calibreBook);
@@ -310,13 +307,6 @@ function printResults(
     console.log(`  • ${formatBook(b.title, b.author, b.series?.name ?? null, b.seriesIndex)}`);
   };
 
-  if (results.noGoodreadsId.length > 0) {
-    console.log(`\nNO GOODREADS ID — SKIPPED (${results.noGoodreadsId.length})`);
-    for (const b of results.noGoodreadsId) {
-      console.log(`  • ${b.title} — ${b.author}`);
-    }
-  }
-
   if (!apply) {
     const pad = (n: number) => String(n).padStart(3);
     console.log("\n=== Summary ===");
@@ -329,9 +319,6 @@ function printResults(
       console.log(`Skipped (no change):  ${pad(results.progressSkips.length)}`);
     }
     console.log(`Not in Calibre:       ${pad(results.notInCalibre.length)}`);
-    if (results.noGoodreadsId.length > 0) {
-      console.log(`No Goodreads ID:      ${pad(results.noGoodreadsId.length)}`);
-    }
     console.log("\nRun with --apply to write changes.");
   }
 }
@@ -357,9 +344,6 @@ function printApplySummary(
     console.log(`Skipped (no change):  ${pad(results.progressSkips.length)}`);
   }
   console.log(`Not in Calibre:       ${pad(results.notInCalibre.length)}`);
-  if (results.noGoodreadsId.length > 0) {
-    console.log(`No Goodreads ID:      ${pad(results.noGoodreadsId.length)}`);
-  }
 }
 
 // ─── Apply ────────────────────────────────────────────────────────────────────
@@ -402,7 +386,6 @@ async function applyCreates(
           authorSort: createAuthorSort(b.author),
           seriesId,
           seriesIndex: b.seriesIndex,
-          goodreadsUrl: `${GOODREADS_BASE}/${b.goodreadsId}`,
           isbn: b.isbn,
           publishedYear: b.publishedYear,
           summary: b.summary,
@@ -596,7 +579,6 @@ async function main(): Promise<void> {
         author: true,
         status: true,
         progress: true,
-        goodreadsUrl: true,
         startedAt: true,
         finishedAt: true,
         series: { select: { name: true } },

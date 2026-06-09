@@ -35,7 +35,7 @@ const CALIBRE_QUERY = `
     b.path,
     b.has_cover,
     i.val                      AS goodreads_id,
-    COALESCE(i13.val, i10.val) AS isbn,
+    i10.val                    AS isbn,
     b.pubdate                  AS pubdate,
     cm.text                    AS description,
     cc5.value                  AS kobolastread,
@@ -47,14 +47,13 @@ const CALIBRE_QUERY = `
   LEFT JOIN books_series_link bsl   ON b.id = bsl.book
   LEFT JOIN series s                ON bsl.series = s.id
   LEFT JOIN identifiers i           ON b.id = i.book AND i.type = 'goodreads'
-  LEFT JOIN identifiers i13         ON b.id = i13.book AND i13.type = 'isbn13'
   LEFT JOIN identifiers i10         ON b.id = i10.book AND i10.type = 'isbn'
   LEFT JOIN comments    cm          ON cm.book = b.id
   LEFT JOIN custom_column_5  cc5    ON cc5.book  = b.id
   LEFT JOIN custom_column_23 cc23   ON cc23.book = b.id
   LEFT JOIN custom_column_29 cc29   ON cc29.book = b.id
   GROUP BY b.id, b.title, s.name, b.series_index, b.path, b.has_cover,
-           i.val, i13.val, i10.val, b.pubdate, cm.text, cc5.value, cc23.value, cc29.value
+           i.val, i10.val, b.pubdate, cm.text, cc5.value, cc23.value, cc29.value
   ORDER BY b.title
 `;
 

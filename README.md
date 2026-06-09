@@ -12,7 +12,7 @@ A full-stack web application for tracking your personal reading journey, built w
 - **AI Recommendations** - Claude-powered book recommendations based on your reading history
 - **Import / Export** - Back up and restore your library as JSON or CSV
 - **GoodReads Integration** - Import book details directly from GoodReads URLs
-- **Calibre Sync** - Sync reading status (including Read Next shelf), progress, and dates from a local Calibre/CWA library; automatically imports new books with cover art and estimated page count; enriches existing books with metadata (ISBN, published year, summary) from Calibre
+- **Calibre Sync** - Sync reading status (including Read Next shelf), progress, and dates from a local Calibre/CWA library; matches books by ISBN with composite key (title + author + series) fallback; automatically imports new books with cover art and estimated page count; enriches existing books with metadata (ISBN, published year, summary) from Calibre
 - **EPUB Page Count** - Estimate page count from a local EPUB or KEPUB file when adding or editing a book, or automatically during Calibre sync
 - **Smart Sorting** - Sort by title, author, date added, or last updated with proper name handling (e.g., "Abnett, Dan" instead of "Dan Abnett")
 - **Search & Filter** - Search across title, author, series, and ISBN with status and rating filters
@@ -254,6 +254,10 @@ pnpm prisma:studio    # Open Prisma Studio
 # Calibre / CWA sync (requires CWA container to be stopped first)
 pnpm sync:calibre               # Dry run — preview changes
 pnpm sync:calibre -- --apply    # Apply changes
+
+# ISBN enrichment (backfill missing ISBNs into Calibre via OpenLibrary + Google Books)
+pnpm enrich:isbns               # Dry run — preview matches
+pnpm enrich:isbns -- --apply    # Write ISBNs to Calibre
 
 # Backfill scripts (one-off data migrations)
 pnpm backfill:page-count        # Dry run — populate pageCount from local EPUB/KEPUB files
