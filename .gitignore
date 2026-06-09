@@ -54,6 +54,7 @@ NUL
 .vscode/settings.json
 .vscode/tasks.json
 /.claude
+/.codex
 .husky/logs/
 /logs/
 /src/generated/
