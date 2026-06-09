@@ -57,6 +57,8 @@ interface ProgressSkip {
 interface MetadataUpdate {
   calibreBook: CalibreBookSync;
   bookshelfBook: BookshelfBook;
+  newTitle: string | null;
+  newAuthor: string | null;
   newIsbn: string | null;
   newPublishedYear: number | null;
   newSummary: string | null;
@@ -172,6 +174,8 @@ function computeResults(
       results.progressSkips.push({ calibreBook, bookshelfBook });
     }
 
+    const newTitle = calibreBook.title !== bookshelfBook.title ? calibreBook.title : null;
+    const newAuthor = calibreBook.author !== bookshelfBook.author ? calibreBook.author : null;
     const newIsbn = bookshelfBook.isbn === null && calibreBook.isbn !== null ? calibreBook.isbn : null;
     const newPublishedYear =
       bookshelfBook.publishedYear === null && calibreBook.publishedYear !== null ? calibreBook.publishedYear : null;
@@ -180,10 +184,12 @@ function computeResults(
         ? calibreBook.summary
         : null;
 
-    if (newIsbn !== null || newPublishedYear !== null || newSummary !== null) {
+    if (newTitle !== null || newAuthor !== null || newIsbn !== null || newPublishedYear !== null || newSummary !== null) {
       results.metadataUpdates.push({
         calibreBook,
         bookshelfBook,
+        newTitle,
+        newAuthor,
         newIsbn,
         newPublishedYear,
         newSummary,
@@ -263,8 +269,10 @@ function printResults(
 
   const metadataLabel = apply ? "UPDATED METADATA" : "WOULD UPDATE METADATA";
   console.log(`\n${metadataLabel} (${results.metadataUpdates.length})`);
-  for (const { bookshelfBook, newIsbn, newPublishedYear, newSummary } of results.metadataUpdates) {
+  for (const { bookshelfBook, newTitle, newAuthor, newIsbn, newPublishedYear, newSummary } of results.metadataUpdates) {
     console.log(`  • ${formatBook(bookshelfBook.title, bookshelfBook.author, null, null)}`);
+    if (newTitle !== null) console.log(`    Title: "${bookshelfBook.title}" → "${newTitle}"`);
+    if (newAuthor !== null) console.log(`    Author: "${bookshelfBook.author}" → "${newAuthor}"`);
     if (newIsbn !== null) console.log(`    ISBN: ${newIsbn}`);
     if (newPublishedYear !== null) console.log(`    Year: ${newPublishedYear}`);
     if (newSummary !== null) console.log(`    Summary: ${newSummary.slice(0, 80)}…`);
@@ -309,11 +317,15 @@ function printResults(
 
   if (!apply) {
     const pad = (n: number) => String(n).padStart(3);
+    const renameCount = results.metadataUpdates.filter(
+      (u) => u.newTitle !== null || u.newAuthor !== null,
+    ).length;
+    const renameSuffix = renameCount > 0 ? ` (${renameCount} renames)` : "";
     console.log("\n=== Summary ===");
     console.log(`Would create:         ${pad(results.toCreate.length)}`);
     console.log(`Would update:         ${pad(bookUpdatesWithStatus.length)}`);
     console.log(`Would log:            ${pad(results.progressUpdates.length)}`);
-    console.log(`Would update meta:    ${pad(results.metadataUpdates.length)}`);
+    console.log(`Would update meta:    ${pad(results.metadataUpdates.length)}${renameSuffix}`);
     console.log(`Would remove from Read Next (CWA):  ${pad(results.readNextRemovals.length)}`);
     if (results.progressSkips.length > 0) {
       console.log(`Skipped (no change):  ${pad(results.progressSkips.length)}`);
@@ -334,11 +346,15 @@ function printApplySummary(
   const pad = (n: number) => String(n).padStart(3);
   const bookUpdatesWithStatus = results.bookUpdates.filter((u) => u.newStatus !== null);
 
+  const renameCount = results.metadataUpdates.filter(
+    (u) => u.newTitle !== null || u.newAuthor !== null,
+  ).length;
+  const renameSuffix = renameCount > 0 ? ` (${renameCount} renames)` : "";
   console.log("\n=== Summary ===");
   console.log(`Created:              ${pad(results.toCreate.length - createErrors.length)}`);
   console.log(`Updated status:       ${pad(bookUpdatesWithStatus.length - updateErrors.length)}`);
   console.log(`Logged progress:      ${pad(results.progressUpdates.length - progressErrors.length)}`);
-  console.log(`Updated metadata:     ${pad(results.metadataUpdates.length - metadataErrors.length)}`);
+  console.log(`Updated metadata:     ${pad(results.metadataUpdates.length - metadataErrors.length)}${renameSuffix}`);
   console.log(`Removed from Read Next (CWA):  ${pad(results.readNextRemovals.length - readNextErrors.length)}`);
   if (results.progressSkips.length > 0) {
     console.log(`Skipped (no change):  ${pad(results.progressSkips.length)}`);
@@ -436,9 +452,19 @@ async function applyBookUpdates(bookUpdates: BookUpdate[]): Promise<string[]> {
 
 async function applyMetadataUpdates(metadataUpdates: MetadataUpdate[]): Promise<string[]> {
   const errors: string[] = [];
-  for (const { bookshelfBook, newIsbn, newPublishedYear, newSummary } of metadataUpdates) {
+  for (const { bookshelfBook, newTitle, newAuthor, newIsbn, newPublishedYear, newSummary } of metadataUpdates) {
     try {
-      const data: { isbn?: string; publishedYear?: number; summary?: string } = {};
+      const data: {
+        title?: string;
+        titleSort?: string;
+        author?: string;
+        authorSort?: string;
+        isbn?: string;
+        publishedYear?: number;
+        summary?: string;
+      } = {};
+      if (newTitle !== null) { data.title = newTitle; data.titleSort = createTitleSort(newTitle); }
+      if (newAuthor !== null) { data.author = newAuthor; data.authorSort = createAuthorSort(newAuthor); }
       if (newIsbn !== null) data.isbn = newIsbn;
       if (newPublishedYear !== null) data.publishedYear = newPublishedYear;
       if (newSummary !== null) data.summary = newSummary;
