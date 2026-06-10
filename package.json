@@ -28,6 +28,7 @@
     "backfill:page-count": "tsx scripts/backfill-page-count.ts",
     "consolidate:tags": "tsx scripts/consolidate-tags.ts",
     "check:missing-goodreads-ids": "tsx scripts/check-missing-goodreads-ids.ts",
+    "enrich:tags": "tsx scripts/enrich-tags.ts",
     "maintenance": "tsx scripts/maintenance.ts"
   },
   "dependencies": {

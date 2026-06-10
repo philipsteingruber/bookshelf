@@ -65,3 +65,7 @@ DOCKER_GUIDE.md
 .env.sentry-build-plugin
 
 temp-notes.txt
+
+# enrich-tags runtime artifacts
+scripts/enrich-tags-cache.txt
+scripts/enrich-tags-plan.json

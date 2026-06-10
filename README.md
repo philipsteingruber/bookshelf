@@ -271,6 +271,7 @@ pnpm backfill:cover-urls        # Backfill missing cover URLs
 pnpm maintenance                # Run all maintenance tasks (orchestrator with dry-run support)
 pnpm cleanup:covers             # Remove orphaned cover images from Vercel Blob
 pnpm enrich:goodreads-url       # Enrich books with GoodReads URLs
+pnpm enrich:tags                # Enrich Calibre books with canonical genre tags
 pnpm consolidate:tags           # Consolidate duplicate Calibre tags
 
 # Development utilities

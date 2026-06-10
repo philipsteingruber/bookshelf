@@ -311,6 +311,7 @@ function printResults(results: MatchResult[], apply: boolean): void {
 
 async function main(): Promise<void> {
   const { values } = parseArgs({
+    args: process.argv.slice(2).filter((a) => a !== "--"),
     options: {
       apply: { type: "boolean", default: false },
       "calibre-db": { type: "string", default: DEFAULT_CALIBRE_DB },

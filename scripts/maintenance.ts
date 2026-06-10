@@ -59,6 +59,12 @@ const SCRIPTS: ScriptDef[] = [
     applyCmd: "pnpm check:missing-goodreads-ids",
     note: "Stops and restarts the CWA Docker container",
   },
+  {
+    name: "Enrich Tags",
+    file: "scripts/enrich-tags.ts",
+    applyCmd: "pnpm enrich:tags -- --apply",
+    note: "Stops and restarts the CWA Docker container",
+  },
 ];
 
 interface RunResult {
