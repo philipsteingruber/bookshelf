@@ -49,4 +49,14 @@ describe("extractErrorMessage", () => {
     const err = new Error("   \n   \n   ");
     expect(typeof extractErrorMessage(err)).toBe("string");
   });
+
+  it("appends the cause message when the error has an Error cause", () => {
+    const err = new TypeError("fetch failed", { cause: new Error("getaddrinfo ENOTFOUND openlibrary.org") });
+    expect(extractErrorMessage(err)).toBe("fetch failed: getaddrinfo ENOTFOUND openlibrary.org");
+  });
+
+  it("does not append a cause when the cause is not an Error", () => {
+    const err = Object.assign(new Error("something"), { cause: "a string cause" });
+    expect(extractErrorMessage(err)).toBe("something");
+  });
 });

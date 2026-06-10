@@ -10,5 +10,7 @@ export function extractErrorMessage(err: unknown): string {
   if (!(err instanceof Error)) return String(err);
   // Prisma errors include file/line context before the actual message — take the last non-empty line
   const lines = err.message.split("\n").map((l) => l.trim()).filter(Boolean);
-  return lines.at(-1) ?? err.message;
+  const message = lines.at(-1) ?? err.message;
+  if (err.cause instanceof Error) return `${message}: ${err.cause.message}`;
+  return message;
 }
