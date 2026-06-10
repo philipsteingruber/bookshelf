@@ -5,11 +5,11 @@ import { del, list } from "@vercel/blob";
 import prisma from "@/lib/prisma";
 
 const main = async (): Promise<void> => {
-  const isDryRun = !process.argv.includes("--delete");
+  const isDryRun = !process.argv.includes("--apply");
 
   console.log("=== Cleaning Up Orphaned Covers From Vercel Blob ===");
   console.log(
-    `Mode: ${isDryRun ? "DRY RUN (use --delete to actually delete)" : "DELETE"}\n`,
+    `Mode: ${isDryRun ? "DRY RUN (use --apply to actually delete)" : "DELETE"}\n`,
   );
 
   console.log("Fetching files from Vercel Blob...");
@@ -55,7 +55,7 @@ const main = async (): Promise<void> => {
   }
 
   if (isDryRun) {
-    console.log("\nDry run complete. Run with --delete to remove those files.");
+    console.log("\nDry run complete. Run with --apply to remove those files.");
     console.log(`MAINTENANCE_RESULT: changes=${orphanedFiles.length}`);
   } else {
     console.log("\nDeleting orphaned files...");

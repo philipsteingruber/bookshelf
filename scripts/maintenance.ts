@@ -19,7 +19,7 @@ const SCRIPTS: ScriptDef[] = [
   {
     name: "Cleanup Orphaned Covers",
     file: "scripts/cleanup-orphaned-covers.ts",
-    applyCmd: "pnpm cleanup:covers -- --delete",
+    applyCmd: "pnpm cleanup:covers -- --apply",
   },
   {
     name: "Backfill Cover URLs",
@@ -51,7 +51,7 @@ const SCRIPTS: ScriptDef[] = [
   {
     name: "Consolidate Calibre Tags",
     file: "scripts/consolidate-tags.ts",
-    applyCmd: "pwsh -File E:\\docker\\data\\cwa\\Cleanup\\consolidate_tags.ps1",
+    applyCmd: "pnpm consolidate:tags -- --apply",
     note: "Stops and restarts the CWA Docker container",
   },
   {
