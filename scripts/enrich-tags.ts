@@ -11,6 +11,16 @@ import Database from "better-sqlite3";
 
 import { DEFAULT_CALIBRE_DB, extractErrorMessage } from "./lib/calibre-constants";
 import { startContainer, stopContainer } from "./lib/docker";
+import {
+  CANONICAL_TAG_SET,
+  CANONICAL_TAGS,
+  type CanonicalTag,
+  type EnrichStatus,
+  deriveEnrichStatus,
+  parseCache,
+  stripHtml,
+  titlesMatch,
+} from "./lib/enrich-tags-utils";
 
 const CACHE_FILE = "scripts/enrich-tags-cache.txt";
 const PLAN_FILE = "scripts/enrich-tags-plan.json";
@@ -23,28 +33,6 @@ const OL_USER_AGENT =
   "bookshelf-enrich-tags/1.0 (personal library enrichment script; philip.steingruber@gmail.com)";
 const MAX_OL_SUBJECTS = 50;
 
-const CANONICAL_TAGS = [
-  "Science Fiction",
-  "Warhammer 40K",
-  "Fantasy",
-  "Adventure",
-  "Horror",
-  "Mystery",
-  "Humour",
-  "Anthologies",
-  "Thriller",
-  "Classics",
-  "Historical",
-  "Crime",
-  "LitRPG",
-  "Dystopian",
-  "Young Adult",
-  "Nonfiction",
-] as const;
-
-type CanonicalTag = (typeof CANONICAL_TAGS)[number];
-const CANONICAL_TAG_SET = new Set<string>(CANONICAL_TAGS);
-
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface CalibreBook {
@@ -56,13 +44,6 @@ interface CalibreBook {
   description: string | null;
   currentTags: string[];
 }
-
-// "add"          — new canonical tags to write
-// "uncategorized"— no tags found and book had none → write "Uncategorized"
-// "complete"     — Claude found applicable tags but all already present
-// "no-results"   — Claude returned nothing; book had existing tags so not uncategorized
-// "error"        — unhandled exception in enrichBook itself
-type EnrichStatus = "add" | "uncategorized" | "complete" | "no-results" | "error";
 
 interface EnrichResult {
   book: CalibreBook;
@@ -104,41 +85,11 @@ interface Plan {
 
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
-function titleWords(title: string): Set<string> {
-  return new Set(
-    title
-      .toLowerCase()
-      .replace(/[^a-z0-9\s]/g, " ")
-      .split(/\s+/)
-      .filter((w) => w.length > 2),
-  );
-}
-
-function titlesMatch(a: string, b: string): boolean {
-  const wa = titleWords(a);
-  const wb = titleWords(b);
-  return [...wa].some((w) => wb.has(w));
-}
-
-function stripHtml(html: string): string {
-  return html
-    .replace(/<[^>]+>/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
 // ─── Cache ────────────────────────────────────────────────────────────────────
 
 function loadCache(): Set<number> {
   if (!existsSync(CACHE_FILE)) return new Set();
-  return new Set(
-    readFileSync(CACHE_FILE, "utf-8")
-      .split("\n")
-      .map((l) => l.trim())
-      .filter((l) => l.length > 0)
-      .map((l) => parseInt(l, 10))
-      .filter((n) => !isNaN(n)),
-  );
+  return parseCache(readFileSync(CACHE_FILE, "utf-8"));
 }
 
 function appendToCache(ids: number[]): void {
@@ -445,19 +396,7 @@ async function enrichBook(book: CalibreBook): Promise<EnrichResult> {
 
   const proposedTags = await classifyWithClaude(book, apiSubjects, processingErrors);
 
-  const currentTagSet = new Set(book.currentTags);
-  const tagsToAdd = proposedTags.filter((t) => !currentTagSet.has(t));
-
-  let status: EnrichStatus;
-  if (tagsToAdd.length > 0) {
-    status = "add";
-  } else if (proposedTags.length > 0) {
-    status = "complete";
-  } else if (book.currentTags.length === 0) {
-    status = "uncategorized";
-  } else {
-    status = "no-results";
-  }
+  const { status, tagsToAdd } = deriveEnrichStatus(proposedTags, book.currentTags);
 
   return { book, apiSubjects, proposedTags, tagsToAdd, status, processingErrors };
 }

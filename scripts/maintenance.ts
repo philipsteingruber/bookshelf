@@ -3,7 +3,8 @@ import "dotenv/config";
 import { parseArgs } from "node:util";
 import { spawnSync } from "node:child_process";
 
-const RESULT_PREFIX = "MAINTENANCE_RESULT: changes=";
+import { parseMaintenanceChanges } from "./lib/script-output";
+
 const DIVIDER = "─".repeat(56);
 const HEAVY_DIVIDER = "═".repeat(56);
 
@@ -76,18 +77,6 @@ interface RunResult {
   note?: string;
 }
 
-function parseChanges(output: string): number | null {
-  const lines = output.split("\n");
-  for (let i = lines.length - 1; i >= 0; i--) {
-    const line = lines[i]!.trim();
-    if (line.startsWith(RESULT_PREFIX)) {
-      const n = parseInt(line.slice(RESULT_PREFIX.length), 10);
-      return isNaN(n) ? null : n;
-    }
-  }
-  return null;
-}
-
 function runScript(script: ScriptDef, index: number, total: number): RunResult {
   process.stdout.write(`[${index + 1}/${total}] ${script.name} ... `);
 
@@ -109,7 +98,7 @@ function runScript(script: ScriptDef, index: number, total: number): RunResult {
   }
 
   if (exitCode === 0) {
-    const changes = parseChanges(output);
+    const changes = parseMaintenanceChanges(output);
     if (changes === null) {
       process.stdout.write("? (no result reported)\n");
     } else if (changes === 0) {

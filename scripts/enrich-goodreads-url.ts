@@ -7,40 +7,14 @@ import prisma from "@/lib/prisma";
 
 import { DEFAULT_CALIBRE_DB } from "./lib/calibre-constants";
 import { readCalibreBooks, type CalibreBook } from "./lib/calibre-reader";
-import { buildCompositeKey } from "./lib/normalizer";
-
-const GOODREADS_BASE_URL = "https://www.goodreads.com/book/show";
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-interface BookshelfBook {
-  id: number;
-  title: string;
-  author: string;
-  seriesIndex: number | null;
-  goodreadsUrl: string | null;
-  series: { name: string } | null;
-}
-
-interface MatchResult {
-  calibreBook: CalibreBook;
-  bookshelfId: number;
-}
-
-interface Results {
-  toUpdate: MatchResult[];
-  alreadyEnriched: MatchResult[];
-  notInBookshelf: CalibreBook[];
-  noGoodreadsId: CalibreBook[];
-  ambiguous: CalibreBook[];
-  duplicateCalibreId: CalibreBook[];
-}
+import {
+  buildGoodreadsUrl,
+  matchGoodreadsUrls,
+  type BookshelfBookForGoodreads,
+  type GoodreadsMatchResults,
+} from "./lib/goodreads-match";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function buildGoodreadsUrl(goodreadsId: string): string {
-  return `${GOODREADS_BASE_URL}/${goodreadsId}`;
-}
 
 function formatBook(book: CalibreBook): string {
   const series =
@@ -50,82 +24,9 @@ function formatBook(book: CalibreBook): string {
   return `${book.title} — ${book.author}${series}`;
 }
 
-// ─── Matching ─────────────────────────────────────────────────────────────────
-
-function match(calibreBooks: CalibreBook[], bookshelfBooks: BookshelfBook[]): Results {
-  const bookshelfByKey = new Map<string, BookshelfBook[]>();
-
-  for (const book of bookshelfBooks) {
-    const key = buildCompositeKey(
-      book.title,
-      book.author,
-      book.series?.name ?? null,
-      book.series !== null ? book.seriesIndex : null,
-    );
-    const existing = bookshelfByKey.get(key) ?? [];
-    existing.push(book);
-    bookshelfByKey.set(key, existing);
-  }
-
-  const goodreadsIdCounts = new Map<string, number>();
-  for (const book of calibreBooks) {
-    if (book.goodreadsId) {
-      goodreadsIdCounts.set(book.goodreadsId, (goodreadsIdCounts.get(book.goodreadsId) ?? 0) + 1);
-    }
-  }
-  const duplicateGoodreadsIds = new Set(
-    [...goodreadsIdCounts.entries()].filter(([, count]) => count > 1).map(([id]) => id),
-  );
-
-  const results: Results = {
-    toUpdate: [],
-    alreadyEnriched: [],
-    notInBookshelf: [],
-    noGoodreadsId: [],
-    ambiguous: [],
-    duplicateCalibreId: [],
-  };
-
-  for (const calibreBook of calibreBooks) {
-    if (!calibreBook.goodreadsId) {
-      results.noGoodreadsId.push(calibreBook);
-      continue;
-    }
-
-    if (duplicateGoodreadsIds.has(calibreBook.goodreadsId)) {
-      results.duplicateCalibreId.push(calibreBook);
-      continue;
-    }
-
-    const key = buildCompositeKey(
-      calibreBook.title,
-      calibreBook.author,
-      calibreBook.seriesName,
-      calibreBook.seriesIndex,
-    );
-
-    const matches = bookshelfByKey.get(key) ?? [];
-
-    if (matches.length === 0) {
-      results.notInBookshelf.push(calibreBook);
-    } else if (matches.length > 1) {
-      results.ambiguous.push(calibreBook);
-    } else {
-      const bookshelfBook = matches[0];
-      if (bookshelfBook.goodreadsUrl) {
-        results.alreadyEnriched.push({ calibreBook, bookshelfId: bookshelfBook.id });
-      } else {
-        results.toUpdate.push({ calibreBook, bookshelfId: bookshelfBook.id });
-      }
-    }
-  }
-
-  return results;
-}
-
 // ─── Output ───────────────────────────────────────────────────────────────────
 
-function printResults(results: Results, apply: boolean): void {
+function printResults(results: GoodreadsMatchResults, apply: boolean): void {
   const mode = apply ? "APPLYING" : "DRY RUN";
   console.log(`\n=== Goodreads URL Enrichment — ${mode} ===\n`);
 
@@ -190,7 +91,7 @@ function printResults(results: Results, apply: boolean): void {
 
 // ─── Apply ────────────────────────────────────────────────────────────────────
 
-async function applyUpdates(results: Results): Promise<number> {
+async function applyUpdates(results: GoodreadsMatchResults): Promise<number> {
   let failures = 0;
   for (const { calibreBook, bookshelfId } of results.toUpdate) {
     try {
@@ -233,7 +134,7 @@ async function main(): Promise<void> {
   const calibreBooks = readCalibreBooks(calibreDbPath);
   console.log(`Loaded ${calibreBooks.length} books from Calibre`);
 
-  const bookshelfBooks = await prisma.book.findMany({
+  const bookshelfBooks: BookshelfBookForGoodreads[] = await prisma.book.findMany({
     select: {
       id: true,
       title: true,
@@ -245,7 +146,7 @@ async function main(): Promise<void> {
   });
   console.log(`Loaded ${bookshelfBooks.length} books from bookshelf`);
 
-  const results = match(calibreBooks, bookshelfBooks);
+  const results = matchGoodreadsUrls(calibreBooks, bookshelfBooks);
 
   printResults(results, apply);
 

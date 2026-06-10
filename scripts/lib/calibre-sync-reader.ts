@@ -86,7 +86,7 @@ interface CwaProgressRow {
   progress_percent: number | null;
 }
 
-function stripHtml(html: string): string {
+export function stripHtml(html: string): string {
   return html
     .replace(/<br\s*\/?>/gi, "\n")
     .replace(/<\/(?:p|div|h[1-6]|li|blockquote|tr)>/gi, "\n\n")
@@ -105,7 +105,7 @@ function stripHtml(html: string): string {
 }
 
 // Calibre stores "0101-01-01" as a placeholder for unknown publication dates.
-function extractYear(pubdate: string | null): number | null {
+export function extractYear(pubdate: string | null): number | null {
   if (!pubdate) return null;
   const year = parseInt(pubdate.slice(0, 4), 10);
   return isNaN(year) || year < 1000 ? null : year;

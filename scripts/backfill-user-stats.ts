@@ -9,16 +9,7 @@ import {
   getQualifyingDays,
 } from "@/lib/reading";
 
-const parseDateKey = (dateKey: string): Date => {
-  const [year, month, day] = dateKey.split("-").map(Number);
-  return new Date(Date.UTC(year!, month! - 1, day!));
-};
-
-const datesMatch = (a: Date | null, b: Date | null): boolean => {
-  if (a === null && b === null) return true;
-  if (a === null || b === null) return false;
-  return a.getTime() === b.getTime();
-};
+import { datesMatch, parseDateKey } from "./lib/stats-date-utils";
 
 const backfillUserStats = async (): Promise<void> => {
   const { values } = parseArgs({

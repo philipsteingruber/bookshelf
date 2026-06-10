@@ -10,6 +10,8 @@ import Database from "better-sqlite3";
 
 import { DEFAULT_CALIBRE_DB, extractErrorMessage } from "./lib/calibre-constants";
 import { startContainer, stopContainer } from "./lib/docker";
+import { isValidIsbn10, isValidIsbn13 } from "./lib/isbn-utils";
+import { titlesMatch } from "./lib/title-utils";
 
 const OPENLIBRARY_SEARCH = "https://openlibrary.org/search.json";
 const GOOGLE_BOOKS_SEARCH = "https://www.googleapis.com/books/v1/volumes";
@@ -43,30 +45,6 @@ interface MatchResult {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-function titleWords(title: string): Set<string> {
-  return new Set(
-    title
-      .toLowerCase()
-      .replace(/[^a-z0-9\s]/g, " ")
-      .split(/\s+/)
-      .filter((w) => w.length > 2),
-  );
-}
-
-function titlesMatch(calibreTitle: string, matchedTitle: string): boolean {
-  const a = titleWords(calibreTitle);
-  const b = titleWords(matchedTitle);
-  return [...a].some((w) => b.has(w));
-}
-
-function isValidIsbn13(s: string): boolean {
-  return /^\d{13}$/.test(s) && (s.startsWith("978") || s.startsWith("979"));
-}
-
-function isValidIsbn10(s: string): boolean {
-  return /^\d{9}[\dX]$/.test(s);
-}
 
 // ─── OpenLibrary ──────────────────────────────────────────────────────────────
 

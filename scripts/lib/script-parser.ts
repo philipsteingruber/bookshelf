@@ -13,12 +13,12 @@ interface MinimalDocument {
   body?: { textContent: string };
 }
 
-function getAttr(attrs: string, name: string): string | null {
+export function getAttr(attrs: string, name: string): string | null {
   const m = attrs.match(new RegExp(`\\b${name}=["']([^"']*)["']`, "i"));
   return m ? m[1] : null;
 }
 
-function parseElements(src: string, tagName: string): MinimalElement[] {
+export function parseElements(src: string, tagName: string): MinimalElement[] {
   const elements: MinimalElement[] = [];
   const re = new RegExp(`<${tagName}\\b([^>]*?)\\s*/?>`, "gi");
   let m: RegExpExecArray | null;
@@ -29,7 +29,7 @@ function parseElements(src: string, tagName: string): MinimalElement[] {
   return elements;
 }
 
-function parseXml(src: string): MinimalDocument {
+export function parseXml(src: string): MinimalDocument {
   return {
     querySelectorAll(selector: string): MinimalElement[] {
       if (selector === "manifest item") return parseElements(src, "item");
@@ -39,7 +39,7 @@ function parseXml(src: string): MinimalDocument {
   };
 }
 
-function parseHtml(src: string): MinimalDocument {
+export function parseHtml(src: string): MinimalDocument {
   const bodyMatch = src.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
   const bodyHtml = bodyMatch ? bodyMatch[1] : src;
   const textContent = bodyHtml.replace(/<[^>]+>/g, "");
