@@ -18,6 +18,7 @@ import {
   type EnrichStatus,
   deriveEnrichStatus,
   parseCache,
+  sanitizeTags,
   stripHtml,
   titlesMatch,
 } from "./lib/enrich-tags-utils";
@@ -394,7 +395,7 @@ async function enrichBook(book: CalibreBook): Promise<EnrichResult> {
   const apiSubjects =
     olSubjects.length > 0 ? olSubjects : await fetchGbSubjects(book, processingErrors);
 
-  const proposedTags = await classifyWithClaude(book, apiSubjects, processingErrors);
+  const proposedTags = sanitizeTags(await classifyWithClaude(book, apiSubjects, processingErrors));
 
   const { status, tagsToAdd } = deriveEnrichStatus(proposedTags, book.currentTags);
 

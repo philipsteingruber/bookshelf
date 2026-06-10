@@ -26,6 +26,20 @@ export const CANONICAL_TAG_SET = new Set<string>(CANONICAL_TAGS);
 
 export type EnrichStatus = "add" | "uncategorized" | "complete" | "no-results" | "error";
 
+const TAG_EXCLUSIONS: Array<[CanonicalTag, CanonicalTag[]]> = [
+  ["Warhammer 40K", ["Fantasy"]],
+];
+
+export function sanitizeTags(tags: CanonicalTag[]): CanonicalTag[] {
+  const tagSet = new Set(tags);
+  for (const [primary, excluded] of TAG_EXCLUSIONS) {
+    if (tagSet.has(primary)) {
+      for (const ex of excluded) tagSet.delete(ex);
+    }
+  }
+  return tags.filter((t) => tagSet.has(t));
+}
+
 export function stripHtml(html: string): string {
   return html
     .replace(/<[^>]+>/g, " ")

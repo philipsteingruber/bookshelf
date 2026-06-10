@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { deriveEnrichStatus, parseCache, stripHtml } from "./enrich-tags-utils";
+import { deriveEnrichStatus, parseCache, sanitizeTags, stripHtml } from "./enrich-tags-utils";
 
 describe("stripHtml", () => {
   it("removes a simple HTML tag", () => {
@@ -47,6 +47,28 @@ describe("parseCache", () => {
 
   it("returns an empty Set when input contains only whitespace", () => {
     expect(parseCache("  \n  \n  ")).toEqual(new Set());
+  });
+});
+
+describe("sanitizeTags", () => {
+  it("removes Fantasy when Warhammer 40K is present", () => {
+    expect(sanitizeTags(["Warhammer 40K", "Fantasy"])).toEqual(["Warhammer 40K"]);
+  });
+
+  it("keeps Fantasy when Warhammer 40K is absent", () => {
+    expect(sanitizeTags(["Fantasy", "Adventure"])).toEqual(["Fantasy", "Adventure"]);
+  });
+
+  it("returns tags unchanged when no exclusion rule applies", () => {
+    expect(sanitizeTags(["Science Fiction", "Adventure"])).toEqual(["Science Fiction", "Adventure"]);
+  });
+
+  it("returns an empty array when given an empty array", () => {
+    expect(sanitizeTags([])).toEqual([]);
+  });
+
+  it("keeps Warhammer 40K when Fantasy is not present", () => {
+    expect(sanitizeTags(["Warhammer 40K", "Horror"])).toEqual(["Warhammer 40K", "Horror"]);
   });
 });
 
