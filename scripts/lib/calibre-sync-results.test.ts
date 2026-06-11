@@ -15,6 +15,7 @@ function makeCalibре(overrides: Partial<CalibreBookSync> = {}): CalibreBookSyn
     isbn: null,
     publishedYear: null,
     summary: null,
+    rating: null,
     coverPath: null,
     bookFilePath: null,
     readStatus: 0,
@@ -40,6 +41,7 @@ function makeBookshelf(overrides: Partial<BookshelfBook> = {}): BookshelfBook {
     isbn: null,
     publishedYear: null,
     summary: null,
+    rating: null,
     ...overrides,
   };
 }
@@ -181,6 +183,38 @@ describe("computeResults — notInCalibre", () => {
   it("does not include matched books in notInCalibre", () => {
     const { notInCalibre } = computeResults([makeCalibре()], [makeBookshelf()]);
     expect(notInCalibre).toHaveLength(0);
+  });
+});
+
+describe("computeResults — rating updates", () => {
+  it("produces a ratingUpdate when Calibre has a rating and bookshelf has none", () => {
+    const calibre = makeCalibре({ rating: 8 }); // 4★ in Calibre
+    const bookshelf = makeBookshelf({ rating: null });
+    const { ratingUpdates } = computeResults([calibre], [bookshelf]);
+    expect(ratingUpdates).toHaveLength(1);
+    expect(ratingUpdates[0]!.newRating).toBe(4);
+  });
+
+  it("produces a ratingUpdate when Calibre rating differs from bookshelf rating", () => {
+    const calibre = makeCalibре({ rating: 10 }); // 5★
+    const bookshelf = makeBookshelf({ rating: 3 });
+    const { ratingUpdates } = computeResults([calibre], [bookshelf]);
+    expect(ratingUpdates).toHaveLength(1);
+    expect(ratingUpdates[0]!.newRating).toBe(5);
+  });
+
+  it("does not produce a ratingUpdate when Calibre and bookshelf ratings are the same", () => {
+    const calibre = makeCalibре({ rating: 8 }); // 4★
+    const bookshelf = makeBookshelf({ rating: 4 });
+    const { ratingUpdates } = computeResults([calibre], [bookshelf]);
+    expect(ratingUpdates).toHaveLength(0);
+  });
+
+  it("does not produce a ratingUpdate when Calibre has no rating", () => {
+    const calibre = makeCalibре({ rating: null });
+    const bookshelf = makeBookshelf({ rating: 5 });
+    const { ratingUpdates } = computeResults([calibre], [bookshelf]);
+    expect(ratingUpdates).toHaveLength(0);
   });
 });
 

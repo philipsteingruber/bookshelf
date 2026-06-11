@@ -12,6 +12,8 @@ export interface CalibreBookSync {
   isbn: string | null;
   publishedYear: number | null;
   summary: string | null;
+  // Calibre rating on the 2–10 scale (even numbers only), null if unrated
+  rating: number | null;
   coverPath: string | null;
   bookFilePath: string | null;
   // CWA reading state (null if book not in CWA)
@@ -38,7 +40,8 @@ const CALIBRE_QUERY = `
     b.pubdate                  AS pubdate,
     cm.text                    AS description,
     cc23.value                 AS datestarted,
-    cc29.value                 AS dnf
+    cc29.value                 AS dnf,
+    r.rating                   AS rating
   FROM books b
   LEFT JOIN books_authors_link bal  ON b.id = bal.book
   LEFT JOIN authors a               ON bal.author = a.id
@@ -49,8 +52,10 @@ const CALIBRE_QUERY = `
   LEFT JOIN comments    cm          ON cm.book = b.id
   LEFT JOIN custom_column_23 cc23   ON cc23.book = b.id
   LEFT JOIN custom_column_29 cc29   ON cc29.book = b.id
+  LEFT JOIN books_ratings_link brl  ON b.id = brl.book
+  LEFT JOIN ratings r               ON r.id = brl.rating
   GROUP BY b.id, b.title, s.name, b.series_index, b.path, b.has_cover,
-           i.val, i10.val, b.pubdate, cm.text, cc23.value, cc29.value
+           i.val, i10.val, b.pubdate, cm.text, cc23.value, cc29.value, r.rating
   ORDER BY b.title
 `;
 
@@ -68,6 +73,7 @@ interface CalibreRawRow {
   description: string | null;
   datestarted: string | null;
   dnf: number | null;
+  rating: number | null;
 }
 
 interface CalibreDataRow {
@@ -188,6 +194,7 @@ export function readCalibreSyncData(
       datestarted: row.datestarted ? new Date(row.datestarted) : null,
       dnf: row.dnf === 1,
       isReadNext: readNextBookIds.has(row.id),
+      rating: row.rating ?? null,
     }));
   } finally {
     calibreDb.close();

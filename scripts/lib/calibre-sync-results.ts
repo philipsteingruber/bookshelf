@@ -17,6 +17,7 @@ export interface BookshelfBook {
   isbn: string | null;
   publishedYear: number | null;
   summary: string | null;
+  rating: number | null; // bookshelf scale: 1–5
 }
 
 export interface BookUpdate {
@@ -48,12 +49,19 @@ export interface MetadataUpdate {
   newSummary: string | null;
 }
 
+export interface RatingUpdate {
+  calibreBook: CalibreBookSync;
+  bookshelfBook: BookshelfBook;
+  newRating: number; // bookshelf scale: 1–5
+}
+
 export interface SyncResults {
   toCreate: CalibreBookSync[];
   bookUpdates: BookUpdate[];
   progressUpdates: ProgressUpdate[];
   progressSkips: ProgressSkip[];
   metadataUpdates: MetadataUpdate[];
+  ratingUpdates: RatingUpdate[];
   notInCalibre: BookshelfBook[];
   readNextRemovals: CalibreBookSync[];
 }
@@ -76,6 +84,7 @@ export function computeResults(
     progressUpdates: [],
     progressSkips: [],
     metadataUpdates: [],
+    ratingUpdates: [],
     notInCalibre: [],
     readNextRemovals: [],
   };
@@ -171,6 +180,15 @@ export function computeResults(
         newPublishedYear,
         newSummary,
       });
+    }
+
+    // Calibre wins: sync rating whenever Calibre has one and it differs from bookshelf.
+    // If Calibre has no rating, leave bookshelf alone.
+    if (calibreBook.rating !== null) {
+      const calibreStars = calibreBook.rating / 2;
+      if (calibreStars !== bookshelfBook.rating) {
+        results.ratingUpdates.push({ calibreBook, bookshelfBook, newRating: calibreStars });
+      }
     }
   }
 

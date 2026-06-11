@@ -18,6 +18,7 @@ import {
   type BookUpdate,
   type MetadataUpdate,
   type ProgressUpdate,
+  type RatingUpdate,
   type SyncResults,
 } from "./lib/calibre-sync-results";
 import { startContainer, stopContainer } from "./lib/docker";
@@ -112,6 +113,14 @@ function printResults(
     if (newSummary !== null) console.log(`    Summary: ${newSummary.slice(0, 80)}…`);
   }
 
+  const ratingLabel = apply ? "UPDATED RATINGS" : "WOULD UPDATE RATINGS";
+  console.log(`\n${ratingLabel} (${results.ratingUpdates.length})`);
+  for (const { bookshelfBook, newRating } of results.ratingUpdates) {
+    const oldStars = bookshelfBook.rating !== null ? `${bookshelfBook.rating}★` : "unrated";
+    console.log(`  • ${formatBook(bookshelfBook.title, bookshelfBook.author, null, null)}`);
+    console.log(`    ${oldStars} → ${newRating}★`);
+  }
+
   const progressLabel = apply ? "LOGGED PROGRESS" : "WOULD LOG PROGRESS";
   console.log(`\n${progressLabel} (${results.progressUpdates.length})`);
   for (const { calibreBook, bookshelfBook, newProgress } of results.progressUpdates) {
@@ -157,6 +166,7 @@ function printResults(
     console.log(`Would update:         ${pad(bookUpdatesWithStatus.length)}`);
     console.log(`Would log:            ${pad(results.progressUpdates.length)}`);
     console.log(`Would update meta:    ${pad(results.metadataUpdates.length)}${renameSuffix}`);
+    console.log(`Would update ratings: ${pad(results.ratingUpdates.length)}`);
     console.log(`Would remove from Read Next (CWA):  ${pad(results.readNextRemovals.length)}`);
     if (results.progressSkips.length > 0) {
       console.log(`Skipped (no change):  ${pad(results.progressSkips.length)}`);
@@ -171,6 +181,7 @@ function printApplySummary(
   createErrors: string[],
   updateErrors: string[],
   metadataErrors: string[],
+  ratingErrors: string[],
   progressErrors: string[],
   readNextErrors: string[],
 ): void {
@@ -186,6 +197,7 @@ function printApplySummary(
   console.log(`Updated status:       ${pad(bookUpdatesWithStatus.length - updateErrors.length)}`);
   console.log(`Logged progress:      ${pad(results.progressUpdates.length - progressErrors.length)}`);
   console.log(`Updated metadata:     ${pad(results.metadataUpdates.length - metadataErrors.length)}${renameSuffix}`);
+  console.log(`Updated ratings:      ${pad(results.ratingUpdates.length - ratingErrors.length)}`);
   console.log(`Removed from Read Next (CWA):  ${pad(results.readNextRemovals.length - readNextErrors.length)}`);
   if (results.progressSkips.length > 0) {
     console.log(`Skipped (no change):  ${pad(results.progressSkips.length)}`);
@@ -245,6 +257,7 @@ async function applyCreates(
             progress: initialProgress,
             startedAt: b.datestarted,
             finishedAt: derived === "READ" ? new Date() : null,
+            rating: b.rating !== null ? b.rating / 2 : null,
             userId,
           },
         });
@@ -320,6 +333,18 @@ async function applyMetadataUpdates(metadataUpdates: MetadataUpdate[]): Promise<
       errors.push(
         `Failed to update metadata for "${bookshelfBook.title}": ${extractErrorMessage(err)}`,
       );
+    }
+  }
+  return errors;
+}
+
+async function applyRatingUpdates(ratingUpdates: RatingUpdate[]): Promise<string[]> {
+  const errors: string[] = [];
+  for (const { bookshelfBook, newRating } of ratingUpdates) {
+    try {
+      await prisma.book.update({ where: { id: bookshelfBook.id }, data: { rating: newRating } });
+    } catch (err) {
+      errors.push(`Failed to update rating for "${bookshelfBook.title}": ${extractErrorMessage(err)}`);
     }
   }
   return errors;
@@ -463,6 +488,7 @@ async function main(): Promise<void> {
         isbn: true,
         publishedYear: true,
         summary: true,
+        rating: true,
       },
     });
     console.log(`Loaded ${bookshelfBooks.length} books from bookshelf`);
@@ -479,6 +505,7 @@ async function main(): Promise<void> {
       );
       const updateErrors = await applyBookUpdates(results.bookUpdates);
       const metadataErrors = await applyMetadataUpdates(results.metadataUpdates);
+      const ratingErrors = await applyRatingUpdates(results.ratingUpdates);
       const progressErrors = await applyProgressUpdates(results.progressUpdates, user.id);
       const readNextErrors = await applyReadNextRemovals(cwaDbPath, results.readNextRemovals);
 
@@ -486,9 +513,9 @@ async function main(): Promise<void> {
         await recalculateAllUserStats(prisma, user);
       }
 
-      printApplySummary(results, createErrors, updateErrors, metadataErrors, progressErrors, readNextErrors);
+      printApplySummary(results, createErrors, updateErrors, metadataErrors, ratingErrors, progressErrors, readNextErrors);
 
-      const allErrors = [...createErrors, ...updateErrors, ...metadataErrors, ...progressErrors, ...readNextErrors];
+      const allErrors = [...createErrors, ...updateErrors, ...metadataErrors, ...ratingErrors, ...progressErrors, ...readNextErrors];
       if (allErrors.length > 0) {
         console.log(`\n=== Errors (${allErrors.length}) ===`);
         for (const msg of allErrors) {
