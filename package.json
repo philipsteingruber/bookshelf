@@ -23,6 +23,7 @@
     "enrich:goodreads-url": "tsx scripts/enrich-goodreads-url.ts",
     "enrich:isbns": "tsx scripts/enrich-isbns.ts",
     "sync:calibre": "tsx scripts/sync-calibre.ts",
+    "review:ratings": "tsx scripts/review-ratings.ts",
     "backfill:sort-fields": "tsx scripts/backfill-sort-fields.ts",
     "seed:dev": "tsx scripts/seed-dev-user.ts",
     "backfill:page-count": "tsx scripts/backfill-page-count.ts",

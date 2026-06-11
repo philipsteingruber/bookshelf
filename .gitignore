@@ -69,3 +69,7 @@ temp-notes.txt
 # enrich-tags runtime artifacts
 scripts/enrich-tags-cache.txt
 scripts/enrich-tags-plan.json
+
+# review-ratings session state
+scripts/rating-review-state.json
+scripts/rating-review-processed-books.json
