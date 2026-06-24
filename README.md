@@ -255,8 +255,8 @@ pnpm prisma:studio    # Open Prisma Studio
 pnpm sync:calibre               # Dry run — preview changes
 pnpm sync:calibre -- --apply    # Apply changes
 
-# Rating review (interactive CLI to audit and re-rate books in Calibre)
-pnpm review:ratings             # Start an interactive re-rating session
+# Rating review (interactive CLI to rate and re-rate books in Calibre; picks up read-but-unrated books from CWA)
+pnpm review:ratings             # Start an interactive rating session
 
 # ISBN enrichment (backfill missing ISBNs into Calibre via OpenLibrary + Google Books)
 pnpm enrich:isbns               # Dry run — preview matches

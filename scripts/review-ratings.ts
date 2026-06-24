@@ -8,7 +8,7 @@ import { parseArgs } from "node:util";
 import Database from "better-sqlite3";
 import Docker from "dockerode";
 
-import { DEFAULT_CALIBRE_DB } from "./lib/calibre-constants";
+import { DEFAULT_CALIBRE_DB, DEFAULT_CWA_DB } from "./lib/calibre-constants";
 import { startContainer } from "./lib/docker";
 
 const CONTAINER_NAME = "calibre-web-automated";
@@ -30,14 +30,14 @@ interface RatedBook {
   author: string;
   seriesName: string | null;
   seriesIndex: number | null;
-  currentRating: number; // Calibre scale: 2–10
+  currentRating: number | null; // Calibre scale: 2–10, or null if unrated
   tags: string | null;
 }
 
 interface PendingWrite {
   calibreId: number;
   title: string;
-  oldRating: number; // Calibre scale
+  oldRating: number | null; // null if book was previously unrated
   newRating: number; // Calibre scale
 }
 
@@ -89,8 +89,8 @@ const BOOKS_QUERY = `
     r.rating,
     GROUP_CONCAT(t.name, ', ') AS tags
   FROM books b
-  JOIN books_ratings_link brl ON brl.book = b.id
-  JOIN ratings r              ON r.id = brl.rating
+  LEFT JOIN books_ratings_link brl ON brl.book = b.id
+  LEFT JOIN ratings r              ON r.id = brl.rating
   LEFT JOIN books_authors_link bal ON bal.book = b.id
   LEFT JOIN authors a              ON a.id = bal.author
   LEFT JOIN books_series_link bsl  ON bsl.book = b.id
@@ -107,11 +107,11 @@ interface RawBookRow {
   author: string | null;
   series_name: string | null;
   series_index: number | null;
-  rating: number;
+  rating: number | null;
   tags: string | null;
 }
 
-function readRatedBooks(calibreDbPath: string): RatedBook[] {
+function readAllBooks(calibreDbPath: string): RatedBook[] {
   const db = new Database(calibreDbPath, { readonly: true });
   try {
     const rows = db.prepare(BOOKS_QUERY).all() as RawBookRow[];
@@ -129,6 +129,18 @@ function readRatedBooks(calibreDbPath: string): RatedBook[] {
   }
 }
 
+function readReadBookIds(cwaDbPath: string): Set<number> {
+  const db = new Database(cwaDbPath, { readonly: true });
+  try {
+    const rows = db
+      .prepare("SELECT book_id FROM book_read_link WHERE read_status = 1")
+      .all() as { book_id: number }[];
+    return new Set(rows.map((r) => r.book_id));
+  } finally {
+    db.close();
+  }
+}
+
 // ─── Calibre writes ───────────────────────────────────────────────────────────
 
 function writeRatings(calibreDbPath: string, pending: PendingWrite[]): void {
@@ -141,20 +153,29 @@ function writeRatings(calibreDbPath: string, pending: PendingWrite[]): void {
       "SELECT id FROM ratings WHERE rating = ? LIMIT 1",
     );
     const insertRatingRow = db.prepare("INSERT INTO ratings (rating) VALUES (?)");
+    const insertLink = db.prepare(
+      "INSERT INTO books_ratings_link (book, rating) VALUES (?, ?)",
+    );
     const updateLink = db.prepare(
       "UPDATE books_ratings_link SET rating = ? WHERE book = ?",
     );
 
-    const applyWrite = db.transaction((calibreId: number, calibreValue: number) => {
-      const existing = getRatingRow.get(calibreValue);
-      const ratingId = existing
-        ? existing.id
-        : Number(insertRatingRow.run(calibreValue).lastInsertRowid);
-      updateLink.run(ratingId, calibreId);
-    });
+    const applyWrite = db.transaction(
+      (calibreId: number, calibreValue: number, wasUnrated: boolean) => {
+        const existing = getRatingRow.get(calibreValue);
+        const ratingId = existing
+          ? existing.id
+          : Number(insertRatingRow.run(calibreValue).lastInsertRowid);
+        if (wasUnrated) {
+          insertLink.run(calibreId, ratingId);
+        } else {
+          updateLink.run(ratingId, calibreId);
+        }
+      },
+    );
 
     for (const w of writes) {
-      applyWrite(w.calibreId, w.newRating);
+      applyWrite(w.calibreId, w.newRating, w.oldRating === null);
     }
   } finally {
     db.close();
@@ -189,7 +210,8 @@ async function withContainerDown<T>(fn: () => T | Promise<T>): Promise<T> {
 
 // ─── Display ──────────────────────────────────────────────────────────────────
 
-function starsLabel(calibreRating: number): string {
+function starsLabel(calibreRating: number | null): string {
+  if (calibreRating === null) return "Unrated";
   const n = calibreRating / 2;
   return `${"★".repeat(n)}${"☆".repeat(5 - n)} (${n}★)`;
 }
@@ -297,7 +319,7 @@ async function runSession(
   const toReview = books.filter((b) => !processed.has(b.calibreId));
 
   if (toReview.length === 0) {
-    console.log("\nAll rated books have already been processed. Nothing to do.");
+    console.log("\nAll books have already been processed. Nothing to do.");
     rl.close();
     clearState();
     return;
@@ -316,9 +338,14 @@ async function runSession(
     printCriteria();
     printBook(book, i, toReview.length);
 
+    const isUnrated = book.currentRating === null;
+    const prompt = isUnrated
+      ? "  New rating [1-5], q to stop: "
+      : "  New rating [1-5], Enter to keep, q to stop: ";
+
     let newRating: number | null = null;
     while (newRating === null) {
-      const answer = await ask(rl, "  New rating [1-5], Enter to keep, q to stop: ");
+      const answer = await ask(rl, prompt);
 
       if (answer === null) return; // SIGINT handler is running
 
@@ -327,12 +354,15 @@ async function runSession(
       if (trimmed === "q" || trimmed === "quit") {
         await commit("Stopping session.");
         process.exit(0);
-      } else if (trimmed === "") {
+      } else if (trimmed === "" && !isUnrated) {
         newRating = book.currentRating;
+      } else if (trimmed === "" && isUnrated) {
+        console.log("  This book has no rating — enter a number 1–5, or q to stop.");
       } else {
         const n = parseInt(trimmed, 10);
         if (isNaN(n) || n < 1 || n > 5) {
-          console.log("  Invalid — enter a number 1–5, Enter to keep, or q to stop.");
+          const keepHint = isUnrated ? "" : ", Enter to keep";
+          console.log(`  Invalid — enter a number 1–5${keepHint}, or q to stop.`);
         } else {
           newRating = n * 2; // Convert 1–5 stars to Calibre's 2–10 scale
         }
@@ -366,14 +396,20 @@ async function main(): Promise<void> {
   const { values } = parseArgs({
     options: {
       "calibre-db": { type: "string", default: DEFAULT_CALIBRE_DB },
+      "cwa-db": { type: "string", default: DEFAULT_CWA_DB },
     },
   });
 
   const calibreDbPath =
     (values["calibre-db"] as string | undefined) ?? DEFAULT_CALIBRE_DB;
+  const cwaDbPath = (values["cwa-db"] as string | undefined) ?? DEFAULT_CWA_DB;
 
   if (!existsSync(calibreDbPath)) {
     console.error(`Calibre database not found at "${calibreDbPath}"`);
+    process.exit(1);
+  }
+  if (!existsSync(cwaDbPath)) {
+    console.error(`CWA database not found at "${cwaDbPath}"`);
     process.exit(1);
   }
 
@@ -382,12 +418,26 @@ async function main(): Promise<void> {
 
   const processed = loadProcessed();
 
-  // One-time read phase — container down only for the duration of the DB read
-  console.log("Stopping container to read Calibre data...");
+  // One-time read phase — container down only for the duration of the DB reads
+  console.log("Stopping container to read Calibre and CWA data...");
   let books: RatedBook[] = [];
   await withContainerDown(() => {
-    books = readRatedBooks(calibreDbPath);
-    console.log(`Read ${books.length} rated book(s).`);
+    const allBooks = readAllBooks(calibreDbPath);
+    const readIds = readReadBookIds(cwaDbPath);
+
+    // Include books that are rated, or read (in CWA) but unrated
+    const included = allBooks.filter(
+      (b) => b.currentRating !== null || readIds.has(b.calibreId),
+    );
+
+    // Rated books first, then unrated
+    const rated = included.filter((b) => b.currentRating !== null);
+    const unrated = included.filter((b) => b.currentRating === null);
+    books = [...rated, ...unrated];
+
+    console.log(
+      `Read ${rated.length} rated book(s) and ${unrated.length} read-but-unrated book(s).`,
+    );
   });
 
   await runSession(calibreDbPath, books, processed);
