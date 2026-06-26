@@ -19,6 +19,7 @@ export const CANONICAL_TAGS = [
   "Dystopian",
   "Young Adult",
   "Nonfiction",
+  "Romance",
 ] as const;
 
 export type CanonicalTag = (typeof CANONICAL_TAGS)[number];
