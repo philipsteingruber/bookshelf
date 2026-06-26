@@ -44,9 +44,9 @@ interface PendingWrite {
 // ─── Criteria ─────────────────────────────────────────────────────────────────
 
 const CRITERIA: [number, string][] = [
-  [1, "Actively bad — would warn others away"],
+  [1, "Bad — regret finishing it"],
   [2, "Disappointing — not worth the time"],
-  [3, "Fine — won't stick with you"],
+  [3, "Decent — enjoyable but forgettable"],
   [4, "Great — would recommend"],
   [5, "Exceptional — think about it after finishing"],
 ];
