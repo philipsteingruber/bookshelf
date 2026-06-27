@@ -1,8 +1,6 @@
 import type { BreakPoint } from "@/hooks/ui/use-breakpoint";
 
-export const getDashboardMaxReadingBooksCount = (
-  breakPoint: BreakPoint,
-): number => {
+export const getDashboardMaxReadingBooksCount = (breakPoint: BreakPoint): number => {
   switch (breakPoint) {
     case "sm":
       return 2;
@@ -11,14 +9,12 @@ export const getDashboardMaxReadingBooksCount = (
     case "lg":
       return 2;
     case "xl":
-      return 3;
+      return 4;
     case "2xl":
-      return 3;
+      return 4;
   }
 };
-export const getDashboardMaxReadNextBooksCount = (
-  breakPoint: BreakPoint,
-): number => {
+export const getDashboardMaxReadNextBooksCount = (breakPoint: BreakPoint): number => {
   switch (breakPoint) {
     case "sm":
       return 2;
@@ -29,12 +25,10 @@ export const getDashboardMaxReadNextBooksCount = (
     case "xl":
       return 3;
     case "2xl":
-      return 5;
+      return 3;
   }
 };
-export const getDashboardRecentlyReadBooksCount = (
-  breakPoint: BreakPoint,
-): number => {
+export const getDashboardRecentlyReadBooksCount = (breakPoint: BreakPoint): number => {
   switch (breakPoint) {
     case "sm":
       return 1;
