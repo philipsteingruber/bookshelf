@@ -1,5 +1,7 @@
-export const DEFAULT_CALIBRE_DB = "E:\\docker\\data\\calibre-library\\metadata.db";
-export const DEFAULT_CWA_DB = "E:\\docker\\data\\cwa\\config\\app.db";
+export const DEFAULT_CALIBRE_DB =
+  process.env.CALIBRE_DB_PATH ?? "/opt/docker/data/calibre-library/metadata.db";
+export const DEFAULT_CWA_DB =
+  process.env.CWA_DB_PATH ?? "/opt/docker/data/cwa/config/app.db";
 export const GOODREADS_BASE = "https://www.goodreads.com/book/show";
 
 export function normaliseGoodreadsUrl(url: string): string {
