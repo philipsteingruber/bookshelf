@@ -36,3 +36,9 @@ export function shouldLogProgress(
 ): boolean {
   return koboreadpct !== null && koboreadpct > currentProgress;
 }
+
+export function deriveAbsStatus(progressPercent: number, isFinished: boolean): ReadStatus {
+  if (isFinished || progressPercent >= 100) return "READ";
+  if (progressPercent > 0) return "READING";
+  return "TO_READ";
+}

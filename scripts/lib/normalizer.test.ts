@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildCompositeKey, normalizeAuthor, normalizeTitle } from "./normalizer";
+import { buildCompositeKey, normalizeAuthor, normalizeTitle, stripSubtitle } from "./normalizer";
 
 describe("normalizeTitle", () => {
   it("lowercases and trims", () => {
@@ -35,6 +35,26 @@ describe("normalizeTitle", () => {
 
   it("does not strip 'the' when it is part of a word at the start", () => {
     expect(normalizeTitle("Theorem")).toBe("theorem");
+  });
+});
+
+describe("stripSubtitle", () => {
+  it("strips a colon-separated subtitle", () => {
+    expect(stripSubtitle("Hoops & Heartstrings: A Rivals-to-Lovers Sapphic Romance")).toBe(
+      "Hoops & Heartstrings",
+    );
+  });
+
+  it("strips an em-dash-separated subtitle", () => {
+    expect(stripSubtitle("Dune — The Complete Saga")).toBe("Dune");
+  });
+
+  it("returns the title unchanged when there is no subtitle", () => {
+    expect(stripSubtitle("Time to Play")).toBe("Time to Play");
+  });
+
+  it("does not lowercase or otherwise normalize the remaining title", () => {
+    expect(stripSubtitle("The Name of the Wind: Book One")).toBe("The Name of the Wind");
   });
 });
 

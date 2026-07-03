@@ -57,6 +57,7 @@ NUL
 /.codex
 .husky/logs/
 /logs/
+scripts/.bookshelf-db.lock
 /src/generated/
 /checklists/
 DOCKER_GUIDE.md

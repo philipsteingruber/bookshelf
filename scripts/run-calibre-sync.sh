@@ -3,13 +3,19 @@ set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LOCK_FILE="/opt/docker/data/cwa/.calibre-cron.lock"
+DB_LOCK_FILE="$PROJECT_ROOT/scripts/.bookshelf-db.lock"
 LOG_FILE="$PROJECT_ROOT/logs/calibre-sync.log"
 
 mkdir -p "$PROJECT_ROOT/logs"
 cd "$PROJECT_ROOT"
 
+# CWA lock: serializes against the other CWA-side cron jobs (isbn enrich, tag consolidation).
 exec 200>"$LOCK_FILE"
 flock -w 1800 200
+
+# DB lock: shared with run-abs-sync.sh, both write to the same Postgres rows via Prisma.
+exec 201>"$DB_LOCK_FILE"
+flock -w 1800 201
 
 echo "" >> "$LOG_FILE"
 echo "=== Calibre Sync started at $(date '+%Y-%m-%d %H:%M:%S') ===" >> "$LOG_FILE"

@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { deriveStatus, shouldLogProgress, shouldUpdateStatus, statusPriority } from "./sync-utils";
+import {
+  deriveAbsStatus,
+  deriveStatus,
+  shouldLogProgress,
+  shouldUpdateStatus,
+  statusPriority,
+} from "./sync-utils";
 
 describe("statusPriority", () => {
   it("DNF and READ have equal priority", () => {
@@ -110,5 +116,24 @@ describe("shouldLogProgress", () => {
 
   it("returns false when koboreadpct is 0", () => {
     expect(shouldLogProgress(0, 0)).toBe(false);
+  });
+});
+
+describe("deriveAbsStatus", () => {
+  it("returns READ when isFinished is true regardless of progress", () => {
+    expect(deriveAbsStatus(40, true)).toBe("READ");
+  });
+
+  it("returns READ when progress is 100 even if isFinished is false", () => {
+    expect(deriveAbsStatus(100, false)).toBe("READ");
+  });
+
+  it("returns READING when progress is between 1 and 99 and not finished", () => {
+    expect(deriveAbsStatus(1, false)).toBe("READING");
+    expect(deriveAbsStatus(99, false)).toBe("READING");
+  });
+
+  it("returns TO_READ when progress is 0 and not finished", () => {
+    expect(deriveAbsStatus(0, false)).toBe("TO_READ");
   });
 });
