@@ -11,20 +11,3 @@ export function parseMaintenanceChanges(output: string): number | null {
   }
   return null;
 }
-
-const PYTHON_PATTERNS: RegExp[] = [
-  /Tags merged\s*:\s*(\d+)/,
-  /Book links removed\s*:\s*(\d+)/,
-  /AI-categorized books\s*:\s*(\d+)/,
-  /Uncategorized books\s*:\s*(\d+)/,
-  /Orphan tags cleaned\s*:\s*(\d+)/,
-];
-
-export function parsePythonChanges(output: string): number {
-  let total = 0;
-  for (const pattern of PYTHON_PATTERNS) {
-    const m = output.match(pattern);
-    if (m) total += parseInt(m[1]!, 10);
-  }
-  return total;
-}

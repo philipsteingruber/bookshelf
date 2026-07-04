@@ -49,12 +49,6 @@ const SCRIPTS: ScriptDef[] = [
     note: "Requires Calibre library to be accessible",
   },
   {
-    name: "Consolidate Calibre Tags",
-    file: "scripts/consolidate-tags.ts",
-    applyCmd: "pnpm consolidate:tags -- --apply",
-    note: "Stops and restarts the CWA Docker container",
-  },
-  {
     name: "Check Missing Goodreads IDs",
     file: "scripts/check-missing-goodreads-ids.ts",
     applyCmd: "pnpm check:missing-goodreads-ids",
