@@ -31,7 +31,8 @@
     "consolidate:tags": "tsx scripts/consolidate-tags.ts",
     "check:missing-goodreads-ids": "tsx scripts/check-missing-goodreads-ids.ts",
     "enrich:tags": "tsx scripts/enrich-tags.ts",
-    "maintenance": "tsx scripts/maintenance.ts"
+    "maintenance": "tsx scripts/maintenance.ts",
+    "find:fuzzy-duplicates": "tsx scripts/find-fuzzy-duplicates.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.80.0",
