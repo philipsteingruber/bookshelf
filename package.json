@@ -24,6 +24,7 @@
     "enrich:isbns": "tsx scripts/enrich-isbns.ts",
     "sync:calibre": "tsx scripts/sync-calibre.ts",
     "sync:abs": "tsx scripts/sync-abs.ts",
+    "mark:abandoned": "tsx scripts/mark-abandoned-books.ts",
     "review:ratings": "tsx scripts/review-ratings.ts",
     "backfill:sort-fields": "tsx scripts/backfill-sort-fields.ts",
     "seed:dev": "tsx scripts/seed-dev-user.ts",
