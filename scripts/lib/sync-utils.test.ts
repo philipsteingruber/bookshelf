@@ -79,8 +79,12 @@ describe("shouldUpdateStatus", () => {
     expect(shouldUpdateStatus("READ", "DNF")).toBe(false);
   });
 
-  it("does not change DNF to READ (equal priority)", () => {
-    expect(shouldUpdateStatus("DNF", "READ")).toBe(false);
+  it("clears DNF to READING when synced progress resumes", () => {
+    expect(shouldUpdateStatus("DNF", "READING")).toBe(true);
+  });
+
+  it("clears DNF to READ when synced progress reaches completion", () => {
+    expect(shouldUpdateStatus("DNF", "READ")).toBe(true);
   });
 
   it("does not change READ_NEXT to TO_READ", () => {

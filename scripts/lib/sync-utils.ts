@@ -27,6 +27,12 @@ export function deriveStatus(
 }
 
 export function shouldUpdateStatus(current: ReadStatus, derived: ReadStatus): boolean {
+  // DNF and READ share a priority tier so neither sync source can silently
+  // downgrade a finished/abandoned book. But a DNF book with newly-synced
+  // progress means the user resumed it on their device — that should clear
+  // DNF rather than get stuck there forever, so it's special-cased past the
+  // priority tie instead of folded into STATUS_PRIORITY.
+  if (current === "DNF" && (derived === "READING" || derived === "READ")) return true;
   return statusPriority(derived) > statusPriority(current);
 }
 
