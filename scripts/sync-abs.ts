@@ -180,6 +180,7 @@ async function main(): Promise<void> {
       progress: true,
       startedAt: true,
       finishedAt: true,
+      dnfAt: true,
       isbn: true,
     },
   });

@@ -257,6 +257,7 @@ async function applyCreates(
             progress: initialProgress,
             startedAt: b.datestarted,
             finishedAt: derived === "READ" ? new Date() : null,
+            dnfAt: derived === "DNF" ? new Date() : null,
             rating: b.rating !== null ? b.rating / 2 : null,
             userId,
           },
@@ -297,10 +298,11 @@ async function applyBookUpdates(bookUpdates: BookUpdate[]): Promise<string[]> {
   const errors: string[] = [];
   for (const { bookshelfBook, newStatus, newStartedAt, newFinishedAt } of bookUpdates) {
     try {
-      const data: { status?: ReadStatus; startedAt?: Date; finishedAt?: Date } = {};
+      const data: { status?: ReadStatus; startedAt?: Date; finishedAt?: Date; dnfAt?: Date } = {};
       if (newStatus !== null) data.status = newStatus;
       if (newStartedAt !== null) data.startedAt = newStartedAt;
       if (newFinishedAt !== null) data.finishedAt = newFinishedAt;
+      if (newStatus === "DNF") data.dnfAt = new Date();
 
       await prisma.book.update({ where: { id: bookshelfBook.id }, data });
     } catch (err) {
@@ -483,6 +485,7 @@ async function main(): Promise<void> {
         progress: true,
         startedAt: true,
         finishedAt: true,
+        dnfAt: true,
         series: { select: { name: true } },
         seriesIndex: true,
         isbn: true,

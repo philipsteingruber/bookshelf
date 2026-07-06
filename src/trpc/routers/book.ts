@@ -211,6 +211,7 @@ export const bookRouter = createTRPCRouter({
         progress?: number;
         startedAt?: Date | null;
         finishedAt?: Date | null;
+        dnfAt?: Date;
       } = { status: newStatus };
 
       if (newStatus === "READ") {
@@ -222,6 +223,8 @@ export const bookRouter = createTRPCRouter({
         updateData.finishedAt = null;
       } else if (newStatus === "READING") {
         updateData.startedAt = new Date();
+      } else if (newStatus === "DNF") {
+        updateData.dnfAt = new Date();
       }
 
       const transactionTimer = performanceLogger("DB: Update reading status transaction", 1000, ctx.logger);

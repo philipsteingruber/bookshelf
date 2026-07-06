@@ -12,6 +12,7 @@ export interface BookshelfBookForAbs {
   progress: number;
   startedAt: Date | null;
   finishedAt: Date | null;
+  dnfAt: Date | null;
   isbn: string | null;
 }
 
@@ -82,7 +83,14 @@ export function computeAbsResults(
     }
 
     const derived = deriveAbsStatus(absBook.progressPercent, absBook.isFinished);
-    const newStatus = shouldUpdateStatus(bookshelfBook.status, derived) ? derived : null;
+    const newStatus = shouldUpdateStatus(
+      bookshelfBook.status,
+      derived,
+      bookshelfBook.dnfAt,
+      absBook.progressUpdatedAt,
+    )
+      ? derived
+      : null;
     const effectiveStatus = newStatus ?? bookshelfBook.status;
 
     const newStartedAt =

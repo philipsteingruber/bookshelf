@@ -12,6 +12,7 @@ export interface BookshelfBook {
   progress: number;
   startedAt: Date | null;
   finishedAt: Date | null;
+  dnfAt: Date | null;
   series: { name: string } | null;
   seriesIndex: number | null;
   isbn: string | null;
@@ -115,7 +116,14 @@ export function computeResults(
       calibreBook.isReadNext,
     );
 
-    const newStatus = shouldUpdateStatus(bookshelfBook.status, derived) ? derived : null;
+    const newStatus = shouldUpdateStatus(
+      bookshelfBook.status,
+      derived,
+      bookshelfBook.dnfAt,
+      calibreBook.progressUpdatedAt,
+    )
+      ? derived
+      : null;
     const effectiveStatus = newStatus ?? bookshelfBook.status;
 
     const newStartedAt =

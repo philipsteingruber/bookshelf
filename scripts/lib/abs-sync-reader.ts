@@ -14,6 +14,9 @@ export interface AbsBookSync {
   isFinished: boolean;
   startedAt: Date | null;
   finishedAt: Date | null;
+  // When ABS last recorded progress for this item — used to tell a genuine
+  // resume from a stale signal that predates a DNF (see shouldUpdateStatus).
+  progressUpdatedAt: Date;
 }
 
 export async function readAbsSyncData(
@@ -45,6 +48,7 @@ export async function readAbsSyncData(
       isFinished: progress.isFinished,
       startedAt: progress.startedAt ? new Date(progress.startedAt) : null,
       finishedAt: progress.finishedAt ? new Date(progress.finishedAt) : null,
+      progressUpdatedAt: new Date(progress.lastUpdate),
     });
   }
   return result;

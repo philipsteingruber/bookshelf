@@ -20,6 +20,7 @@ function makeCalibре(overrides: Partial<CalibreBookSync> = {}): CalibreBookSyn
     bookFilePath: null,
     readStatus: 0,
     readPercent: null,
+    progressUpdatedAt: null,
     datestarted: null,
     dnf: false,
     isReadNext: false,
@@ -36,6 +37,7 @@ function makeBookshelf(overrides: Partial<BookshelfBook> = {}): BookshelfBook {
     progress: 0,
     startedAt: null,
     finishedAt: null,
+    dnfAt: null,
     series: { name: "Gaunt's Ghosts" },
     seriesIndex: 8,
     isbn: null,
@@ -229,5 +231,40 @@ describe("computeResults — Read Next removals", () => {
     const calibre = makeCalibре({ isReadNext: true, readStatus: 0, readPercent: null });
     const { readNextRemovals } = computeResults([calibre], []);
     expect(readNextRemovals).toHaveLength(0);
+  });
+});
+
+describe("computeResults — DNF resume gating", () => {
+  // Regression test for the 13th Legion incident: CWA's book_read_link.read_status
+  // had been sitting at "Read" since long before the book was DNFed in Bookshelf.
+  // Without the timestamp gate, that stale signal silently cleared the DNF.
+  it("clears DNF when Calibre's progress signal is newer than the DNF decision", () => {
+    const calibre = makeCalibре({
+      readStatus: 1,
+      progressUpdatedAt: new Date("2026-07-06T00:00:00Z"),
+    });
+    const bookshelf = makeBookshelf({ status: "DNF", dnfAt: new Date("2026-06-01T00:00:00Z") });
+    const { bookUpdates } = computeResults([calibre], [bookshelf]);
+    expect(bookUpdates[0]!.newStatus).toBe("READ");
+  });
+
+  it("does not clear DNF when Calibre's progress signal predates the DNF decision", () => {
+    const calibre = makeCalibре({
+      readStatus: 1,
+      progressUpdatedAt: new Date("2026-05-17T00:00:00Z"),
+    });
+    const bookshelf = makeBookshelf({ status: "DNF", dnfAt: new Date("2026-06-01T00:00:00Z") });
+    const { bookUpdates } = computeResults([calibre], [bookshelf]);
+    expect(bookUpdates).toHaveLength(0);
+  });
+
+  it("does not clear DNF when dnfAt is unknown", () => {
+    const calibre = makeCalibре({
+      readStatus: 1,
+      progressUpdatedAt: new Date("2026-07-06T00:00:00Z"),
+    });
+    const bookshelf = makeBookshelf({ status: "DNF", dnfAt: null });
+    const { bookUpdates } = computeResults([calibre], [bookshelf]);
+    expect(bookUpdates).toHaveLength(0);
   });
 });

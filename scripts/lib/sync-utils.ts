@@ -26,13 +26,26 @@ export function deriveStatus(
   return "TO_READ";
 }
 
-export function shouldUpdateStatus(current: ReadStatus, derived: ReadStatus): boolean {
+export function shouldUpdateStatus(
+  current: ReadStatus,
+  derived: ReadStatus,
+  dnfAt: Date | null,
+  sourceUpdatedAt: Date | null,
+): boolean {
   // DNF and READ share a priority tier so neither sync source can silently
   // downgrade a finished/abandoned book. But a DNF book with newly-synced
   // progress means the user resumed it on their device — that should clear
   // DNF rather than get stuck there forever, so it's special-cased past the
   // priority tie instead of folded into STATUS_PRIORITY.
-  if (current === "DNF" && (derived === "READING" || derived === "READ")) return true;
+  //
+  // That resume is only genuine if the source's own progress signal is newer
+  // than the DNF decision. Without that check, a signal that already existed
+  // before the DNF (e.g. CWA's read_status left at "Read" from months ago)
+  // would silently clear a DNF that was never actually resumed. If either
+  // timestamp is unknown, don't risk a silent clear.
+  if (current === "DNF" && (derived === "READING" || derived === "READ")) {
+    return dnfAt !== null && sourceUpdatedAt !== null && sourceUpdatedAt > dnfAt;
+  }
   return statusPriority(derived) > statusPriority(current);
 }
 

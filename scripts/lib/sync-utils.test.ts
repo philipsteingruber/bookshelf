@@ -55,45 +55,62 @@ describe("deriveStatus", () => {
 });
 
 describe("shouldUpdateStatus", () => {
+  const NO_TIMESTAMPS: [Date | null, Date | null] = [null, null];
+  const DNF_AT = new Date("2026-06-01");
+  const BEFORE_DNF = new Date("2026-05-01");
+  const AFTER_DNF = new Date("2026-07-01");
+
   it("updates TO_READ to READING", () => {
-    expect(shouldUpdateStatus("TO_READ", "READING")).toBe(true);
+    expect(shouldUpdateStatus("TO_READ", "READING", ...NO_TIMESTAMPS)).toBe(true);
   });
 
   it("updates TO_READ to READ", () => {
-    expect(shouldUpdateStatus("TO_READ", "READ")).toBe(true);
+    expect(shouldUpdateStatus("TO_READ", "READ", ...NO_TIMESTAMPS)).toBe(true);
   });
 
   it("updates READING to READ", () => {
-    expect(shouldUpdateStatus("READING", "READ")).toBe(true);
+    expect(shouldUpdateStatus("READING", "READ", ...NO_TIMESTAMPS)).toBe(true);
   });
 
   it("updates READ_NEXT to READING", () => {
-    expect(shouldUpdateStatus("READ_NEXT", "READING")).toBe(true);
+    expect(shouldUpdateStatus("READ_NEXT", "READING", ...NO_TIMESTAMPS)).toBe(true);
   });
 
   it("does not downgrade READ to READING", () => {
-    expect(shouldUpdateStatus("READ", "READING")).toBe(false);
+    expect(shouldUpdateStatus("READ", "READING", ...NO_TIMESTAMPS)).toBe(false);
   });
 
   it("does not change READ to DNF (equal priority)", () => {
-    expect(shouldUpdateStatus("READ", "DNF")).toBe(false);
+    expect(shouldUpdateStatus("READ", "DNF", ...NO_TIMESTAMPS)).toBe(false);
   });
 
-  it("clears DNF to READING when synced progress resumes", () => {
-    expect(shouldUpdateStatus("DNF", "READING")).toBe(true);
+  it("clears DNF to READING when the source's progress signal is newer than the DNF decision", () => {
+    expect(shouldUpdateStatus("DNF", "READING", DNF_AT, AFTER_DNF)).toBe(true);
   });
 
-  it("clears DNF to READ when synced progress reaches completion", () => {
-    expect(shouldUpdateStatus("DNF", "READ")).toBe(true);
+  it("clears DNF to READ when the source's progress signal is newer than the DNF decision", () => {
+    expect(shouldUpdateStatus("DNF", "READ", DNF_AT, AFTER_DNF)).toBe(true);
+  });
+
+  it("does not clear DNF when the source's progress signal predates the DNF decision", () => {
+    expect(shouldUpdateStatus("DNF", "READ", DNF_AT, BEFORE_DNF)).toBe(false);
+  });
+
+  it("does not clear DNF when dnfAt is unknown", () => {
+    expect(shouldUpdateStatus("DNF", "READ", null, AFTER_DNF)).toBe(false);
+  });
+
+  it("does not clear DNF when the source has no progress timestamp", () => {
+    expect(shouldUpdateStatus("DNF", "READ", DNF_AT, null)).toBe(false);
   });
 
   it("does not change READ_NEXT to TO_READ", () => {
-    expect(shouldUpdateStatus("READ_NEXT", "TO_READ")).toBe(false);
+    expect(shouldUpdateStatus("READ_NEXT", "TO_READ", ...NO_TIMESTAMPS)).toBe(false);
   });
 
   it("does not update when status is unchanged", () => {
-    expect(shouldUpdateStatus("READING", "READING")).toBe(false);
-    expect(shouldUpdateStatus("TO_READ", "TO_READ")).toBe(false);
+    expect(shouldUpdateStatus("READING", "READING", ...NO_TIMESTAMPS)).toBe(false);
+    expect(shouldUpdateStatus("TO_READ", "TO_READ", ...NO_TIMESTAMPS)).toBe(false);
   });
 });
 

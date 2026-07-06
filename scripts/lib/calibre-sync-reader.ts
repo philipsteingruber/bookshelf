@@ -20,6 +20,10 @@ export interface CalibreBookSync {
   readStatus: number | null;
   // KOReader progress from CWA (null if book hasn't been opened in KOReader)
   readPercent: number | null;
+  // Most recent of book_read_link.last_modified / kobo_reading_state.last_modified —
+  // when CWA's own read_status/readPercent signal last changed, used to tell a
+  // genuine resume from a stale signal that predates a DNF (see shouldUpdateStatus).
+  progressUpdatedAt: Date | null;
   // Calibre custom column data
   datestarted: Date | null;
   dnf: boolean;
@@ -85,11 +89,13 @@ interface CalibreDataRow {
 interface CwaReadRow {
   book_id: number;
   read_status: number;
+  last_modified: string | null;
 }
 
 interface CwaProgressRow {
   book_id: number;
   progress_percent: number | null;
+  last_modified: string | null;
 }
 
 export function stripHtml(html: string): string {
@@ -110,6 +116,12 @@ export function stripHtml(html: string): string {
     .trim();
 }
 
+function mostRecent(a: Date | null, b: Date | null): Date | null {
+  if (a === null) return b;
+  if (b === null) return a;
+  return a > b ? a : b;
+}
+
 // Calibre stores "0101-01-01" as a placeholder for unknown publication dates.
 export function extractYear(pubdate: string | null): number | null {
   if (!pubdate) return null;
@@ -128,13 +140,16 @@ export function readCalibreSyncData(
     const calibreRows = calibreDb.prepare(CALIBRE_QUERY).all() as CalibreRawRow[];
 
     const cwaReadRows = cwaDb
-      .prepare("SELECT book_id, read_status FROM book_read_link")
+      .prepare("SELECT book_id, read_status, last_modified FROM book_read_link")
       .all() as CwaReadRow[];
     const cwaReadByBookId = new Map(cwaReadRows.map((r) => [r.book_id, r.read_status]));
+    const cwaReadModifiedByBookId = new Map(
+      cwaReadRows.map((r) => [r.book_id, r.last_modified ? new Date(r.last_modified) : null]),
+    );
 
     const cwaProgressRows = cwaDb
       .prepare(
-        `SELECT krs.book_id, kb.progress_percent
+        `SELECT krs.book_id, kb.progress_percent, krs.last_modified
          FROM kobo_reading_state krs
          JOIN kobo_bookmark kb ON kb.kobo_reading_state_id = krs.id
          ORDER BY krs.last_modified DESC`,
@@ -142,9 +157,11 @@ export function readCalibreSyncData(
       .all() as CwaProgressRow[];
     // Keep only the most recent progress per book (ORDER BY ensures first wins)
     const cwaProgressByBookId = new Map<number, number>();
+    const cwaProgressModifiedByBookId = new Map<number, Date | null>();
     for (const r of cwaProgressRows) {
       if (!cwaProgressByBookId.has(r.book_id) && r.progress_percent !== null) {
         cwaProgressByBookId.set(r.book_id, r.progress_percent);
+        cwaProgressModifiedByBookId.set(r.book_id, r.last_modified ? new Date(r.last_modified) : null);
       }
     }
 
@@ -191,6 +208,10 @@ export function readCalibreSyncData(
         : null,
       readStatus: cwaReadByBookId.get(row.id) ?? null,
       readPercent: cwaProgressByBookId.get(row.id) ?? null,
+      progressUpdatedAt: mostRecent(
+        cwaReadModifiedByBookId.get(row.id) ?? null,
+        cwaProgressModifiedByBookId.get(row.id) ?? null,
+      ),
       datestarted: row.datestarted ? new Date(row.datestarted) : null,
       dnf: row.dnf === 1,
       isReadNext: readNextBookIds.has(row.id),

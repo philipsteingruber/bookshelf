@@ -77,7 +77,7 @@ const markAbandonedBooks = async (): Promise<void> => {
   if (apply) {
     await prisma.book.updateMany({
       where: { id: { in: candidates.map((candidate) => candidate.id) } },
-      data: { status: "DNF" },
+      data: { status: "DNF", dnfAt: new Date() },
     });
     console.log(`\nUpdated ${candidates.length} book(s) to DNF.`);
   } else {

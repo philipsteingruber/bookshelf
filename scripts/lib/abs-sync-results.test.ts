@@ -14,6 +14,7 @@ function makeAbs(overrides: Partial<AbsBookSync> = {}): AbsBookSync {
     isFinished: false,
     startedAt: null,
     finishedAt: null,
+    progressUpdatedAt: new Date("2026-01-01T00:00:00Z"),
     ...overrides,
   };
 }
@@ -27,6 +28,7 @@ function makeBookshelf(overrides: Partial<BookshelfBookForAbs> = {}): BookshelfB
     progress: 0,
     startedAt: null,
     finishedAt: null,
+    dnfAt: null,
     isbn: null,
     ...overrides,
   };
@@ -159,5 +161,40 @@ describe("computeAbsResults — status", () => {
     const bookshelf = makeBookshelf({ status: "TO_READ", startedAt: existingStart });
     const { statusUpdates } = computeAbsResults([abs], [bookshelf]);
     expect(statusUpdates[0]!.newStartedAt).toBeNull();
+  });
+});
+
+describe("computeAbsResults — DNF resume gating", () => {
+  // ABS has no DNF concept of its own, so a DNF book can only ever be cleared
+  // via this timestamp check — there's no equivalent of Calibre's checkbox to
+  // keep ABS's own state in sync.
+  it("clears DNF when ABS progress is newer than the DNF decision", () => {
+    const abs = makeAbs({
+      progressPercent: 40,
+      progressUpdatedAt: new Date("2026-07-01T00:00:00Z"),
+    });
+    const bookshelf = makeBookshelf({ status: "DNF", dnfAt: new Date("2026-06-01T00:00:00Z") });
+    const { statusUpdates } = computeAbsResults([abs], [bookshelf]);
+    expect(statusUpdates[0]!.newStatus).toBe("READING");
+  });
+
+  it("does not clear DNF when ABS's progress timestamp predates the DNF decision", () => {
+    const abs = makeAbs({
+      progressPercent: 40,
+      progressUpdatedAt: new Date("2026-05-01T00:00:00Z"),
+    });
+    const bookshelf = makeBookshelf({ status: "DNF", dnfAt: new Date("2026-06-01T00:00:00Z") });
+    const { statusUpdates } = computeAbsResults([abs], [bookshelf]);
+    expect(statusUpdates).toHaveLength(0);
+  });
+
+  it("does not clear DNF when dnfAt is unknown", () => {
+    const abs = makeAbs({
+      progressPercent: 40,
+      progressUpdatedAt: new Date("2026-07-01T00:00:00Z"),
+    });
+    const bookshelf = makeBookshelf({ status: "DNF", dnfAt: null });
+    const { statusUpdates } = computeAbsResults([abs], [bookshelf]);
+    expect(statusUpdates).toHaveLength(0);
   });
 });

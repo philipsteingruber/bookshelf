@@ -108,6 +108,9 @@ model Book {
 
     startedAt         DateTime?
     finishedAt        DateTime?
+    // When status last became DNF. Gates whether a sync's own progress signal is
+    // newer than the DNF decision — see shouldUpdateStatus in scripts/lib/sync-utils.ts.
+    dnfAt             DateTime?
     createdAt         DateTime          @default(now())
     updatedAt         DateTime          @updatedAt
     readingProgresses ReadingProgress[]
