@@ -197,12 +197,11 @@ describe("computeResults — rating updates", () => {
     expect(ratingUpdates[0]!.newRating).toBe(4);
   });
 
-  it("produces a ratingUpdate when Calibre rating differs from bookshelf rating", () => {
+  it("does not produce a ratingUpdate when bookshelf already has a rating, even if it differs from Calibre", () => {
     const calibre = makeCalibре({ rating: 10 }); // 5★
     const bookshelf = makeBookshelf({ rating: 3 });
     const { ratingUpdates } = computeResults([calibre], [bookshelf]);
-    expect(ratingUpdates).toHaveLength(1);
-    expect(ratingUpdates[0]!.newRating).toBe(5);
+    expect(ratingUpdates).toHaveLength(0);
   });
 
   it("does not produce a ratingUpdate when Calibre and bookshelf ratings are the same", () => {

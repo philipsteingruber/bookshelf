@@ -5,40 +5,34 @@ import path from "node:path";
 import { createInterface, type Interface } from "node:readline";
 import { parseArgs } from "node:util";
 
-import Database from "better-sqlite3";
-import Docker from "dockerode";
+import prisma from "@/lib/prisma";
 
-import { DEFAULT_CALIBRE_DB } from "./lib/calibre-constants";
-import { startContainer } from "./lib/docker";
-
-const CONTAINER_NAME = "calibre-web-automated";
 const SCRIPTS_DIR = path.join(process.cwd(), "scripts");
 
 // Transient — wiped on every startup. Holds decisions made in the current
-// session that haven't been committed to Calibre yet.
+// session that haven't been committed to Bookshelf yet.
 const STATE_FILE = path.join(SCRIPTS_DIR, "rating-review-state.json");
 
-// Persistent — survives across sessions. Holds Calibre IDs of books whose
-// decisions have been committed to the DB.
+// Persistent — survives across sessions. Holds Bookshelf book IDs whose
+// decisions have been committed.
 const PROCESSED_FILE = path.join(SCRIPTS_DIR, "rating-review-processed-books.json");
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface RatedBook {
-  calibreId: number;
+  bookId: number;
   title: string;
   author: string;
   seriesName: string | null;
   seriesIndex: number | null;
-  currentRating: number; // Calibre scale: 2–10
-  tags: string | null;
+  currentRating: number; // Bookshelf scale: 1–5
 }
 
 interface PendingWrite {
-  calibreId: number;
+  bookId: number;
   title: string;
-  oldRating: number; // Calibre scale
-  newRating: number; // Calibre scale
+  oldRating: number; // 1–5
+  newRating: number; // 1–5
 }
 
 // ─── Criteria ─────────────────────────────────────────────────────────────────
@@ -77,121 +71,51 @@ function savePending(pending: PendingWrite[]): void {
   writeFileSync(STATE_FILE, JSON.stringify(pending, null, 2), "utf-8");
 }
 
-// ─── Calibre reads ────────────────────────────────────────────────────────────
+// ─── Bookshelf reads ──────────────────────────────────────────────────────────
 
-const BOOKS_QUERY = `
-  SELECT
-    b.id,
-    b.title,
-    MIN(a.name)                AS author,
-    s.name                     AS series_name,
-    b.series_index,
-    r.rating,
-    GROUP_CONCAT(t.name, ', ') AS tags
-  FROM books b
-  JOIN books_ratings_link brl ON brl.book = b.id
-  JOIN ratings r              ON r.id = brl.rating
-  LEFT JOIN books_authors_link bal ON bal.book = b.id
-  LEFT JOIN authors a              ON a.id = bal.author
-  LEFT JOIN books_series_link bsl  ON bsl.book = b.id
-  LEFT JOIN series s               ON s.id = bsl.series
-  LEFT JOIN books_tags_link btl    ON btl.book = b.id
-  LEFT JOIN tags t                 ON t.id = btl.tag
-  GROUP BY b.id, b.title, s.name, b.series_index, r.rating
-  ORDER BY b.title
-`;
+async function readRatedBooks(userId: string): Promise<RatedBook[]> {
+  const books = await prisma.book.findMany({
+    where: { userId, rating: { not: null } },
+    include: { series: true },
+    orderBy: { title: "asc" },
+  });
 
-interface RawBookRow {
-  id: number;
-  title: string;
-  author: string | null;
-  series_name: string | null;
-  series_index: number | null;
-  rating: number;
-  tags: string | null;
+  return books.map((b) => ({
+    bookId: b.id,
+    title: b.title,
+    author: b.author,
+    seriesName: b.series?.name ?? null,
+    seriesIndex: b.seriesIndex,
+    currentRating: b.rating!,
+  }));
 }
 
-function readRatedBooks(calibreDbPath: string): RatedBook[] {
-  const db = new Database(calibreDbPath, { readonly: true });
-  try {
-    const rows = db.prepare(BOOKS_QUERY).all() as RawBookRow[];
-    return rows.map((r) => ({
-      calibreId: r.id,
-      title: r.title,
-      author: r.author ?? "Unknown",
-      seriesName: r.series_name,
-      seriesIndex: r.series_index,
-      currentRating: r.rating,
-      tags: r.tags,
-    }));
-  } finally {
-    db.close();
-  }
-}
+// ─── Bookshelf writes ─────────────────────────────────────────────────────────
 
-// ─── Calibre writes ───────────────────────────────────────────────────────────
-
-function writeRatings(calibreDbPath: string, pending: PendingWrite[]): void {
+// Groups by target rating so each distinct value is a single updateMany, all
+// applied atomically in one transaction.
+async function writeRatings(pending: PendingWrite[]): Promise<void> {
   const writes = pending.filter((p) => p.newRating !== p.oldRating);
   if (writes.length === 0) return;
 
-  const db = new Database(calibreDbPath);
-  try {
-    const getRatingRow = db.prepare<[number], { id: number }>(
-      "SELECT id FROM ratings WHERE rating = ? LIMIT 1",
-    );
-    const insertRatingRow = db.prepare("INSERT INTO ratings (rating) VALUES (?)");
-    const updateLink = db.prepare(
-      "UPDATE books_ratings_link SET rating = ? WHERE book = ?",
-    );
-
-    const applyWrite = db.transaction((calibreId: number, calibreValue: number) => {
-      const existing = getRatingRow.get(calibreValue);
-      const ratingId = existing
-        ? existing.id
-        : Number(insertRatingRow.run(calibreValue).lastInsertRowid);
-      updateLink.run(ratingId, calibreId);
-    });
-
-    for (const w of writes) {
-      applyWrite(w.calibreId, w.newRating);
-    }
-  } finally {
-    db.close();
-  }
-}
-
-// ─── Container management ─────────────────────────────────────────────────────
-
-// Does NOT use the shared stopContainer() because that calls process.exit on
-// failure, which would skip the finally block and leave the container down.
-async function withContainerDown<T>(fn: () => T | Promise<T>): Promise<T> {
-  const container = new Docker().getContainer(CONTAINER_NAME);
-
-  try {
-    await container.stop();
-    console.log(`Stopped ${CONTAINER_NAME}.`);
-  } catch (err) {
-    const status = (err as { statusCode?: number }).statusCode;
-    if (status !== 304) {
-      throw new Error(
-        `Failed to stop ${CONTAINER_NAME} — cannot safely write to DB.`,
-      );
-    }
+  const idsByRating = new Map<number, number[]>();
+  for (const w of writes) {
+    const ids = idsByRating.get(w.newRating) ?? [];
+    ids.push(w.bookId);
+    idsByRating.set(w.newRating, ids);
   }
 
-  try {
-    return await fn();
-  } finally {
-    await startContainer();
-  }
+  await prisma.$transaction(
+    [...idsByRating.entries()].map(([rating, ids]) =>
+      prisma.book.updateMany({ where: { id: { in: ids } }, data: { rating } }),
+    ),
+  );
 }
 
 // ─── Display ──────────────────────────────────────────────────────────────────
 
-function starsLabel(calibreRating: number): string {
-  const n = calibreRating / 2;
-  return `${"★".repeat(n)}${"☆".repeat(5 - n)} (${n}★)`;
+function starsLabel(rating: number): string {
+  return `${"★".repeat(rating)}${"☆".repeat(5 - rating)} (${rating}★)`;
 }
 
 function printCriteria(): void {
@@ -207,7 +131,6 @@ function printBook(book: RatedBook, index: number, total: number): void {
       ? ` [${book.seriesName} #${book.seriesIndex}]`
       : "";
   console.log(`\n[${index + 1}/${total}] ${book.title} — ${book.author}${series}`);
-  if (book.tags) console.log(`  Tags: ${book.tags}`);
   console.log(`  Current: ${starsLabel(book.currentRating)}`);
 }
 
@@ -235,25 +158,17 @@ function ask(rl: Interface, prompt: string): Promise<string | null> {
 
 // ─── Session ──────────────────────────────────────────────────────────────────
 
-async function runSession(
-  calibreDbPath: string,
-  books: RatedBook[],
-  processed: Set<number>,
-): Promise<void> {
+async function runSession(books: RatedBook[], processed: Set<number>): Promise<void> {
   const pending: PendingWrite[] = [];
   const rl = createInterface({ input: process.stdin, output: process.stdout });
   let committing = false;
 
-  // Ctrl-C: discard pending decisions, ensure container is up, exit.
+  // Ctrl-C: discard pending decisions and exit.
   rl.on("SIGINT", () => {
     rl.close();
     console.log("\nInterrupted — discarding uncommitted decisions.");
     clearState();
-    void startContainer()
-      .catch(() => {
-        console.error(`Could not restart ${CONTAINER_NAME} — restart it manually.`);
-      })
-      .then(() => process.exit(0));
+    process.exit(0);
   });
 
   async function commit(reason: string): Promise<void> {
@@ -276,11 +191,9 @@ async function runSession(
       `Committing ${pending.length} decision(s): ${changed.length} changed, ${confirmed} confirmed unchanged...`,
     );
 
-    await withContainerDown(() => {
-      writeRatings(calibreDbPath, pending);
-    });
+    await writeRatings(pending);
 
-    for (const p of pending) processed.add(p.calibreId);
+    for (const p of pending) processed.add(p.bookId);
     saveProcessed(processed);
     clearState();
 
@@ -294,7 +207,7 @@ async function runSession(
     console.log("Done.");
   }
 
-  const toReview = books.filter((b) => !processed.has(b.calibreId));
+  const toReview = books.filter((b) => !processed.has(b.bookId));
 
   if (toReview.length === 0) {
     console.log("\nAll rated books have already been processed. Nothing to do.");
@@ -334,13 +247,13 @@ async function runSession(
         if (isNaN(n) || n < 1 || n > 5) {
           console.log("  Invalid — enter a number 1–5, Enter to keep, or q to stop.");
         } else {
-          newRating = n * 2; // Convert 1–5 stars to Calibre's 2–10 scale
+          newRating = n;
         }
       }
     }
 
     pending.push({
-      calibreId: book.calibreId,
+      bookId: book.bookId,
       title: book.title,
       oldRating: book.currentRating,
       newRating,
@@ -365,15 +278,24 @@ async function runSession(
 async function main(): Promise<void> {
   const { values } = parseArgs({
     options: {
-      "calibre-db": { type: "string", default: DEFAULT_CALIBRE_DB },
+      "user-email": { type: "string" },
     },
   });
 
-  const calibreDbPath =
-    (values["calibre-db"] as string | undefined) ?? DEFAULT_CALIBRE_DB;
+  const userEmail =
+    (values["user-email"] as string | undefined) ?? process.env.CALIBRE_SYNC_USER_EMAIL;
 
-  if (!existsSync(calibreDbPath)) {
-    console.error(`Calibre database not found at "${calibreDbPath}"`);
+  if (!userEmail) {
+    console.error(
+      "Error: No user specified. Set CALIBRE_SYNC_USER_EMAIL in .env or pass --user-email",
+    );
+    process.exit(1);
+  }
+
+  const user = await prisma.user.findFirst({ where: { email: userEmail } });
+
+  if (!user) {
+    console.error(`Error: No bookshelf user found with email "${userEmail}"`);
     process.exit(1);
   }
 
@@ -382,21 +304,15 @@ async function main(): Promise<void> {
 
   const processed = loadProcessed();
 
-  // One-time read phase — container down only for the duration of the DB read
-  console.log("Stopping container to read Calibre data...");
-  let books: RatedBook[] = [];
-  await withContainerDown(() => {
-    books = readRatedBooks(calibreDbPath);
-    console.log(`Read ${books.length} rated book(s).`);
-  });
+  const books = await readRatedBooks(user.id);
+  console.log(`Read ${books.length} rated book(s).`);
 
-  await runSession(calibreDbPath, books, processed);
+  await runSession(books, processed);
 }
 
-main().catch(async (err) => {
-  console.error("Fatal error:", err);
-  await startContainer().catch(() => {
-    console.error(`Could not restart ${CONTAINER_NAME} — restart it manually.`);
-  });
-  process.exit(1);
-});
+main()
+  .catch((err) => {
+    console.error("Fatal error:", err);
+    process.exit(1);
+  })
+  .finally(() => prisma.$disconnect());

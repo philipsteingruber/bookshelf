@@ -190,13 +190,12 @@ export function computeResults(
       });
     }
 
-    // Calibre wins: sync rating whenever Calibre has one and it differs from bookshelf.
-    // If Calibre has no rating, leave bookshelf alone.
-    if (calibreBook.rating !== null) {
+    // Bookshelf wins: it's the source of truth for ratings now (reviewed via
+    // review-ratings.ts). Calibre only seeds a rating when Bookshelf has none
+    // yet — it can never overwrite a rating already set in Bookshelf.
+    if (calibreBook.rating !== null && bookshelfBook.rating === null) {
       const calibreStars = calibreBook.rating / 2;
-      if (calibreStars !== bookshelfBook.rating) {
-        results.ratingUpdates.push({ calibreBook, bookshelfBook, newRating: calibreStars });
-      }
+      results.ratingUpdates.push({ calibreBook, bookshelfBook, newRating: calibreStars });
     }
   }
 
