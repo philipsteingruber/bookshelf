@@ -36,6 +36,14 @@ describe("normalizeTitle", () => {
   it("does not strip 'the' when it is part of a word at the start", () => {
     expect(normalizeTitle("Theorem")).toBe("theorem");
   });
+
+  it("treats curly and straight apostrophes as equivalent", () => {
+    expect(normalizeTitle("The Regent’s Shadow")).toBe(normalizeTitle("The Regent's Shadow"));
+  });
+
+  it("treats curly and straight double quotes as equivalent", () => {
+    expect(normalizeTitle("The “Great” Escape")).toBe(normalizeTitle('The "Great" Escape'));
+  });
 });
 
 describe("stripSubtitle", () => {
@@ -65,6 +73,10 @@ describe("normalizeAuthor", () => {
 
   it("preserves punctuation", () => {
     expect(normalizeAuthor("J.R.R. Tolkien")).toBe("j.r.r. tolkien");
+  });
+
+  it("treats curly and straight apostrophes as equivalent", () => {
+    expect(normalizeAuthor("Chris O’Brien")).toBe(normalizeAuthor("Chris O'Brien"));
   });
 });
 
@@ -96,6 +108,12 @@ describe("buildCompositeKey", () => {
   it("falls back to title+author key when series index is null", () => {
     expect(buildCompositeKey("Circe", "Madeline Miller", "Some Series", null)).toBe(
       "circe|madeline miller",
+    );
+  });
+
+  it("matches titles that differ only by curly vs. straight apostrophe", () => {
+    expect(buildCompositeKey("The Regent’s Shadow", "Chris Wraight", null, null)).toBe(
+      buildCompositeKey("The Regent's Shadow", "Chris Wraight", null, null),
     );
   });
 });

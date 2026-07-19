@@ -1,8 +1,17 @@
 const LEADING_ARTICLES = /^(the|a|an)\s+/i;
 const SUBTITLE_SEPARATOR = /\s*[:—]\s*/;
+const CURLY_QUOTES = /[‘’]/g;
+const CURLY_DOUBLE_QUOTES = /[“”]/g;
+
+// Different metadata sources (e.g. Audible vs. Calibre/OpenLibrary) disagree
+// on straight vs. curly quotes for the same title/author, which would
+// otherwise silently break exact-match composite-key lookups.
+function normalizeQuotes(value: string): string {
+  return value.replace(CURLY_QUOTES, "'").replace(CURLY_DOUBLE_QUOTES, '"');
+}
 
 export function normalizeTitle(title: string): string {
-  return title.toLowerCase().trim().replace(LEADING_ARTICLES, "");
+  return normalizeQuotes(title.toLowerCase().trim()).replace(LEADING_ARTICLES, "");
 }
 
 // Strips a ": Subtitle" or " — Subtitle" suffix. Different metadata sources
@@ -14,7 +23,7 @@ export function stripSubtitle(title: string): string {
 }
 
 export function normalizeAuthor(author: string): string {
-  return author.toLowerCase().trim();
+  return normalizeQuotes(author.toLowerCase().trim());
 }
 
 export function buildCompositeKey(
