@@ -46,6 +46,19 @@ interface MatchResult {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+const GB_RETRY_DELAYS_MS = [1000, 2000];
+
+async function fetchGoogleBooksWithRetry(url: string): Promise<Response> {
+  let lastRes: Response | undefined;
+  for (let attempt = 0; attempt <= GB_RETRY_DELAYS_MS.length; attempt++) {
+    const res = await fetch(url);
+    if (res.ok || res.status < 500) return res;
+    lastRes = res;
+    if (attempt < GB_RETRY_DELAYS_MS.length) await sleep(GB_RETRY_DELAYS_MS[attempt]);
+  }
+  return lastRes!;
+}
+
 // ─── OpenLibrary ──────────────────────────────────────────────────────────────
 
 interface OlDoc {
@@ -108,7 +121,7 @@ async function searchGoogleBooks(title: string, author: string): Promise<IsbnMat
     key,
   });
 
-  const res = await fetch(`${GOOGLE_BOOKS_SEARCH}?${params}`);
+  const res = await fetchGoogleBooksWithRetry(`${GOOGLE_BOOKS_SEARCH}?${params}`);
   if (!res.ok) throw new Error(`Google Books HTTP ${res.status}`);
 
   const data = (await res.json()) as { items?: GbItem[] };
