@@ -80,7 +80,7 @@ model Book {
     authorSort String
 
     pageCount Int?
-    progress  Int @default(0)
+    progress  Float @default(0)
 
     rating          Int?
     goodreadsRating Decimal? @db.Decimal(3, 2)
@@ -134,7 +134,7 @@ model ReadingProgress {
     userId String
     bookId Int
 
-    progress Int
+    progress Float
 
     comments String? @db.Text
 

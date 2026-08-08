@@ -33,7 +33,7 @@ export const ReadingProgressEstimateCard = ({
         {/* Current progress */}
         <div>
           <p className="text-muted-foreground text-sm">Current Progress</p>
-          <p className="text-primary text-2xl font-bold">{currentProgress}%</p>
+          <p className="text-primary text-2xl font-bold">{Math.round(currentProgress)}%</p>
         </div>
 
         {/* Daily pace */}

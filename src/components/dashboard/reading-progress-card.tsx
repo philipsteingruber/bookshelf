@@ -66,7 +66,7 @@ const ReadingProgressCard = ({ book, className }: { book: Book; className?: stri
                 <span className="w-full truncate font-serif">{book.author}</span>
               </div>
               <div className="flex w-full items-center gap-x-2">
-                <span className="text-sm">{book.progress}%</span>
+                <span className="text-sm">{Math.round(book.progress)}%</span>
                 <Progress value={book.progress} className="h-3 w-full" />
               </div>
             </div>

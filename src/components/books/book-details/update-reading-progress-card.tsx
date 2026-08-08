@@ -75,7 +75,7 @@ const UpdateReadingProgressCard = ({
                 className={`rounded-md ${progressValidationError ? "border-red-500" : ""}`}
                 placeholder={
                   selectedProgressType === "%"
-                    ? progress.toString()
+                    ? Math.round(progress).toString()
                     : pageCount
                       ? Math.floor((progress / 100) * pageCount).toString()
                       : "0"
