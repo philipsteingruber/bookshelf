@@ -5,6 +5,7 @@ export {
   formatSeriesIndex,
   getStatusButtonStyle,
   parseReadStatus,
+  roundToTwoDecimals,
 } from "./book-utils";
 export { estimateKepubPageCount } from "./kepub-page-count";
 export { toOrderBy } from "./sort-utils";

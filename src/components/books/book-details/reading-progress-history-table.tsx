@@ -16,17 +16,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Spinner } from "@/components/ui/spinner";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { Book } from "@/generated/prisma/client";
 import { useDialogState } from "@/hooks/ui";
-import { calculatePagesFromProgress } from "@/lib/book";
+import { calculatePagesFromProgress, roundToTwoDecimals } from "@/lib/book";
 import { handleTRPCError } from "@/lib/common";
 import { aggregateByDay, formatRelativeDatePrecise } from "@/lib/reading";
 import type { ReadingProgressWithProgressSinceLast } from "@/lib/types";
@@ -52,10 +45,7 @@ const ReadingProgressHistory = ({
   const historyForBook = aggregatedHistory
     .map((entry, index) => ({
       ...entry,
-      progressSinceLast:
-        index === 0
-          ? entry.progress
-          : entry.progress - aggregatedHistory[index - 1].progress,
+      progressSinceLast: index === 0 ? entry.progress : entry.progress - aggregatedHistory[index - 1].progress,
     }))
     .filter((entry) => entry.progress !== 0);
 
@@ -94,25 +84,17 @@ const ReadingProgressHistory = ({
         <CardTitle className="text-lg">{`Reading progress for ${book.title}`}</CardTitle>
       </CardHeader>
       <CardContent>
-        <Dialog
-          open={isDeleteReadingProgressDialogOpen}
-          onOpenChange={handleDeleteReadingProgressDialogOpenChange}
-        >
+        <Dialog open={isDeleteReadingProgressDialogOpen} onOpenChange={handleDeleteReadingProgressDialogOpenChange}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Delete progress?</DialogTitle>
               <DialogDescription className="flex flex-col gap-y-1">
-                {readingProgressHistory.length === 1 &&
-                  book.status !== "DNF" &&
-                  book.status !== "READ" && (
-                    <span>
-                      This will reset progress to 0 and set status to To Read
-                    </span>
-                  )}
-                {readingProgressHistory.length === 1 &&
-                  (book.status === "DNF" || book.status === "READ") && (
-                    <span>This will reset progress to 0.</span>
-                  )}
+                {readingProgressHistory.length === 1 && book.status !== "DNF" && book.status !== "READ" && (
+                  <span>This will reset progress to 0 and set status to To Read</span>
+                )}
+                {readingProgressHistory.length === 1 && (book.status === "DNF" || book.status === "READ") && (
+                  <span>This will reset progress to 0.</span>
+                )}
                 <span className="text-destructive">This cannot be undone.</span>
               </DialogDescription>
             </DialogHeader>
@@ -120,18 +102,14 @@ const ReadingProgressHistory = ({
               <Button
                 variant={"outline"}
                 disabled={isDeleting}
-                onClick={() =>
-                  handleDeleteReadingProgressDialogOpenChange(false)
-                }
+                onClick={() => handleDeleteReadingProgressDialogOpenChange(false)}
               >
                 Cancel
               </Button>
               <Button
                 variant={"destructive"}
                 disabled={isDeleting || !entryToDelete}
-                onClick={() =>
-                  entryToDelete && deleteReadingProgress(entryToDelete)
-                }
+                onClick={() => entryToDelete && deleteReadingProgress(entryToDelete)}
               >
                 {isDeleting ? <Spinner /> : "Confirm"}
               </Button>
@@ -143,28 +121,20 @@ const ReadingProgressHistory = ({
             <TableRow>
               <TableHead className="font-semibold">Date</TableHead>
               <TableHead className="font-semibold">Total Progress</TableHead>
-              <TableHead className="font-semibold">Progress (%)</TableHead>
-              <TableHead className="hidden font-semibold md:table-cell">
-                Progress (pages)
-              </TableHead>
+              <TableHead className="w-20 font-semibold">Progress (%)</TableHead>
+              <TableHead className="hidden font-semibold md:table-cell">Progress (pages)</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {historyForBook.toReversed().map((entry) => (
               <TableRow key={entry.id}>
-                <TableCell className="py-0.5 font-semibold">
-                  {formatRelativeDatePrecise(entry.createdAt)}
-                </TableCell>
-                <TableCell className="py-0.5 text-center font-semibold">
-                  {entry.progress}
-                </TableCell>
-                <TableCell className="py-0.5 text-center">
-                  {entry.progressSinceLast}
+                <TableCell className="py-0.5 font-semibold">{formatRelativeDatePrecise(entry.createdAt)}</TableCell>
+                <TableCell className="py-0.5 text-center font-semibold">{entry.progress}</TableCell>
+                <TableCell className="w-20 py-0.5 text-center tabular-nums">
+                  {roundToTwoDecimals(entry.progressSinceLast)}
                 </TableCell>
                 <TableCell className="hidden py-0.5 text-center md:table-cell">
-                  {book.pageCount
-                    ? calculatePagesFromProgress(entry.progressSinceLast, book.pageCount)
-                    : "—"}
+                  {book.pageCount ? calculatePagesFromProgress(entry.progressSinceLast, book.pageCount) : "—"}
                 </TableCell>
                 <TableCell className="py-0.5">
                   <Button

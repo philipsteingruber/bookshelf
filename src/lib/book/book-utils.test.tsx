@@ -7,6 +7,7 @@ import {
   formatSeriesIndex,
   getStatusButtonStyle,
   parseReadStatus,
+  roundToTwoDecimals,
 } from "@/lib/book";
 
 describe("bookUtils", () => {
@@ -103,6 +104,28 @@ describe("bookUtils", () => {
 
     it("should preserve single decimal place values", () => {
       expect(formatSeriesIndex(3.1)).toEqual(3.1);
+    });
+  });
+
+  describe("roundToTwoDecimals", () => {
+    it("strips binary floating-point noise from a subtraction result", () => {
+      expect(roundToTwoDecimals(0.040000000000000036)).toEqual(0.04);
+    });
+
+    it("leaves a whole number without a decimal component", () => {
+      expect(roundToTwoDecimals(1)).toEqual(1);
+    });
+
+    it("truncates a third decimal place by rounding to two", () => {
+      expect(roundToTwoDecimals(1.049)).toEqual(1.05);
+    });
+
+    it("leaves an already-two-decimal value unchanged", () => {
+      expect(roundToTwoDecimals(1.04)).toEqual(1.04);
+    });
+
+    it("rounds zero to zero", () => {
+      expect(roundToTwoDecimals(0)).toEqual(0);
     });
   });
 });

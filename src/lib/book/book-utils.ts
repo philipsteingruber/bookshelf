@@ -55,14 +55,18 @@ export function createAuthorSort(author: string): string {
   return lastNames + ", " + firstName;
 }
 
-export const calculatePagesFromProgress = (
-  progress: number,
-  pageCount: number | null,
-): number => {
+export const calculatePagesFromProgress = (progress: number, pageCount: number | null): number => {
   if (!pageCount) return 0;
   return Math.round((progress / 100) * pageCount);
 };
 
 export const formatSeriesIndex = (seriesIndex: number): number => {
   return Number.isInteger(seriesIndex) ? Math.round(seriesIndex) : seriesIndex;
+};
+
+// Rounds to at most 2 decimal places without forcing trailing zeros onto
+// whole numbers (e.g. strips binary-float noise like 0.040000000000000036
+// down to 0.04, while 1 stays 1, not "1.00").
+export const roundToTwoDecimals = (value: number): number => {
+  return Math.round(value * 100) / 100;
 };
