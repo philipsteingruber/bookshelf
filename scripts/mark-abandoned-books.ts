@@ -17,12 +17,14 @@ const markAbandonedBooks = async (): Promise<void> => {
     options: {
       apply: { type: "boolean", default: false },
       days: { type: "string", default: "14" },
+      "reset-below": { type: "string", default: "5" },
       only: { type: "string" },
       exclude: { type: "string" },
     },
   });
   const apply = values.apply ?? false;
   const thresholdDays = Number(values.days);
+  const resetBelowPercent = Number(values["reset-below"]);
   const onlyTitles = parseTitleList(values.only);
   const excludeTitles = parseTitleList(values.exclude);
 
@@ -32,9 +34,9 @@ const markAbandonedBooks = async (): Promise<void> => {
     return;
   }
 
-  console.log("=== Marking Abandoned Books as DNF ===");
+  console.log("=== Marking Abandoned Books (DNF / Reset) ===");
   console.log(
-    `Mode: ${apply ? "APPLY" : "DRY RUN (use --apply to update statuses)"}  |  Threshold: ${thresholdDays} day(s) without progress\n`,
+    `Mode: ${apply ? "APPLY" : "DRY RUN (use --apply to update statuses)"}  |  Threshold: ${thresholdDays} day(s) without progress  |  Reset below: ${resetBelowPercent}% progress\n`,
   );
   if (onlyTitles.length > 0) console.log(`Restricting to --only: ${onlyTitles.join(", ")}\n`);
   if (excludeTitles.length > 0) console.log(`Skipping via --exclude: ${excludeTitles.join(", ")}\n`);
@@ -47,13 +49,21 @@ const markAbandonedBooks = async (): Promise<void> => {
       author: true,
       startedAt: true,
       createdAt: true,
+      progress: true,
     },
   });
 
   console.log(`Found ${readingBooks.length} book(s) currently marked READING\n`);
 
   const now = Date.now();
-  const candidates: { id: number; title: string; author: string; daysStale: number }[] = [];
+  const candidates: {
+    id: number;
+    title: string;
+    author: string;
+    daysStale: number;
+    progress: number;
+    action: "dnf" | "reset";
+  }[] = [];
 
   for (const book of readingBooks) {
     const latestProgress = await prisma.readingProgress.findFirst({
@@ -77,19 +87,24 @@ const markAbandonedBooks = async (): Promise<void> => {
         title: book.title,
         author: book.author,
         daysStale: Math.floor(daysStale),
+        progress: book.progress,
+        action: book.progress < resetBelowPercent ? "reset" : "dnf",
       });
     }
   }
 
   if (candidates.length === 0) {
     console.log("No abandoned books found.");
-    if (!apply) console.log("MAINTENANCE_RESULT: changes=0");
+    if (!apply) console.log("MAINTENANCE_RESULT: changes=0 (dnf=0, reset=0)");
     return;
   }
 
   console.log(`Found ${candidates.length} abandoned book(s):\n`);
   for (const candidate of candidates) {
-    console.log(`  • ${candidate.title} by ${candidate.author} — ${candidate.daysStale} day(s) since last progress`);
+    const actionLabel = candidate.action === "reset" ? "reset to TO_READ" : "DNF";
+    console.log(
+      `  • ${candidate.title} by ${candidate.author} — ${candidate.daysStale} day(s) since last progress, ${candidate.progress}% progress → ${actionLabel}`,
+    );
   }
 
   // --only/--exclude narrow which of the detected candidates actually get
@@ -117,19 +132,41 @@ const markAbandonedBooks = async (): Promise<void> => {
 
   if (targets.length === 0) {
     console.log("\nNo books left to act on after applying --only/--exclude.");
-    if (!apply) console.log("MAINTENANCE_RESULT: changes=0");
+    if (!apply) console.log("MAINTENANCE_RESULT: changes=0 (dnf=0, reset=0)");
     return;
   }
 
+  const dnfTargets = targets.filter((candidate) => candidate.action === "dnf");
+  const resetTargets = targets.filter((candidate) => candidate.action === "reset");
+
   if (apply) {
-    await prisma.book.updateMany({
-      where: { id: { in: targets.map((candidate) => candidate.id) } },
-      data: { status: "DNF", dnfAt: new Date() },
-    });
-    console.log(`\nUpdated ${targets.length} book(s) to DNF.`);
+    if (dnfTargets.length > 0) {
+      await prisma.book.updateMany({
+        where: { id: { in: dnfTargets.map((candidate) => candidate.id) } },
+        data: { status: "DNF", dnfAt: new Date() },
+      });
+    }
+    if (resetTargets.length > 0) {
+      const resetIds = resetTargets.map((candidate) => candidate.id);
+      // Mirrors updateReadingStatus's TO_READ branch in src/trpc/routers/book.ts
+      // exactly: wipe all logged progress and clear the READING-specific
+      // timestamps, so a barely-started book goes back to looking untouched
+      // rather than sitting as a negative DNF signal for the recommendation
+      // engine (see docs/kb/bookshelf.md's "Known accepted tradeoff").
+      await prisma.$transaction([
+        prisma.readingProgress.deleteMany({ where: { bookId: { in: resetIds } } }),
+        prisma.book.updateMany({
+          where: { id: { in: resetIds } },
+          data: { status: "TO_READ", progress: 0, startedAt: null, finishedAt: null },
+        }),
+      ]);
+    }
+    console.log(`\nUpdated ${dnfTargets.length} book(s) to DNF, reset ${resetTargets.length} book(s) to TO_READ.`);
   } else {
-    console.log("\nDry run complete. Run with --apply to mark those books DNF.");
-    console.log(`MAINTENANCE_RESULT: changes=${targets.length}`);
+    console.log("\nDry run complete. Run with --apply to apply those changes.");
+    console.log(
+      `MAINTENANCE_RESULT: changes=${targets.length} (dnf=${dnfTargets.length}, reset=${resetTargets.length})`,
+    );
   }
 };
 
