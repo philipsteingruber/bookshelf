@@ -111,6 +111,12 @@ model Book {
     // When status last became DNF. Gates whether a sync's own progress signal is
     // newer than the DNF decision — see shouldUpdateStatus in scripts/lib/sync-utils.ts.
     dnfAt             DateTime?
+    // When status was last reset to TO_READ by mark-abandoned-books.ts's reset-below
+    // branch or the UI's updateReadingStatus TO_READ/READ_NEXT branch (both wipe
+    // progress/startedAt/finishedAt). Gates whether a sync's own progress signal is
+    // newer than the reset — same mechanism as dnfAt, see shouldUpdateStatus in
+    // scripts/lib/sync-utils.ts.
+    resetAt           DateTime?
     createdAt         DateTime          @default(now())
     updatedAt         DateTime          @updatedAt
     readingProgresses ReadingProgress[]

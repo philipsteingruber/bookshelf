@@ -181,6 +181,7 @@ async function main(): Promise<void> {
       startedAt: true,
       finishedAt: true,
       dnfAt: true,
+      resetAt: true,
       isbn: true,
     },
   });

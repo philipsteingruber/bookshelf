@@ -212,6 +212,7 @@ export const bookRouter = createTRPCRouter({
         startedAt?: Date | null;
         finishedAt?: Date | null;
         dnfAt?: Date;
+        resetAt?: Date;
       } = { status: newStatus };
 
       if (newStatus === "READ") {
@@ -221,6 +222,11 @@ export const bookRouter = createTRPCRouter({
         updateData.progress = 0;
         updateData.startedAt = null;
         updateData.finishedAt = null;
+        // Mirrors mark-abandoned-books.ts's --reset-below branch: stamp when this
+        // reset happened so a later sync can't use stale pre-reset source progress
+        // to silently promote the book straight back to READING/READ — see
+        // shouldUpdateStatus in scripts/lib/sync-utils.ts.
+        updateData.resetAt = new Date();
       } else if (newStatus === "READING") {
         updateData.startedAt = new Date();
       } else if (newStatus === "DNF") {

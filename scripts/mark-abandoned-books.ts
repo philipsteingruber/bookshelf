@@ -157,7 +157,7 @@ const markAbandonedBooks = async (): Promise<void> => {
         prisma.readingProgress.deleteMany({ where: { bookId: { in: resetIds } } }),
         prisma.book.updateMany({
           where: { id: { in: resetIds } },
-          data: { status: "TO_READ", progress: 0, startedAt: null, finishedAt: null },
+          data: { status: "TO_READ", progress: 0, startedAt: null, finishedAt: null, resetAt: new Date() },
         }),
       ]);
     }

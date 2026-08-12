@@ -30,6 +30,7 @@ export function shouldUpdateStatus(
   current: ReadStatus,
   derived: ReadStatus,
   dnfAt: Date | null,
+  resetAt: Date | null,
   sourceUpdatedAt: Date | null,
 ): boolean {
   // DNF and READ share a priority tier so neither sync source can silently
@@ -45,6 +46,21 @@ export function shouldUpdateStatus(
   // timestamp is unknown, don't risk a silent clear.
   if (current === "DNF" && (derived === "READING" || derived === "READ")) {
     return dnfAt !== null && sourceUpdatedAt !== null && sourceUpdatedAt > dnfAt;
+  }
+  // Same problem, one priority tier down: a book reset to TO_READ (by
+  // mark-abandoned-books.ts's --reset-below branch, or manually via the UI)
+  // wipes Bookshelf's own progress, but the source (ABS/Calibre) isn't
+  // touched — it can still report the pre-reset progress it always had. Bare
+  // priority comparison would let that stale signal immediately promote the
+  // book straight back to READING, undoing the reset on the very next sync.
+  //
+  // Unlike DNF, TO_READ is also the default status for a book that was never
+  // started — resetAt is null for the overwhelming majority of TO_READ books,
+  // and that ordinary "starting a new book" case must keep working. So this
+  // only gates when a reset actually happened (resetAt !== null); otherwise
+  // it falls through to the same unconditional promotion as before.
+  if (current === "TO_READ" && (derived === "READING" || derived === "READ") && resetAt !== null) {
+    return sourceUpdatedAt !== null && sourceUpdatedAt > resetAt;
   }
   return statusPriority(derived) > statusPriority(current);
 }

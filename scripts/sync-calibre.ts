@@ -486,6 +486,7 @@ async function main(): Promise<void> {
         startedAt: true,
         finishedAt: true,
         dnfAt: true,
+        resetAt: true,
         series: { select: { name: true } },
         seriesIndex: true,
         isbn: true,

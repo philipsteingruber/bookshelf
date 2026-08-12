@@ -13,6 +13,7 @@ export interface BookshelfBookForAbs {
   startedAt: Date | null;
   finishedAt: Date | null;
   dnfAt: Date | null;
+  resetAt: Date | null;
   isbn: string | null;
 }
 
@@ -87,6 +88,7 @@ export function computeAbsResults(
       bookshelfBook.status,
       derived,
       bookshelfBook.dnfAt,
+      bookshelfBook.resetAt,
       absBook.progressUpdatedAt,
     )
       ? derived

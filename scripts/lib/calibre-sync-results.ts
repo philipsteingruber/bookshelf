@@ -13,6 +13,7 @@ export interface BookshelfBook {
   startedAt: Date | null;
   finishedAt: Date | null;
   dnfAt: Date | null;
+  resetAt: Date | null;
   series: { name: string } | null;
   seriesIndex: number | null;
   isbn: string | null;
@@ -120,6 +121,7 @@ export function computeResults(
       bookshelfBook.status,
       derived,
       bookshelfBook.dnfAt,
+      bookshelfBook.resetAt,
       calibreBook.progressUpdatedAt,
     )
       ? derived

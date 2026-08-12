@@ -38,6 +38,7 @@ function makeBookshelf(overrides: Partial<BookshelfBook> = {}): BookshelfBook {
     startedAt: null,
     finishedAt: null,
     dnfAt: null,
+    resetAt: null,
     series: { name: "Gaunt's Ghosts" },
     seriesIndex: 8,
     isbn: null,
@@ -265,5 +266,45 @@ describe("computeResults — DNF resume gating", () => {
     const bookshelf = makeBookshelf({ status: "DNF", dnfAt: null });
     const { bookUpdates } = computeResults([calibre], [bookshelf]);
     expect(bookUpdates).toHaveLength(0);
+  });
+});
+
+describe("computeResults — reset-below resume gating", () => {
+  // Regression coverage for the "Discount Dan" bug: a book reset to TO_READ by
+  // mark-abandoned-books.ts's --reset-below branch has its bookshelf progress
+  // wiped, but Calibre/CWA itself still reports whatever progress it always
+  // had. That stale signal must not silently promote the book straight back
+  // to READING/READ on the very next sync.
+  it("promotes a reset TO_READ book to READING when Calibre's progress signal is newer than the reset", () => {
+    const calibre = makeCalibре({
+      readStatus: 2,
+      readPercent: 3,
+      progressUpdatedAt: new Date("2026-07-06T00:00:00Z"),
+    });
+    const bookshelf = makeBookshelf({ status: "TO_READ", resetAt: new Date("2026-06-01T00:00:00Z") });
+    const { bookUpdates } = computeResults([calibre], [bookshelf]);
+    expect(bookUpdates[0]!.newStatus).toBe("READING");
+  });
+
+  it("does not promote a reset TO_READ book when Calibre's progress signal predates the reset", () => {
+    const calibre = makeCalibре({
+      readStatus: 2,
+      readPercent: 3,
+      progressUpdatedAt: new Date("2026-05-17T00:00:00Z"),
+    });
+    const bookshelf = makeBookshelf({ status: "TO_READ", resetAt: new Date("2026-06-01T00:00:00Z") });
+    const { bookUpdates } = computeResults([calibre], [bookshelf]);
+    expect(bookUpdates).toHaveLength(0);
+  });
+
+  it("promotes an unreset TO_READ book to READING regardless of Calibre's progress timestamp", () => {
+    const calibre = makeCalibре({
+      readStatus: 2,
+      readPercent: 3,
+      progressUpdatedAt: new Date("2026-05-17T00:00:00Z"),
+    });
+    const bookshelf = makeBookshelf({ status: "TO_READ", resetAt: null });
+    const { bookUpdates } = computeResults([calibre], [bookshelf]);
+    expect(bookUpdates[0]!.newStatus).toBe("READING");
   });
 });

@@ -29,6 +29,7 @@ function makeBookshelf(overrides: Partial<BookshelfBookForAbs> = {}): BookshelfB
     startedAt: null,
     finishedAt: null,
     dnfAt: null,
+    resetAt: null,
     isbn: null,
     ...overrides,
   };
@@ -196,5 +197,42 @@ describe("computeAbsResults — DNF resume gating", () => {
     const bookshelf = makeBookshelf({ status: "DNF", dnfAt: null });
     const { statusUpdates } = computeAbsResults([abs], [bookshelf]);
     expect(statusUpdates).toHaveLength(0);
+  });
+});
+
+describe("computeAbsResults — reset-below resume gating", () => {
+  // Regression coverage for the "Discount Dan" bug: a book reset to TO_READ by
+  // mark-abandoned-books.ts's --reset-below branch has its bookshelf progress
+  // wiped, but ABS itself still reports whatever progress it always had. That
+  // stale ABS signal must not silently promote the book straight back to
+  // READING on the very next sync.
+  it("promotes a reset TO_READ book to READING when ABS progress is newer than the reset", () => {
+    const abs = makeAbs({
+      progressPercent: 3,
+      progressUpdatedAt: new Date("2026-07-01T00:00:00Z"),
+    });
+    const bookshelf = makeBookshelf({ status: "TO_READ", resetAt: new Date("2026-06-01T00:00:00Z") });
+    const { statusUpdates } = computeAbsResults([abs], [bookshelf]);
+    expect(statusUpdates[0]!.newStatus).toBe("READING");
+  });
+
+  it("does not promote a reset TO_READ book when ABS's progress timestamp predates the reset", () => {
+    const abs = makeAbs({
+      progressPercent: 3,
+      progressUpdatedAt: new Date("2026-05-01T00:00:00Z"),
+    });
+    const bookshelf = makeBookshelf({ status: "TO_READ", resetAt: new Date("2026-06-01T00:00:00Z") });
+    const { statusUpdates } = computeAbsResults([abs], [bookshelf]);
+    expect(statusUpdates).toHaveLength(0);
+  });
+
+  it("promotes an unreset TO_READ book to READING regardless of ABS's progress timestamp", () => {
+    const abs = makeAbs({
+      progressPercent: 3,
+      progressUpdatedAt: new Date("2026-05-01T00:00:00Z"),
+    });
+    const bookshelf = makeBookshelf({ status: "TO_READ", resetAt: null });
+    const { statusUpdates } = computeAbsResults([abs], [bookshelf]);
+    expect(statusUpdates[0]!.newStatus).toBe("READING");
   });
 });
