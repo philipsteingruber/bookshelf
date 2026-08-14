@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 
 import type { Book } from "@/generated/prisma/client";
+import { roundToTwoDecimals } from "@/lib/book";
 import { validateProgress } from "@/lib/reading";
 
 export const useProgressValidation = (
@@ -14,7 +15,7 @@ export const useProgressValidation = (
   resetInput: () => void;
 } => {
   const [inputValue, setInputValue] = useState<string>(
-    book.progress.toString() || "",
+    roundToTwoDecimals(book.progress).toString() || "",
   );
   const [error, setError] = useState<string | null>(null);
 

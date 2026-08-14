@@ -129,7 +129,7 @@ const ReadingProgressHistory = ({
             {historyForBook.toReversed().map((entry) => (
               <TableRow key={entry.id}>
                 <TableCell className="py-0.5 font-semibold">{formatRelativeDatePrecise(entry.createdAt)}</TableCell>
-                <TableCell className="py-0.5 text-center font-semibold">{entry.progress}</TableCell>
+                <TableCell className="py-0.5 text-center font-semibold">{roundToTwoDecimals(entry.progress)}</TableCell>
                 <TableCell className="w-20 py-0.5 text-center tabular-nums">
                   {roundToTwoDecimals(entry.progressSinceLast)}
                 </TableCell>
