@@ -2,10 +2,20 @@ import path from "node:path";
 
 import Database from "better-sqlite3";
 
+export interface CalibreAuthorSync {
+  name: string;
+  sort: string;
+}
+
 export interface CalibreBookSync {
   calibreId: number;
   title: string;
+  // " & "-joined, in credited order — matches Calibre's own display
+  // convention (see docs/kb/bookshelf.md). Kept for backward-compat display
+  // use and for buildCompositeKey matching; `authors` below is the
+  // structured source of truth for Author/BookAuthor sync.
   author: string;
+  authors: CalibreAuthorSync[];
   seriesName: string | null;
   seriesIndex: number | null;
   goodreadsId: string | null;
@@ -34,7 +44,6 @@ const CALIBRE_QUERY = `
   SELECT
     b.id,
     b.title,
-    MIN(a.name)                AS author,
     s.name                     AS series_name,
     b.series_index             AS series_index,
     b.path,
@@ -47,8 +56,6 @@ const CALIBRE_QUERY = `
     cc29.value                 AS dnf,
     r.rating                   AS rating
   FROM books b
-  LEFT JOIN books_authors_link bal  ON b.id = bal.book
-  LEFT JOIN authors a               ON bal.author = a.id
   LEFT JOIN books_series_link bsl   ON b.id = bsl.book
   LEFT JOIN series s                ON bsl.series = s.id
   LEFT JOIN identifiers i           ON b.id = i.book AND i.type = 'goodreads'
@@ -58,15 +65,33 @@ const CALIBRE_QUERY = `
   LEFT JOIN custom_column_29 cc29   ON cc29.book = b.id
   LEFT JOIN books_ratings_link brl  ON b.id = brl.book
   LEFT JOIN ratings r               ON r.id = brl.rating
-  GROUP BY b.id, b.title, s.name, b.series_index, b.path, b.has_cover,
-           i.val, i10.val, b.pubdate, cm.text, cc23.value, cc29.value, r.rating
   ORDER BY b.title
 `;
+
+// Separate query, not folded into CALIBRE_QUERY's GROUP BY: Calibre's own
+// books_authors_link has no explicit order column (order is implicit from
+// row-insertion order), and a GROUP BY aggregate can't preserve that order
+// while also returning each author's individual name+sort. Ordering by
+// bal.id (ascending, i.e. insertion order) reproduces the same credited
+// order Calibre itself uses for books.author_sort — verified directly
+// against the library's own data (see docs/kb/bookshelf.md).
+const AUTHORS_QUERY = `
+  SELECT bal.book AS book, bal.id AS link_id, a.name AS name, a.sort AS sort
+  FROM books_authors_link bal
+  JOIN authors a ON a.id = bal.author
+  ORDER BY bal.id
+`;
+
+interface CalibreAuthorRow {
+  book: number;
+  link_id: number;
+  name: string;
+  sort: string;
+}
 
 interface CalibreRawRow {
   id: number;
   title: string;
-  author: string | null;
   series_name: string | null;
   series_index: number | null;
   path: string;
@@ -139,6 +164,14 @@ export function readCalibreSyncData(
   try {
     const calibreRows = calibreDb.prepare(CALIBRE_QUERY).all() as CalibreRawRow[];
 
+    const authorRows = calibreDb.prepare(AUTHORS_QUERY).all() as CalibreAuthorRow[];
+    const authorsByBookId = new Map<number, CalibreAuthorSync[]>();
+    for (const row of authorRows) {
+      const list = authorsByBookId.get(row.book) ?? [];
+      list.push({ name: row.name, sort: row.sort });
+      authorsByBookId.set(row.book, list);
+    }
+
     const cwaReadRows = cwaDb
       .prepare("SELECT book_id, read_status, last_modified FROM book_read_link")
       .all() as CwaReadRow[];
@@ -191,10 +224,14 @@ export function readCalibreSyncData(
 
     const libraryRoot = path.dirname(calibreDbPath);
 
-    return calibreRows.map((row) => ({
+    return calibreRows.map((row) => {
+      const authors = authorsByBookId.get(row.id) ?? [];
+      const author = authors.length > 0 ? authors.map((a) => a.name).join(" & ") : "Unknown";
+      return {
       calibreId: row.id,
       title: row.title,
-      author: row.author ?? "Unknown",
+      author,
+      authors,
       seriesName: row.series_name,
       seriesIndex: row.series_index,
       goodreadsId: row.goodreads_id,
@@ -216,7 +253,8 @@ export function readCalibreSyncData(
       dnf: row.dnf === 1,
       isReadNext: readNextBookIds.has(row.id),
       rating: row.rating ?? null,
-    }));
+      };
+    });
   } finally {
     calibreDb.close();
     cwaDb.close();

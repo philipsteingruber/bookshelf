@@ -7,9 +7,12 @@ import { Prisma } from "@/generated/prisma/client";
 import { ReadStatus } from "@/generated/prisma/enums";
 import { type BookWhereInput } from "@/generated/prisma/internal/prismaNamespace";
 import {
+  cleanupOrphanedAuthors,
   cleanupOrphanedSeries,
-  createAuthorSort,
+  computeAuthorFields,
   createTitleSort,
+  parseAuthorString,
+  syncBookAuthors,
   toOrderBy,
   upsertSeries,
 } from "@/lib/book";
@@ -156,6 +159,9 @@ export const bookRouter = createTRPCRouter({
         }
       : {};
 
+    const authorNames = parseAuthorString(input.author);
+    const { author, authorSort } = computeAuthorFields(authorNames);
+
     const createBookTimer = performanceLogger("DB: Create book", 1000, ctx.logger);
     createBookTimer.start();
 
@@ -164,8 +170,8 @@ export const bookRouter = createTRPCRouter({
         data: {
           title: input.title,
           titleSort: createTitleSort(input.title),
-          author: input.author,
-          authorSort: createAuthorSort(input.author),
+          author,
+          authorSort,
           pageCount: input.pageCount,
           isbn: input.isbn || null,
           seriesId,
@@ -179,6 +185,8 @@ export const bookRouter = createTRPCRouter({
         },
       });
       createBookTimer.end({ bookId: book.id });
+
+      await syncBookAuthors(ctx.db, authorNames, book.id, userId);
 
       ctx.logger.info({ bookId: book.id, title: book.title, author: book.author }, "Book created successfully");
       return { book };
@@ -321,6 +329,14 @@ export const bookRouter = createTRPCRouter({
     ctx.logger.debug({ bookId }, "Deleting book");
     const book = await requireOwnedBook(ctx, bookId);
 
+    // BookAuthor rows cascade-delete with the book (onDelete: Cascade), but
+    // the Author rows themselves don't — capture the linked ids first so we
+    // can clean up any left with no remaining books, same pattern as series.
+    const linkedAuthors = await ctx.db.bookAuthor.findMany({
+      where: { bookId },
+      select: { authorId: true },
+    });
+
     const deleteBookTimer = performanceLogger("DB: Delete book", 1000, ctx.logger);
 
     deleteBookTimer.start();
@@ -331,6 +347,8 @@ export const bookRouter = createTRPCRouter({
     if (book.seriesId) {
       await cleanupOrphanedSeries(ctx.db, book.seriesId);
     }
+
+    await cleanupOrphanedAuthors(ctx.db, linkedAuthors.map((a) => a.authorId));
 
     if (book.coverUrl && isBlobUrl(book.coverUrl)) {
       try {
@@ -423,8 +441,11 @@ export const bookRouter = createTRPCRouter({
         titleSort = createTitleSort(data.title);
       }
       let authorSort = book.authorSort;
+      let author = book.author;
+      let authorNames: string[] | null = null;
       if (data.author) {
-        authorSort = createAuthorSort(data.author);
+        authorNames = parseAuthorString(data.author);
+        ({ author, authorSort } = computeAuthorFields(authorNames));
       }
 
       // Omit `series` (the string field no longer exists on Book — it's now a relation)
@@ -440,6 +461,7 @@ export const bookRouter = createTRPCRouter({
           data: {
             ...restData,
             titleSort,
+            author,
             authorSort,
             isbn: data.isbn === "" ? null : data.isbn,
             coverUrl: resolvedCoverUrl === "" ? null : resolvedCoverUrl,
@@ -447,6 +469,10 @@ export const bookRouter = createTRPCRouter({
           },
         });
         updateBookTimer.end({ bookId: input.bookId });
+
+        if (authorNames !== null) {
+          await syncBookAuthors(ctx.db, authorNames, input.bookId, ctx.currentUser.id);
+        }
 
         // Clean up orphaned series if series changed
         if (newSeriesId !== undefined && oldSeriesId && oldSeriesId !== newSeriesId) {

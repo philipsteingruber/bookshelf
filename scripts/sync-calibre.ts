@@ -7,7 +7,7 @@ import { parseArgs } from "node:util";
 import { put } from "@vercel/blob";
 
 import type { ReadStatus } from "@/generated/prisma/enums";
-import { createAuthorSort, createTitleSort, estimateKepubPageCount, upsertSeries } from "@/lib/book";
+import { computeAuthorFields, createTitleSort, estimateKepubPageCount, syncBookAuthors, upsertSeries } from "@/lib/book";
 import prisma from "@/lib/prisma";
 import { recalculateAllUserStats } from "@/lib/reading/stats-updates";
 
@@ -239,13 +239,16 @@ async function applyCreates(
       const derived = deriveStatus(b.readStatus, b.readPercent, b.dnf, b.isReadNext);
       const initialProgress = b.readPercent ?? 0;
 
+      const authorNames = b.authors.map((a) => a.name);
+      const { author, authorSort } = computeAuthorFields(authorNames);
+
       await prisma.$transaction(async (tx) => {
         const created = await tx.book.create({
           data: {
             title: b.title,
             titleSort: createTitleSort(b.title),
-            author: b.author,
-            authorSort: createAuthorSort(b.author),
+            author,
+            authorSort,
             seriesId,
             seriesIndex: b.seriesIndex,
             isbn: b.isbn,
@@ -262,6 +265,8 @@ async function applyCreates(
             userId,
           },
         });
+
+        await syncBookAuthors(tx, authorNames, created.id, userId);
 
         // Mirror the web UI's "log progress" action (createReadingProgressInstance):
         // a book imported with real reading progress gets a ReadingProgress row,
@@ -312,9 +317,9 @@ async function applyBookUpdates(bookUpdates: BookUpdate[]): Promise<string[]> {
   return errors;
 }
 
-async function applyMetadataUpdates(metadataUpdates: MetadataUpdate[]): Promise<string[]> {
+async function applyMetadataUpdates(metadataUpdates: MetadataUpdate[], userId: string): Promise<string[]> {
   const errors: string[] = [];
-  for (const { bookshelfBook, newTitle, newAuthor, newIsbn, newPublishedYear, newSummary } of metadataUpdates) {
+  for (const { calibreBook, bookshelfBook, newTitle, newAuthor, newIsbn, newPublishedYear, newSummary } of metadataUpdates) {
     try {
       const data: {
         title?: string;
@@ -326,11 +331,22 @@ async function applyMetadataUpdates(metadataUpdates: MetadataUpdate[]): Promise<
         summary?: string;
       } = {};
       if (newTitle !== null) { data.title = newTitle; data.titleSort = createTitleSort(newTitle); }
-      if (newAuthor !== null) { data.author = newAuthor; data.authorSort = createAuthorSort(newAuthor); }
+      if (newAuthor !== null) {
+        const authorNames = calibreBook.authors.map((a) => a.name);
+        const fields = computeAuthorFields(authorNames);
+        data.author = fields.author;
+        data.authorSort = fields.authorSort;
+      }
       if (newIsbn !== null) data.isbn = newIsbn;
       if (newPublishedYear !== null) data.publishedYear = newPublishedYear;
       if (newSummary !== null) data.summary = newSummary;
-      await prisma.book.update({ where: { id: bookshelfBook.id }, data });
+
+      await prisma.$transaction(async (tx) => {
+        await tx.book.update({ where: { id: bookshelfBook.id }, data });
+        if (newAuthor !== null) {
+          await syncBookAuthors(tx, calibreBook.authors.map((a) => a.name), bookshelfBook.id, userId);
+        }
+      });
     } catch (err) {
       errors.push(
         `Failed to update metadata for "${bookshelfBook.title}": ${extractErrorMessage(err)}`,
@@ -508,7 +524,7 @@ async function main(): Promise<void> {
         pageCountMap,
       );
       const updateErrors = await applyBookUpdates(results.bookUpdates);
-      const metadataErrors = await applyMetadataUpdates(results.metadataUpdates);
+      const metadataErrors = await applyMetadataUpdates(results.metadataUpdates, user.id);
       const ratingErrors = await applyRatingUpdates(results.ratingUpdates);
       const progressErrors = await applyProgressUpdates(results.progressUpdates, user.id);
       const readNextErrors = await applyReadNextRemovals(cwaDbPath, results.readNextRemovals);

@@ -1,5 +1,5 @@
 import type { TransactionClient } from "@/generated/prisma/internal/prismaNamespace";
-import { createAuthorSort, createTitleSort, upsertSeries } from "@/lib/book";
+import { computeAuthorFields, createTitleSort, parseAuthorString, syncBookAuthors, upsertSeries } from "@/lib/book";
 import { findConflictingBook } from "@/lib/import/import-utils";
 import type { CSVImportData, ImportResults } from "@/lib/types";
 import type { AuthedContext } from "@/trpc/init";
@@ -28,13 +28,16 @@ export const importFromCSV = async (
           continue;
         }
 
+        const authorNames = parseAuthorString(book.author);
+        const { author, authorSort } = computeAuthorFields(authorNames);
+
         const newBook = await tx.book.create({
           data: {
             userId: ctx.currentUser.id,
             title: book.title,
             titleSort: createTitleSort(book.title),
-            author: book.author,
-            authorSort: createAuthorSort(book.author),
+            author,
+            authorSort,
             pageCount: book.pageCount,
             progress: book.progress,
             status: book.status,
@@ -55,6 +58,8 @@ export const importFromCSV = async (
             updatedAt: book.updatedAt,
           },
         });
+
+        await syncBookAuthors(tx, authorNames, newBook.id, ctx.currentUser.id);
 
         const key = createKey(book.title, book.author);
         booksByTitleAuthor.set(key, newBook.id);

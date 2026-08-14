@@ -2,10 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import { ReadStatus } from "@/generated/prisma/enums";
 import {
+  computeAuthorFields,
   createAuthorSort,
   createTitleSort,
   formatSeriesIndex,
   getStatusButtonStyle,
+  parseAuthorString,
   parseReadStatus,
   roundToTwoDecimals,
 } from "@/lib/book";
@@ -86,6 +88,66 @@ describe("bookUtils", () => {
 
     it("should handle multi-part surnames", () => {
       expect(createAuthorSort("First Van Last")).toEqual("Van Last, First");
+    });
+  });
+
+  describe("parseAuthorString", () => {
+    it("returns a single-element list for a book with one author", () => {
+      expect(parseAuthorString("John Scalzi")).toEqual(["John Scalzi"]);
+    });
+
+    it("splits credited authors on the ampersand separator, in order", () => {
+      expect(parseAuthorString("Joshua Reynolds & David Guymer & Matt Westbrook")).toEqual([
+        "Joshua Reynolds",
+        "David Guymer",
+        "Matt Westbrook",
+      ]);
+    });
+
+    it("trims whitespace around each credited name", () => {
+      expect(parseAuthorString("Joshua Reynolds &  David Guymer ")).toEqual([
+        "Joshua Reynolds",
+        "David Guymer",
+      ]);
+    });
+
+    it("does not split on a bare comma, since that collides with a reversed single author name", () => {
+      expect(parseAuthorString("Slaughter, Karin")).toEqual(["Slaughter, Karin"]);
+    });
+
+    it("drops an author credited twice back to a single entry, keeping first position", () => {
+      expect(parseAuthorString("Joshua Reynolds & David Guymer & Joshua Reynolds")).toEqual([
+        "Joshua Reynolds",
+        "David Guymer",
+      ]);
+    });
+
+    it("drops empty segments left by a stray separator", () => {
+      expect(parseAuthorString("Joshua Reynolds &  & David Guymer")).toEqual([
+        "Joshua Reynolds",
+        "David Guymer",
+      ]);
+    });
+  });
+
+  describe("computeAuthorFields", () => {
+    it("returns the name unchanged as both author and authorSort for a single author", () => {
+      expect(computeAuthorFields(["John Scalzi"])).toEqual({
+        author: "John Scalzi",
+        authorSort: "Scalzi, John",
+      });
+    });
+
+    it("joins multiple authors with the ampersand separator in credited order", () => {
+      expect(computeAuthorFields(["Zoe Venditozzi", "Claire Mitchell"])).toEqual({
+        author: "Zoe Venditozzi & Claire Mitchell",
+        authorSort: "Venditozzi, Zoe & Mitchell, Claire",
+      });
+    });
+
+    it("does not re-alphabetize authors when computing authorSort", () => {
+      const result = computeAuthorFields(["Matt Westbrook", "Zoe Venditozzi"]);
+      expect(result.authorSort).toEqual("Westbrook, Matt & Venditozzi, Zoe");
     });
   });
 

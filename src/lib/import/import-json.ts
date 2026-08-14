@@ -1,5 +1,5 @@
 import type { TransactionClient } from "@/generated/prisma/internal/prismaNamespace";
-import { createAuthorSort, createTitleSort, upsertSeries } from "@/lib/book";
+import { computeAuthorFields, createTitleSort, parseAuthorString, syncBookAuthors, upsertSeries } from "@/lib/book";
 import { findConflictingBook } from "@/lib/import/import-utils";
 import type { ExportData, ImportResults } from "@/lib/types";
 import type { AuthedContext } from "@/trpc/init";
@@ -22,13 +22,16 @@ export const importFromJSON = async (
         continue;
       }
 
+      const authorNames = parseAuthorString(book.author);
+      const { author, authorSort } = computeAuthorFields(authorNames);
+
       const newBook = await tx.book.create({
         data: {
           userId: ctx.currentUser.id,
           title: book.title,
           titleSort: createTitleSort(book.title), // from @/lib/book/book-utils
-          author: book.author,
-          authorSort: createAuthorSort(book.author), // from @/lib/book/book-utils
+          author,
+          authorSort,
           pageCount: book.pageCount,
           progress: book.progress,
           status: book.status,
@@ -49,6 +52,8 @@ export const importFromJSON = async (
           updatedAt: book.updatedAt,
         },
       });
+
+      await syncBookAuthors(tx, authorNames, newBook.id, ctx.currentUser.id);
 
       bookIdMap.set(book.id, newBook.id);
       results.created.books++;

@@ -55,6 +55,46 @@ export function createAuthorSort(author: string): string {
   return lastNames + ", " + firstName;
 }
 
+const AUTHOR_SEPARATOR = " & ";
+
+// Splits a free-text Authors field into individual credited names, in order.
+// " & " matches Calibre's own convention (confirmed from CWA's book_edit.html
+// template) — this is NOT the right separator for comma-joined sources like
+// Audiobookshelf's authorName, since a comma is indistinguishable from a
+// single "Lastname, Firstname" author (see docs/kb/bookshelf.md). Dedupes
+// exact-duplicate names (e.g. a name credited twice by mistake in the source
+// data) while preserving first-occurrence order.
+export function parseAuthorString(author: string): string[] {
+  const names = author
+    .split(AUTHOR_SEPARATOR)
+    .map((name) => name.trim())
+    .filter((name) => name.length > 0);
+
+  const seen = new Set<string>();
+  const deduped: string[] = [];
+  for (const name of names) {
+    if (seen.has(name)) continue;
+    seen.add(name);
+    deduped.push(name);
+  }
+  return deduped;
+}
+
+// Derives the cached Book.author/authorSort display strings from an ordered
+// list of credited author names. Mirrors Calibre's own author_sort
+// convention exactly (verified against real multi-author books in the
+// library): authorSort is each author's own createAuthorSort() value,
+// joined in credited order — never re-alphabetized. Deliberately does NOT
+// call createAuthorSort() on the joined author string itself — that
+// function assumes a single "First ... Last" name and would mangle a
+// multi-author string (see docs/kb/bookshelf.md).
+export function computeAuthorFields(names: string[]): { author: string; authorSort: string } {
+  return {
+    author: names.join(AUTHOR_SEPARATOR),
+    authorSort: names.map(createAuthorSort).join(AUTHOR_SEPARATOR),
+  };
+}
+
 export const calculatePagesFromProgress = (progress: number, pageCount: number | null): number => {
   if (!pageCount) return 0;
   return Math.round((progress / 100) * pageCount);

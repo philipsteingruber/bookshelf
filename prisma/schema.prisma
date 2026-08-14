@@ -33,6 +33,7 @@ model User {
     readingGoals      ReadingGoal[]
     stats             UserStats?
     series            Series[]
+    authors           Author[]
 
     @@index([clerkId])
 }
@@ -69,6 +70,45 @@ model Series {
 
     @@unique([name, userId])
     @@index([userId])
+}
+
+// Structured author identity, separate from Book.author (a denormalized,
+// cached " & "-joined display string kept for backward compatibility — see
+// docs/kb/bookshelf.md for why the cache stays rather than every consumer
+// (Goodreads/Google Books search URLs, recommendation prompts) switching to
+// relation-based joins). One Author row per real person, reused across books
+// via BookAuthor — this is what let the CWA "Lastname| Firstname" cleanup
+// merge duplicate identities instead of just renaming a string in place.
+model Author {
+    id   String @id @default(cuid())
+    name String
+    sort String
+
+    user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+    userId String
+
+    books BookAuthor[]
+
+    @@unique([name, userId])
+    @@index([userId])
+}
+
+// Join table preserving credited author order per book (order, 0-based) —
+// Book.authorSort is computed by joining each author's own `sort` in this
+// order, mirroring Calibre's own author_sort convention exactly (see
+// docs/kb/bookshelf.md).
+model BookAuthor {
+    id    String @id @default(cuid())
+    order Int
+
+    book     Book   @relation(fields: [bookId], references: [id], onDelete: Cascade)
+    bookId   Int
+    author   Author @relation(fields: [authorId], references: [id], onDelete: Cascade)
+    authorId String
+
+    @@unique([bookId, authorId])
+    @@index([bookId])
+    @@index([authorId])
 }
 
 model Book {
@@ -120,6 +160,7 @@ model Book {
     createdAt         DateTime          @default(now())
     updatedAt         DateTime          @updatedAt
     readingProgresses ReadingProgress[]
+    authors           BookAuthor[]
 
     @@unique([seriesId, seriesIndex])
     @@unique([isbn, userId])

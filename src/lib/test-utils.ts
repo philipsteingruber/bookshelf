@@ -67,6 +67,22 @@ export function createMockDb(): PrismaClient {
       create: vi.fn(),
       count: vi.fn(),
     },
+    // syncBookAuthors() runs on essentially every book create/update, so
+    // these default to harmless resolved values (an empty prior-links list,
+    // a fresh author id, zero remaining links) rather than bare vi.fn()s —
+    // otherwise every test exercising a create/update path would need its
+    // own stub just to avoid "Cannot read properties of undefined". Tests
+    // that actually care about author-sync behavior override these directly.
+    author: {
+      upsert: vi.fn().mockResolvedValue({ id: "mock-author-id" }),
+      delete: vi.fn(),
+    },
+    bookAuthor: {
+      findMany: vi.fn().mockResolvedValue([]),
+      deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+      createMany: vi.fn().mockResolvedValue({ count: 0 }),
+      count: vi.fn().mockResolvedValue(0),
+    },
     $transaction: vi.fn(),
   } as unknown as PrismaClient;
 }

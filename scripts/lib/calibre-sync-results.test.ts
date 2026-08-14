@@ -9,6 +9,7 @@ function makeCalibре(overrides: Partial<CalibreBookSync> = {}): CalibreBookSyn
     calibreId: 1,
     title: "Blood Pact",
     author: "Dan Abnett",
+    authors: [{ name: "Dan Abnett", sort: "Abnett, Dan" }],
     seriesName: "Gaunt's Ghosts",
     seriesIndex: 8,
     goodreadsId: null,
