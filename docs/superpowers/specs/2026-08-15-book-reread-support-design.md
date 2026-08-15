@@ -23,7 +23,11 @@ revision's own headline fix (`getYearlyBookStats`) still didn't work, and — mo
 fundamentally — that `applyRereadStarts` breaks a monotonic-progress invariant every
 page/streak stat in the app depends on. That finding is significant enough that it's called
 out as its own section rather than folded in silently: see **Progress-history invariant**,
-below.
+below. A follow-up question after both reviews ("does all-time page total get the same
+reread credit as the yearly total?") surfaced a third gap neither review caught: the
+disclosed "all-time doesn't credit rereads" limitation wasn't just a gap, it was an
+inconsistency — yearly totals could exceed the all-time total once rereads existed. That's
+now fixed too (Progress-history invariant, part 3), rather than left as disclosed debt.
 
 ## Goals
 
@@ -57,8 +61,10 @@ below.
 - Fixing `recommendations.ts`'s 6-month window or `book.ts`'s recently-finished query to
   account for mid-reread books whose `finishedAt` is temporarily null — accepted as a
   pre-existing style of staleness, not fixed here.
-- Crediting page/streak counts for a _completed_ reread beyond what the existing
-  max-progress-per-book stat calculations already do — see Progress-history invariant.
+- Changing how streak-_qualifying days_ are counted — a reread's real reading days are
+  already counted correctly once the clamp fix below is in place; the only page-total gap
+  this design closes is `calculateOverallStats`'s all-time total (see Progress-history
+  invariant), not the day-based streak mechanism itself.
 
 ## Pre-implementation validation (required before writing code)
 
@@ -89,32 +95,69 @@ first, preserving the invariant rather than violating it. Every stats function t
   whether that's the reset day itself or days later) computes against the old pre-reread
   baseline (e.g. `100`) and produces a large negative `progressGain`, which then fails the
   streak-qualifying threshold for that day.
-- `calculateOverallStats`/dashboard totals use _max_ progress per book for page-count
-  totals — so a fully completed reread of a book credits **zero** additional pages, even
-  after the yearly-stats fix below makes it count as a second finish.
+- `calculateOverallStats` (`reading-stats-utils.ts`, feeds `UserStats.totalPagesRead` via
+  `recalculateAllUserStats`) also uses _max_ progress per book, cross-attempt — so a fully
+  completed reread credited **zero** additional pages in the first two revisions of this
+  spec, even after the yearly-stats fix below makes it count as a second finish. Caught
+  when checking whether "books finished this year" and "all-time pages read" could ever
+  disagree: they could, badly — summing every year's page total could exceed the
+  all-time total, since the yearly fix credits every finish but the all-time calculation
+  didn't. That inconsistency is fixed here too, not left as a disclosed gap.
 
-**Fix, scoped to stay inside the additive-column design rather than reopening the
-`ReadThrough`-table question:**
+**Fix — three parts, applied together:**
 
 1. `applyRereadStarts` does **not** create a `ReadingProgress` row at reread-start (see
    Result type / apply function below) — avoids logging a phantom "you read on this day"
    entry for a day that was really just a detection event, not reading activity.
 2. `calculatePagesPerDay` and its weekly equivalent (`reading-stats-utils.ts`) clamp the
-   gain at zero: `progressGain = Math.max(0, dayMaxProgress - baseline)`. This is a small,
-   contained change to that one file — it doesn't require baseline tracking to become
-   reread-aware, it just stops a stale/inflated baseline from producing a _negative_ page
-   count and corrupting the streak-qualifying check for that day.
+   gain at zero: `progressGain = Math.max(0, dayMaxProgress - baseline)`. This stops a
+   stale/inflated baseline from producing a _negative_ page count and corrupting the
+   streak-qualifying check for the transition day. This part governs day-based streak
+   credit only, not the all-time total — see part 3.
+3. `calculateOverallStats` is reworked to credit **every finish**, matching the yearly
+   logic instead of diverging from it, using `rereadAt` as the boundary that separates a
+   completed attempt's rows from the currently-open one:
 
-**What this does and doesn't solve, stated explicitly:** the clamp prevents a reread from
-ever showing a negative-page day or breaking a streak. It does **not** make a completed
-reread contribute additional pages to lifetime/yearly page totals — that remains governed
-by the existing max-progress-per-book logic, unaffected by this change either way. This is
-accepted as a known, disclosed limitation rather than fixed, on the reasoning that solving
-it properly needs per-attempt progress segmentation (a real schema change), which the
-project already decided against for the smaller "times read" granularity earlier in this
-process. If page-total credit for rereads turns out to matter in practice, that's the
-concrete trigger for revisiting the `ReadThrough`-table alternative — not a hypothetical
-one.
+   ```typescript
+   function calculatePagesForBook(
+     entries: ReadingProgressWithBook[], // all rows for one book, any attempt
+     book: Pick<Book, "pageCount" | "finishedAt" | "previousFinishedAt" | "rereadAt">,
+   ): number {
+     const timesRead = book.previousFinishedAt.length + (book.finishedAt !== null ? 1 : 0);
+     const finishedPages = timesRead * (book.pageCount ?? 0);
+
+     if (book.finishedAt !== null) return finishedPages; // no open attempt — done
+
+     // Currently unfinished (first read in progress, or mid-reread): credit the OPEN
+     // attempt's own max, scoped to rows logged since the last reread boundary so a prior
+     // attempt's higher max can't leak in as this attempt's progress.
+     const openAttemptRows = entries.filter((e) => book.rereadAt === null || e.createdAt > book.rereadAt);
+     const openAttemptMax = openAttemptRows.length > 0 ? Math.max(...openAttemptRows.map((e) => e.progress)) : 0;
+     return finishedPages + calculatePagesFromProgress(openAttemptMax, book.pageCount);
+   }
+   ```
+
+   This is a strict generalization, not a behavior change for any book that's never been
+   reread: with `timesRead <= 1` and `rereadAt === null`, it reduces to exactly the
+   original `max-progress-per-book` formula. It only diverges once a book has a real
+   finish/reread history to credit.
+
+   **Plumbing this requires:** `ReadingProgressWithBook.book`
+   (`src/lib/types/reading.ts`) currently only picks `pageCount`/`id`/`title` — it needs
+   `finishedAt`, `previousFinishedAt`, and `rereadAt` added. The one production query that
+   feeds `calculateOverallStats` (`stats-updates.ts`'s `recalculateAllUserStats`) needs its
+   `book: { select: {...} }` updated to match. (`reading-progress.ts`'s
+   `getRecentReadingProgress` also returns `ReadingProgressWithBook` but never calls
+   `calculateOverallStats`, so it doesn't need the new fields — don't widen its query
+   unnecessarily.)
+
+**What this leaves as an accepted limitation:** the day-based streak _qualifying-day_ logic
+(`calculateStreakDetails`/`getQualifyingDays`, which use the clamped daily/weekly
+functions from part 2, not part 3's per-book total) still can't retroactively credit a
+reread's pages to a day earlier than when that reread's own progress was actually logged —
+which is correct, not a gap: a streak should reflect the days you actually engaged with the
+book, and part 2 already ensures a reread can't corrupt that count negatively. Nothing
+further is owed here.
 
 ## Schema
 
@@ -519,11 +562,15 @@ those as raw SQL — a larger blast radius than the additive-column approach.
 **A full `ReadThrough` table** (one row per attempt, own status/progress/dates/rating,
 `Book` kept as a denormalized cache). Gives per-attempt progress curves and would sidestep
 the Progress-history invariant problem entirely by construction. Re-examined after the
-second review surfaced that problem, and still rejected for now: the chosen clamp-based fix
-solves the concrete failure mode (broken streaks) without a schema change, and the
-remaining gap (completed rereads don't add lifetime page credit) is disclosed as accepted
-rather than silently absorbed. If that gap turns out to matter in practice, it's the
-concrete trigger to revisit this alternative — not a hypothetical one.
+second review surfaced that problem, and still rejected: the clamp fix (streak-day
+corruption) plus the `rereadAt`-boundary-scoped credit fix (all-time page total) together
+solve the concrete failure modes without a schema change — completed rereads now credit
+their full page count exactly once per finish, matching the yearly logic, using `rereadAt`
+as a cheap substitute for a real per-attempt row boundary. What's still not possible without
+an actual `ReadThrough` table: a per-attempt progress _curve_ (e.g. "show me how read #2
+progressed day by day") — the `rereadAt` boundary only supports a single before/after split,
+not N-way segmentation across three or more rereads of the same book. Confirmed acceptable,
+per the original Non-Goals decision on progress-curve granularity.
 
 ## Testing
 
@@ -554,7 +601,14 @@ concrete trigger to revisit this alternative — not a hypothetical one.
 - `src/lib/reading/reading-stats-utils.test.tsx` (existing file — `.tsx`, not `.ts`) — a
   twice-read book (one finish in each of two different years) is counted in both years, not
   just the current `finishedAt`'s year; the `Math.max(0, ...)` clamp produces zero, not a
-  negative page count, for a day whose baseline predates a reread reset.
+  negative page count, for a day whose baseline predates a reread reset;
+  `calculatePagesForBook`: a book with `timesRead === 1` and `rereadAt === null` produces
+  the same result as the pre-existing formula (non-regression); a twice-finished book with
+  no open attempt credits `2 × pageCount`; a book mid-reread with one prior finish credits
+  `1 × pageCount` plus only the open attempt's own max (rows before `rereadAt` must not
+  leak into the open-attempt max) — this last case is the one that would silently regress
+  to the old under-crediting behavior if the `rereadAt` filter were dropped, so it's the
+  most important of the three.
 - **Known coverage gap, acknowledged rather than closed here:** no apply-function tests
   exist today for any script (only the pure `computeResults`/`computeAbsResults` functions
   are tested). `applyRereadStarts`'s write and the removal of the transaction wrapper are
