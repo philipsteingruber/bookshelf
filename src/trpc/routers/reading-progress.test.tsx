@@ -1232,7 +1232,16 @@ describe("readingProgressRouter", () => {
           createdAt: { gte: expect.any(Date) },
         },
         include: {
-          book: { select: { id: true, title: true, pageCount: true } },
+          book: {
+            select: {
+              id: true,
+              title: true,
+              pageCount: true,
+              finishedAt: true,
+              previousFinishedAt: true,
+              rereadAt: true,
+            },
+          },
         },
         orderBy: { createdAt: "asc" },
       });
