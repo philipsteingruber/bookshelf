@@ -144,7 +144,11 @@ const calculatePagesPerDay = (
 
       // Find this day's max progress
       const dayMaxProgress = Math.max(...entries.map((e) => e.progress));
-      const progressGain = dayMaxProgress - baseline;
+      // A reread resets progress below the old baseline. Without this clamp,
+      // the first genuinely-logged row after a reread produces a large
+      // negative progressGain, which fails the streak-qualifying threshold
+      // for that day.
+      const progressGain = Math.max(0, dayMaxProgress - baseline);
 
       totalPagesForDay += calculatePagesFromProgress(
         progressGain,
@@ -266,7 +270,7 @@ export const calculateWeeklyStats = (
 
       // Find this week's max progress
       const weekMaxProgress = Math.max(...entries.map((e) => e.progress));
-      const progressGain = weekMaxProgress - baseline;
+      const progressGain = Math.max(0, weekMaxProgress - baseline);
 
       weekPages += calculatePagesFromProgress(
         progressGain,

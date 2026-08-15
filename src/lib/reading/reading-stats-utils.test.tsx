@@ -555,6 +555,26 @@ describe("reading-stats-utils", () => {
 
       expect(result.pagesToday).toEqual(100);
     });
+
+    it("clamps a negative day to zero pages instead of subtracting, when a reread drops progress below an old baseline", () => {
+      const fakeBook = createFakeBook({ id: 1, pageCount: 300 });
+      const firstProgress = createFakeReadingProgressWithBook({
+        book: fakeBook,
+        progress: 100,
+        createdAt: new Date("2026-01-01T10:00:00Z"),
+      });
+      // A reread's first genuinely-logged row, well below the old 100%
+      // baseline — must not produce a negative page count for this day.
+      const secondProgress = createFakeReadingProgressWithBook({
+        book: fakeBook,
+        progress: 15,
+        createdAt: new Date("2026-02-01T10:00:00Z"),
+      });
+
+      const result = calculateDailyStats([firstProgress, secondProgress], "UTC");
+
+      expect(result.averagePagesPerDay).toBeGreaterThanOrEqual(0);
+    });
   });
   describe("calculateWeeklyStats", () => {
     beforeEach(() => {
