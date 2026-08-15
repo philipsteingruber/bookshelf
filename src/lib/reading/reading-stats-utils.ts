@@ -315,8 +315,10 @@ export const calculateYearlyStats = (
   timezone: string = DEFAULT_TIMEZONE,
 ): YearlyStats => {
   const validBooks = books.filter(
-    (book): book is Book & { finishedAt: Date; pageCount: number } =>
-      book.finishedAt != null && book.pageCount != null && book.pageCount >= readingGoalThreshold,
+    (book): book is Book & { pageCount: number } =>
+      (book.finishedAt != null || book.previousFinishedAt.length > 0) &&
+      book.pageCount != null &&
+      book.pageCount >= readingGoalThreshold,
   );
 
   if (validBooks.length === 0) return { booksFinishedByYear: [], pagesFinishedByYear: [] };
@@ -324,11 +326,15 @@ export const calculateYearlyStats = (
   const booksByYear = new Map<number, number>();
   const pagesByYear = new Map<number, number>();
 
-  validBooks.forEach((book) => {
-    const year = getYearInTimezone(book.finishedAt, timezone);
-
+  const creditYear = (finishDate: Date, pageCount: number) => {
+    const year = getYearInTimezone(finishDate, timezone);
     booksByYear.set(year, (booksByYear.get(year) ?? 0) + 1);
-    pagesByYear.set(year, (pagesByYear.get(year) ?? 0) + book.pageCount);
+    pagesByYear.set(year, (pagesByYear.get(year) ?? 0) + pageCount);
+  };
+
+  validBooks.forEach((book) => {
+    if (book.finishedAt !== null) creditYear(book.finishedAt, book.pageCount);
+    for (const priorFinish of book.previousFinishedAt) creditYear(priorFinish, book.pageCount);
   });
 
   return {

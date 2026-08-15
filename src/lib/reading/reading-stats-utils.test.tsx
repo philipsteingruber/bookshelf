@@ -868,6 +868,31 @@ describe("reading-stats-utils", () => {
       // In America/New_York the book was finished on Dec 31 2024, not Jan 1 2025
       expect(result.booksFinishedByYear).toEqual([{ year: 2024, count: 1 }]);
     });
+
+    it("counts a twice-read book in both years it was finished, not just the current finishedAt year", () => {
+      const book = createFakeBook({
+        finishedAt: new Date("2026-08-01"),
+        previousFinishedAt: [new Date("2025-03-01")],
+        pageCount: 300,
+      });
+
+      const result = calculateYearlyStats([book], 0, "UTC");
+      const years = result.booksFinishedByYear.map((y) => y.year).sort();
+      expect(years).toEqual([2025, 2026]);
+      expect(result.pagesFinishedByYear.find((y) => y.year === 2025)?.pages).toBe(300);
+      expect(result.pagesFinishedByYear.find((y) => y.year === 2026)?.pages).toBe(300);
+    });
+
+    it("does not count a mid-reread book (finishedAt null) in the CURRENT attempt's absent year, only its prior finish", () => {
+      const book = createFakeBook({
+        finishedAt: null,
+        previousFinishedAt: [new Date("2025-03-01")],
+        pageCount: 300,
+      });
+
+      const result = calculateYearlyStats([book], 0, "UTC");
+      expect(result.booksFinishedByYear).toEqual([{ year: 2025, count: 1 }]);
+    });
   });
   describe("calculateOverallStats", () => {
     beforeEach(() => {

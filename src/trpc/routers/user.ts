@@ -127,7 +127,10 @@ export const userRouter = createTRPCRouter({
     const threshold = ctx.currentUser.defaultReadingThreshold;
 
     const books = await ctx.db.book.findMany({
-      where: { userId: ctx.currentUser.id, finishedAt: { not: null } },
+      where: {
+        userId: ctx.currentUser.id,
+        OR: [{ finishedAt: { not: null } }, { previousFinishedAt: { isEmpty: false } }],
+      },
     });
 
     const stats = calculateYearlyStats(books, threshold, ctx.currentUser.timezone);

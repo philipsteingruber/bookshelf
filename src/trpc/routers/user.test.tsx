@@ -287,7 +287,7 @@ describe("userRouter", () => {
       ]);
     });
 
-    it("should only query finished books for current user", async () => {
+    it("should only query finished or previously-finished books for current user", async () => {
       const { mockDb, caller, mockUser } = createMockCaller(userRouter);
 
       vi.mocked(mockDb.book.findMany).mockResolvedValue([]);
@@ -295,7 +295,10 @@ describe("userRouter", () => {
       await caller.getYearlyBookStats();
 
       expect(mockDb.book.findMany).toHaveBeenCalledWith({
-        where: { userId: mockUser.id, finishedAt: { not: null } },
+        where: {
+          userId: mockUser.id,
+          OR: [{ finishedAt: { not: null } }, { previousFinishedAt: { isEmpty: false } }],
+        },
       });
     });
   });
