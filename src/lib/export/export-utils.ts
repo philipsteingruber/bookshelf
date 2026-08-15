@@ -28,6 +28,8 @@ export const exportBooksToCSV = (books: BookForExport[]): string => {
     "summary",
     "startedAt",
     "finishedAt",
+    "previousFinishedAt",
+    "rereadAt",
     "createdAt",
     "updatedAt",
   ];
@@ -54,6 +56,8 @@ export const exportBooksToCSV = (books: BookForExport[]): string => {
     escapeCSV(book.summary ?? ""),
     book.startedAt?.toISOString() ?? "",
     book.finishedAt?.toISOString() ?? "",
+    escapeCSV(book.previousFinishedAt.map((d) => d.toISOString()).join(",")),
+    book.rereadAt?.toISOString() ?? "",
     book.createdAt.toISOString(),
     book.updatedAt.toISOString(),
   ]);

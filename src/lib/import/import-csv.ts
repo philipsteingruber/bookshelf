@@ -54,6 +54,8 @@ export const importFromCSV = async (
             summary: book.summary,
             startedAt: book.startedAt,
             finishedAt: book.finishedAt,
+            previousFinishedAt: { set: book.previousFinishedAt },
+            rereadAt: book.rereadAt,
             createdAt: book.createdAt,
             updatedAt: book.updatedAt,
           },

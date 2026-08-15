@@ -44,6 +44,8 @@ export const importJSONSchema = z.object({
       userId: z.cuid(),
       startedAt: z.coerce.date().nullable(),
       finishedAt: z.coerce.date().nullable(),
+      previousFinishedAt: z.array(z.coerce.date()),
+      rereadAt: z.coerce.date().nullable(),
       createdAt: z.coerce.date(),
       updatedAt: z.coerce.date(),
     }),
@@ -134,6 +136,11 @@ export const bookCSVSchema = z.object({
 
   startedAt: emptyToNullDate,
   finishedAt: emptyToNullDate,
+  previousFinishedAt: z.preprocess(
+    (v) => (typeof v === "string" && v.length > 0 ? v.split(",") : []),
+    z.array(z.coerce.date()),
+  ),
+  rereadAt: emptyToNullDate,
 
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
