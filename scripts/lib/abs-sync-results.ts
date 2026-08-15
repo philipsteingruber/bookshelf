@@ -59,6 +59,10 @@ export interface AbsSyncResults {
 export function computeAbsResults(
   absBooks: AbsBookSync[],
   bookshelfBooks: BookshelfBookForAbs[],
+  thresholds: { minPriorProgress: number; dropThreshold: number } = {
+    minPriorProgress: REREAD_MIN_PRIOR_PROGRESS,
+    dropThreshold: REREAD_DROP_THRESHOLD,
+  },
 ): AbsSyncResults {
   const bookshelfByIsbn = new Map<string, BookshelfBookForAbs>();
   const bookshelfByKey = new Map<string, BookshelfBookForAbs>();
@@ -105,8 +109,8 @@ export function computeAbsResults(
         derived,
         absBook.progressPercent,
         absBook.progressUpdatedAt,
-        REREAD_MIN_PRIOR_PROGRESS,
-        REREAD_DROP_THRESHOLD,
+        thresholds.minPriorProgress,
+        thresholds.dropThreshold,
       )
     ) {
       results.rereadStarts.push({

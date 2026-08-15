@@ -10,7 +10,9 @@ import {
   type AbsProgressUpdate,
   type AbsStatusUpdate,
   type AbsSyncResults,
+  type RereadStart,
 } from "./lib/abs-sync-results";
+import { computeTimesRead } from "@/lib/book";
 import prisma from "@/lib/prisma";
 import { recalculateAllUserStats } from "@/lib/reading/stats-updates";
 
@@ -40,6 +42,13 @@ function printResults(results: AbsSyncResults, apply: boolean): void {
     console.log(`    ${bookshelfBook.progress}% → ${newProgress}%`);
   }
 
+  const rereadLabel = apply ? "STARTED REREAD" : "WOULD START REREAD";
+  console.log(`\n${rereadLabel} (${results.rereadStarts.length})`);
+  for (const { bookshelfBook, newProgress } of results.rereadStarts) {
+    console.log(`  • ${formatBook(bookshelfBook.title, bookshelfBook.author)}`);
+    console.log(`    READ → READING | ${bookshelfBook.progress}% → ${newProgress}%`);
+  }
+
   if (results.progressSkips.length > 0) {
     console.log(`\nSKIPPED — NO PROGRESS INCREASE (${results.progressSkips.length})`);
     for (const { absBook, bookshelfBook } of results.progressSkips) {
@@ -58,6 +67,7 @@ function printResults(results: AbsSyncResults, apply: boolean): void {
     console.log("\n=== Summary ===");
     console.log(`Would update status:  ${pad(statusUpdatesWithStatus.length)}`);
     console.log(`Would log progress:   ${pad(results.progressUpdates.length)}`);
+    console.log(`Would start reread:   ${pad(results.rereadStarts.length)}`);
     if (results.progressSkips.length > 0) {
       console.log(`Skipped (no change):  ${pad(results.progressSkips.length)}`);
     }
@@ -70,12 +80,14 @@ function printApplySummary(
   results: AbsSyncResults,
   statusErrors: string[],
   progressErrors: string[],
+  rereadErrors: string[],
 ): void {
   const pad = (n: number) => String(n).padStart(3);
   const statusUpdatesWithStatus = results.statusUpdates.filter((u) => u.newStatus !== null);
   console.log("\n=== Summary ===");
   console.log(`Updated status:       ${pad(statusUpdatesWithStatus.length - statusErrors.length)}`);
   console.log(`Logged progress:      ${pad(results.progressUpdates.length - progressErrors.length)}`);
+  console.log(`Started reread:       ${pad(results.rereadStarts.length - rereadErrors.length)}`);
   if (results.progressSkips.length > 0) {
     console.log(`Skipped (no change):  ${pad(results.progressSkips.length)}`);
   }
@@ -120,6 +132,37 @@ async function applyProgressUpdates(
   return errors;
 }
 
+async function applyRereadStarts(rereadStarts: RereadStart[], userId: string): Promise<string[]> {
+  const errors: string[] = [];
+  for (const { bookshelfBook, newProgress, newStartedAt } of rereadStarts) {
+    try {
+      if (bookshelfBook.finishedAt === null) {
+        errors.push(`Skipped reread for "${bookshelfBook.title}": finishedAt was unexpectedly null`);
+        continue;
+      }
+      const previousFinishedAt = [...bookshelfBook.previousFinishedAt, bookshelfBook.finishedAt];
+      await prisma.book.update({
+        where: { id: bookshelfBook.id },
+        data: {
+          previousFinishedAt: { set: previousFinishedAt },
+          status: "READING",
+          progress: newProgress,
+          startedAt: newStartedAt ?? new Date(),
+          finishedAt: null,
+          dnfAt: null,
+          resetAt: null,
+          rereadAt: new Date(),
+        },
+      });
+      const timesRead = computeTimesRead({ previousFinishedAt, finishedAt: null });
+      console.log(`REREAD_DETECTED: "${bookshelfBook.title}" (id ${bookshelfBook.id}, read count now ${timesRead})`);
+    } catch (err) {
+      errors.push(`Failed to log reread for "${bookshelfBook.title}": ${extractErrorMessage(err)}`);
+    }
+  }
+  return errors;
+}
+
 // ─── Entry point ──────────────────────────────────────────────────────────────
 
 async function main(): Promise<void> {
@@ -129,10 +172,18 @@ async function main(): Promise<void> {
       "abs-url": { type: "string", default: DEFAULT_ABS_URL },
       "library-id": { type: "string" },
       "user-email": { type: "string" },
+      "reread-min-prior-progress": { type: "string", default: "90" },
+      "reread-drop-threshold": { type: "string", default: "50" },
     },
   });
 
   const apply = values.apply ?? false;
+  const rereadMinPriorProgress = Number(values["reread-min-prior-progress"]);
+  const rereadDropThreshold = Number(values["reread-drop-threshold"]);
+  if (Number.isNaN(rereadMinPriorProgress) || Number.isNaN(rereadDropThreshold)) {
+    console.error("Error: --reread-min-prior-progress and --reread-drop-threshold must be numbers");
+    process.exit(1);
+  }
   const absUrl = (values["abs-url"] as string | undefined) ?? DEFAULT_ABS_URL;
   const userEmail =
     (values["user-email"] as string | undefined) ?? process.env.CALIBRE_SYNC_USER_EMAIL;
@@ -182,12 +233,17 @@ async function main(): Promise<void> {
       finishedAt: true,
       dnfAt: true,
       resetAt: true,
+      previousFinishedAt: true,
+      rereadAt: true,
       isbn: true,
     },
   });
   console.log(`Loaded ${bookshelfBooks.length} books from bookshelf`);
 
-  const results = computeAbsResults(absBooks, bookshelfBooks);
+  const results = computeAbsResults(absBooks, bookshelfBooks, {
+    minPriorProgress: rereadMinPriorProgress,
+    dropThreshold: rereadDropThreshold,
+  });
   printResults(results, apply);
 
   let exitCode = 0;
@@ -196,14 +252,15 @@ async function main(): Promise<void> {
       results.statusUpdates.filter((u) => u.newStatus !== null),
     );
     const progressErrors = await applyProgressUpdates(results.progressUpdates, user.id);
+    const rereadErrors = await applyRereadStarts(results.rereadStarts, user.id);
 
-    if (results.progressUpdates.length > 0) {
+    if (results.progressUpdates.length > 0 || results.rereadStarts.length > 0) {
       await recalculateAllUserStats(prisma, user);
     }
 
-    printApplySummary(results, statusErrors, progressErrors);
+    printApplySummary(results, statusErrors, progressErrors, rereadErrors);
 
-    const allErrors = [...statusErrors, ...progressErrors];
+    const allErrors = [...statusErrors, ...progressErrors, ...rereadErrors];
     if (allErrors.length > 0) {
       console.log(`\n=== Errors (${allErrors.length}) ===`);
       for (const msg of allErrors) console.error(`  ✗ ${msg}`);
