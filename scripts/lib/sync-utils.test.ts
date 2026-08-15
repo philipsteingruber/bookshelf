@@ -164,6 +164,28 @@ describe("shouldLogProgress", () => {
   it("returns false when koboreadpct is 0", () => {
     expect(shouldLogProgress(0, 0)).toBe(false);
   });
+
+  it("does not overwrite progress from a stale cross-source signal after a reread", () => {
+    const rereadAt = new Date("2026-08-01");
+    const staleSignal = new Date("2026-07-01"); // predates the reread
+    expect(shouldLogProgress(100, 5, rereadAt, staleSignal)).toBe(false);
+  });
+
+  it("logs progress from a genuine post-reread signal", () => {
+    const rereadAt = new Date("2026-08-01");
+    const freshSignal = new Date("2026-08-05");
+    expect(shouldLogProgress(15, 5, rereadAt, freshSignal)).toBe(true);
+  });
+
+  it("does not log when rereadAt is set but the source timestamp is unknown", () => {
+    const rereadAt = new Date("2026-08-01");
+    expect(shouldLogProgress(15, 5, rereadAt, null)).toBe(false);
+  });
+
+  it("is unaffected by rereadAt/sourceUpdatedAt when rereadAt is null", () => {
+    expect(shouldLogProgress(60, 50, null, null)).toBe(true);
+    expect(shouldLogProgress(60, 50)).toBe(true); // existing 2-arg call sites keep working
+  });
 });
 
 describe("deriveAbsStatus", () => {

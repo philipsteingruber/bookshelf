@@ -66,10 +66,22 @@ export function shouldUpdateStatus(
 }
 
 export function shouldLogProgress(
-  koboreadpct: number | null,
+  sourceProgress: number | null,
   currentProgress: number,
+  rereadAt: Date | null = null,
+  sourceUpdatedAt: Date | null = null,
 ): boolean {
-  return koboreadpct !== null && koboreadpct > currentProgress;
+  if (sourceProgress === null || sourceProgress <= currentProgress) return false;
+  // A book with a set rereadAt just had a reread detected. Logging progress
+  // from a source that hasn't itself been touched since (e.g. ABS still
+  // reporting its old 100% from before the restart) would silently
+  // overwrite the reread's own low progress. Require the source's own
+  // signal to be newer than the reread itself, same shape as the
+  // shouldUpdateStatus gate below.
+  if (rereadAt !== null) {
+    return sourceUpdatedAt !== null && sourceUpdatedAt > rereadAt;
+  }
+  return true;
 }
 
 export function deriveAbsStatus(progressPercent: number, isFinished: boolean): ReadStatus {
