@@ -33,8 +33,21 @@ const Page = ({ params }: { params: Promise<{ bookId: string }> }): React.ReactE
   const { result: readingHistory } = useReadingHistory(parseInt(bookId));
   const timezone = useTimezone();
 
+  // Pace/estimate figures must only reflect the CURRENT (open) attempt, not
+  // every past reread stacked together — the full unfiltered history spans
+  // a reread boundary and produces a large negative progressSinceLast plus
+  // a near-zero pace (daysElapsed spanning both attempts). The chart and
+  // table below deliberately keep using the full, unfiltered
+  // `readingHistory` — showing a continuous line/log across all attempts is
+  // intentional (see design spec Non-Goals) — only this pace/estimate slice
+  // is scoped to rows logged after the reread.
+  const currentAttemptHistory =
+    book?.rereadAt != null
+      ? readingHistory.filter((entry) => entry.createdAt > book.rereadAt!)
+      : readingHistory;
+
   // Calculate chart data and estimates
-  const aggregatedData = aggregateByDay(readingHistory, timezone);
+  const aggregatedData = aggregateByDay(currentAttemptHistory, timezone);
   const chartData: ChartDataPoint[] = aggregatedData.map((entry) => ({
     date: entry.createdAt,
     displayDate: "", // Not needed for calculation
@@ -54,7 +67,7 @@ const Page = ({ params }: { params: Promise<{ bookId: string }> }): React.ReactE
 
   const { isSignedIn, isLoaded } = useAuth();
 
-  const averagePace = calculateAveragePace(readingHistory);
+  const averagePace = calculateAveragePace(currentAttemptHistory);
 
   // undefined = user hasn't interacted yet; falls back to book.rating when displaying.
   // This avoids a stale-init bug: useState(book?.rating) would be null during the

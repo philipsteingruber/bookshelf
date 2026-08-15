@@ -1151,5 +1151,18 @@ describe("reading-stats-utils", () => {
       // of the pre-reread row leaking in.
       expect(result).toBe(360);
     });
+
+    it("credits the full page count for a finished book whose logged progress never reached 100%", () => {
+      // Pins the reviewed, intentional divergence from the old max-progress
+      // formula: a finished book is credited its full pageCount the moment
+      // finishedAt is set, NOT the max logged progress (95% here) — CWA sync
+      // doesn't force progress to 100 when marking a book read, so this is a
+      // real, live case. See design spec's Progress-history invariant
+      // section for the reviewed decision to keep this behavior.
+      const entries = [{ progress: 95, createdAt: new Date("2026-01-01") }];
+      expect(
+        calculatePagesForBook(entries as never, book({ finishedAt: new Date("2026-01-02") })),
+      ).toBe(300); // full pageCount, not 95% of it (285)
+    });
   });
 });

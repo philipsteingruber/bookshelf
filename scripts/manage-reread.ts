@@ -72,7 +72,12 @@ async function undoLast(bookId: number): Promise<void> {
         finishedAt: restoredFinishedAt,
         dnfAt: null,
         resetAt: null,
-        rereadAt: null,
+        // Deliberately NOT cleared: leaving rereadAt at its existing
+        // (original detection time) value lets isRereadStart's gate 7
+        // permanently suppress re-detection from the same stale source
+        // signal that caused the false positive in the first place. A
+        // genuinely newer source timestamp will still correctly pass that
+        // gate and allow a real future reread.
       },
     });
   });

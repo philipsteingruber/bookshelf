@@ -137,10 +137,35 @@ first, preserving the invariant rather than violating it. Every stats function t
    }
    ```
 
-   This is a strict generalization, not a behavior change for any book that's never been
-   reread: with `timesRead <= 1` and `rereadAt === null`, it reduces to exactly the
-   original `max-progress-per-book` formula. It only diverges once a book has a real
-   finish/reread history to credit.
+   **Correction (post-implementation review):** an earlier revision of this spec claimed
+   this was "a strict generalization, not a behavior change for any book that's never been
+   reread." That claim is false for a _finished_ book, and has been corrected here rather
+   than left in place. The old `max-progress-per-book` formula credited pages based on the
+   book's actual max _logged_ progress (e.g. 95% of a 300-page book if that's as high as any
+   `ReadingProgress` row ever got). The code above does not reproduce that: for any book with
+   `finishedAt !== null`, it returns `finishedPages = timesRead * pageCount` unconditionally
+   — the full `pageCount`, credited the moment `finishedAt` is set, regardless of what the
+   logged progress rows actually reached. Since CWA sync doesn't force progress to 100 when
+   marking a book read, a book finished via CWA sync with logged progress that never reached
+   100% is a real, live case this diverges on.
+   **This has been reviewed and the decision is to keep this behavior** — crediting the full
+   `pageCount` on finish is arguably more correct (the book was genuinely finished, logged
+   progress data is an imperfect proxy for pages actually read) — but the spec's prior claim
+   that this is behavior-preserving for a never-reread book was wrong and should not be
+   trusted as a compatibility guarantee. The divergence is pinned by a test: see
+   `reading-stats-utils.test.tsx`, a finished book whose logged progress never reaches 100%
+   asserts the full `pageCount` is credited, not the logged max.
+
+   **Related, also intentional:** `calculateDailyStats`'s `averagePagesPerDay` is computed
+   via this same `calculatePagesForBook` (finish-credited, same as `calculateOverallStats`),
+   while `pagesToday`/`pagesYesterday` in that same `DailyStats` object remain delta-based
+   (`calculatePagesPerDay`, unaffected by this fix). For a library containing finished books
+   whose logged progress didn't reach 100%, `averagePagesPerDay` can therefore exceed
+   `pagesToday`/`pagesYesterday` within the same returned object. **This has been reviewed
+   and the decision is to keep both finish-credited/delta-based as they are** — the two
+   figures measure genuinely different things (a lifetime/library average that credits
+   completed books in full, vs. a specific day's incremental logged delta) and some
+   divergence between them is expected, not a bug.
 
    **Plumbing this requires:** `ReadingProgressWithBook.book`
    (`src/lib/types/reading.ts`) currently only picks `pageCount`/`id`/`title` — it needs

@@ -231,7 +231,7 @@ describe("isRereadStart", () => {
   const finishedAt = new Date("2026-06-01");
   const afterFinish = new Date("2026-07-01");
   const beforeFinish = new Date("2026-05-01");
-  const readBook = { status: "READ" as const, progress: 100, finishedAt };
+  const readBook = { status: "READ" as const, progress: 100, finishedAt, rereadAt: null };
 
   it("fires when a finished book's source progress drops meaningfully after a newer signal", () => {
     expect(isRereadStart(readBook, "READING", 5, afterFinish, 90, 50)).toBe(true);
@@ -269,5 +269,19 @@ describe("isRereadStart", () => {
 
   it("does not fire when the source has no timestamp", () => {
     expect(isRereadStart(readBook, "READING", 5, null, 90, 50)).toBe(false);
+  });
+
+  it("does not fire when the source timestamp is not newer than an existing rereadAt suppression marker", () => {
+    // simulates the post --undo-last state: rereadAt left set as a
+    // suppression marker, and the same stale source row (still older than
+    // rereadAt) trying to re-trigger detection on the next sync.
+    const rereadAt = new Date("2026-07-15");
+    expect(isRereadStart({ ...readBook, rereadAt }, "READING", 5, afterFinish, 90, 50)).toBe(false);
+  });
+
+  it("fires when the source timestamp is newer than an existing rereadAt suppression marker", () => {
+    const rereadAt = new Date("2026-07-01");
+    const afterReread = new Date("2026-08-01");
+    expect(isRereadStart({ ...readBook, rereadAt }, "READING", 5, afterReread, 90, 50)).toBe(true);
   });
 });

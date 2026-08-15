@@ -107,7 +107,12 @@ export function deriveAbsStatus(progressPercent: number, isFinished: boolean): R
 // reread bucket in the same sync run. Calling this FIRST and skipping the
 // normal branches when it fires is what keeps the two paths disjoint.
 export function isRereadStart(
-  bookshelfBook: { status: ReadStatus; progress: number; finishedAt: Date | null },
+  bookshelfBook: {
+    status: ReadStatus;
+    progress: number;
+    finishedAt: Date | null;
+    rereadAt: Date | null;
+  },
   derived: ReadStatus,
   sourceProgress: number | null,
   sourceUpdatedAt: Date | null,
@@ -132,7 +137,14 @@ export function isRereadStart(
     // would fire on a 90%->89% noise-level move.
     bookshelfBook.finishedAt !== null &&
     sourceUpdatedAt !== null &&
-    sourceUpdatedAt > bookshelfBook.finishedAt // rules out a stale source
+    sourceUpdatedAt > bookshelfBook.finishedAt && // rules out a stale source
     // signal that predates the finish.
+    (bookshelfBook.rereadAt === null || sourceUpdatedAt > bookshelfBook.rereadAt) // once a
+    // reread has been detected (and possibly undone via manage-reread.ts's
+    // --undo-last, which deliberately leaves rereadAt set as a suppression
+    // marker rather than clearing it), the same stale source row must not
+    // re-trigger detection on the next sync — the source's own timestamp
+    // has to be newer than the reread marker itself, not just newer than
+    // the (possibly restored) finishedAt.
   );
 }

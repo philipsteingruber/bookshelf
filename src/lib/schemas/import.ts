@@ -44,8 +44,12 @@ export const importJSONSchema = z.object({
       userId: z.cuid(),
       startedAt: z.coerce.date().nullable(),
       finishedAt: z.coerce.date().nullable(),
-      previousFinishedAt: z.array(z.coerce.date()),
-      rereadAt: z.coerce.date().nullable(),
+      previousFinishedAt: z.array(z.coerce.date()).default([]),
+      rereadAt: z.coerce
+        .date()
+        .nullable()
+        .optional()
+        .transform((v) => v ?? null),
       createdAt: z.coerce.date(),
       updatedAt: z.coerce.date(),
     }),
@@ -99,7 +103,7 @@ const emptyToNullString = z.preprocess(
 );
 const emptyToNullDate = z.preprocess(
   (v) => (v === "" ? null : v),
-  z.date().nullable(),
+  z.coerce.date().nullable(),
 );
 
 export const bookCSVSchema = z.object({

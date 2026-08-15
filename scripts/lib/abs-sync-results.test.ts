@@ -260,4 +260,34 @@ describe("computeAbsResults — reread detection", () => {
     const { rereadStarts } = computeAbsResults([abs], [bookshelf]);
     expect(rereadStarts).toHaveLength(0);
   });
+
+  it("does not re-detect a reread when rereadAt is set and the source timestamp is not newer (undo-last suppression)", () => {
+    const rereadAt = new Date("2026-07-15");
+    const abs = makeAbs({ progressPercent: 5, isFinished: false, progressUpdatedAt: afterFinish }); // older than rereadAt
+    const bookshelf = makeBookshelf({ status: "READ", progress: 100, finishedAt, rereadAt });
+    const { rereadStarts } = computeAbsResults([abs], [bookshelf]);
+    expect(rereadStarts).toHaveLength(0);
+  });
+});
+
+describe("computeAbsResults — cross-source regression: reread state is not clobbered by a stale sync", () => {
+  it("leaves status and progress unchanged when a stale source reports the pre-reread high progress", () => {
+    const rereadAt = new Date("2026-07-15");
+    const staleTimestamp = new Date("2026-07-01"); // older than rereadAt — an untouched second source
+    const abs = makeAbs({
+      progressPercent: 100,
+      isFinished: true,
+      progressUpdatedAt: staleTimestamp,
+    });
+    const bookshelf = makeBookshelf({
+      status: "READING",
+      progress: 5,
+      rereadAt,
+      finishedAt: null,
+    });
+    const { statusUpdates, progressUpdates, rereadStarts } = computeAbsResults([abs], [bookshelf]);
+    expect(rereadStarts).toHaveLength(0);
+    expect(statusUpdates).toHaveLength(0);
+    expect(progressUpdates).toHaveLength(0);
+  });
 });
