@@ -1989,7 +1989,7 @@ Navigate to a book detail page for a book with no reread history — confirm no 
   In the `rows` mapping, add after `book.finishedAt?.toISOString() ?? "",`:
 
   ```typescript
-      book.previousFinishedAt.map((d) => d.toISOString()).join(","),
+      escapeCSV(book.previousFinishedAt.map((d) => d.toISOString()).join(",")),
       book.rereadAt?.toISOString() ?? "",
   ```
 
