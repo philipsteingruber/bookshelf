@@ -84,6 +84,10 @@ export interface SyncResults {
 export function computeResults(
   calibreBooks: CalibreBookSync[],
   bookshelfBooks: BookshelfBook[],
+  thresholds: { minPriorProgress: number; dropThreshold: number } = {
+    minPriorProgress: REREAD_MIN_PRIOR_PROGRESS,
+    dropThreshold: REREAD_DROP_THRESHOLD,
+  },
 ): SyncResults {
   const bookshelfByIsbn = new Map<string, BookshelfBook>();
   const bookshelfByKey = new Map<string, BookshelfBook>();
@@ -137,8 +141,8 @@ export function computeResults(
         derived,
         calibreBook.readPercent,
         calibreBook.progressUpdatedAt,
-        REREAD_MIN_PRIOR_PROGRESS,
-        REREAD_DROP_THRESHOLD,
+        thresholds.minPriorProgress,
+        thresholds.dropThreshold,
       )
     ) {
       results.rereadStarts.push({

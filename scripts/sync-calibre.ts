@@ -7,7 +7,7 @@ import { parseArgs } from "node:util";
 import { put } from "@vercel/blob";
 
 import type { ReadStatus } from "@/generated/prisma/enums";
-import { computeAuthorFields, createTitleSort, estimateKepubPageCount, syncBookAuthors, upsertSeries } from "@/lib/book";
+import { computeAuthorFields, computeTimesRead, createTitleSort, estimateKepubPageCount, syncBookAuthors, upsertSeries } from "@/lib/book";
 import prisma from "@/lib/prisma";
 import { recalculateAllUserStats } from "@/lib/reading/stats-updates";
 
@@ -19,6 +19,7 @@ import {
   type MetadataUpdate,
   type ProgressUpdate,
   type RatingUpdate,
+  type RereadStart,
   type SyncResults,
 } from "./lib/calibre-sync-results";
 import { startContainer, stopContainer } from "./lib/docker";
@@ -150,6 +151,15 @@ function printResults(
     console.log(`    Reason: ${base}`);
   }
 
+  const rereadLabel = apply ? "STARTED REREAD" : "WOULD START REREAD";
+  console.log(`\n${rereadLabel} (${results.rereadStarts.length})`);
+  for (const { calibreBook, bookshelfBook, newProgress } of results.rereadStarts) {
+    console.log(
+      `  • ${formatBook(bookshelfBook.title, bookshelfBook.author, calibreBook.seriesName, calibreBook.seriesIndex)}`,
+    );
+    console.log(`    READ → READING | ${bookshelfBook.progress}% → ${newProgress}%`);
+  }
+
   console.log(`\nNOT IN CALIBRE (${results.notInCalibre.length})`);
   for (const b of results.notInCalibre) {
     console.log(`  • ${formatBook(b.title, b.author, b.series?.name ?? null, b.seriesIndex)}`);
@@ -168,6 +178,7 @@ function printResults(
     console.log(`Would update meta:    ${pad(results.metadataUpdates.length)}${renameSuffix}`);
     console.log(`Would update ratings: ${pad(results.ratingUpdates.length)}`);
     console.log(`Would remove from Read Next (CWA):  ${pad(results.readNextRemovals.length)}`);
+    console.log(`Would start reread:   ${pad(results.rereadStarts.length)}`);
     if (results.progressSkips.length > 0) {
       console.log(`Skipped (no change):  ${pad(results.progressSkips.length)}`);
     }
@@ -184,6 +195,7 @@ function printApplySummary(
   ratingErrors: string[],
   progressErrors: string[],
   readNextErrors: string[],
+  rereadErrors: string[],
 ): void {
   const pad = (n: number) => String(n).padStart(3);
   const bookUpdatesWithStatus = results.bookUpdates.filter((u) => u.newStatus !== null);
@@ -199,6 +211,7 @@ function printApplySummary(
   console.log(`Updated metadata:     ${pad(results.metadataUpdates.length - metadataErrors.length)}${renameSuffix}`);
   console.log(`Updated ratings:      ${pad(results.ratingUpdates.length - ratingErrors.length)}`);
   console.log(`Removed from Read Next (CWA):  ${pad(results.readNextRemovals.length - readNextErrors.length)}`);
+  console.log(`Started reread:       ${pad(results.rereadStarts.length - rereadErrors.length)}`);
   if (results.progressSkips.length > 0) {
     console.log(`Skipped (no change):  ${pad(results.progressSkips.length)}`);
   }
@@ -397,6 +410,44 @@ async function applyProgressUpdates(
   return errors;
 }
 
+async function applyRereadStarts(rereadStarts: RereadStart[], userId: string): Promise<string[]> {
+  const errors: string[] = [];
+  for (const { bookshelfBook, newProgress, newStartedAt } of rereadStarts) {
+    try {
+      // finishedAt is guaranteed non-null here specifically because
+      // isRereadStart's finishedAt !== null gate already required it — not
+      // because of status === "READ" alone, which can co-occur with a null
+      // finishedAt via CSV import.
+      if (bookshelfBook.finishedAt === null) {
+        errors.push(`Skipped reread for "${bookshelfBook.title}": finishedAt was unexpectedly null`);
+        continue;
+      }
+      const previousFinishedAt = [...bookshelfBook.previousFinishedAt, bookshelfBook.finishedAt];
+      await prisma.book.update({
+        where: { id: bookshelfBook.id },
+        data: {
+          previousFinishedAt: { set: previousFinishedAt },
+          status: "READING",
+          progress: newProgress,
+          startedAt: newStartedAt ?? new Date(),
+          finishedAt: null,
+          dnfAt: null,
+          resetAt: null,
+          rereadAt: new Date(),
+        },
+      });
+      // No ReadingProgress row is created here — the new attempt's history
+      // starts with the first genuinely shouldLogProgress-gated row from a
+      // later sync, avoiding a phantom "read on this day" log entry.
+      const timesRead = computeTimesRead({ previousFinishedAt, finishedAt: null });
+      console.log(`REREAD_DETECTED: "${bookshelfBook.title}" (id ${bookshelfBook.id}, read count now ${timesRead})`);
+    } catch (err) {
+      errors.push(`Failed to log reread for "${bookshelfBook.title}": ${extractErrorMessage(err)}`);
+    }
+  }
+  return errors;
+}
+
 async function applyReadNextRemovals(
   cwaDbPath: string,
   books: CalibreBookSync[],
@@ -438,10 +489,18 @@ async function main(): Promise<void> {
       "calibre-db": { type: "string", default: DEFAULT_CALIBRE_DB },
       "cwa-db": { type: "string", default: DEFAULT_CWA_DB },
       "user-email": { type: "string" },
+      "reread-min-prior-progress": { type: "string", default: "90" },
+      "reread-drop-threshold": { type: "string", default: "50" },
     },
   });
 
   const apply = values.apply ?? false;
+  const rereadMinPriorProgress = Number(values["reread-min-prior-progress"]);
+  const rereadDropThreshold = Number(values["reread-drop-threshold"]);
+  if (Number.isNaN(rereadMinPriorProgress) || Number.isNaN(rereadDropThreshold)) {
+    console.error("Error: --reread-min-prior-progress and --reread-drop-threshold must be numbers");
+    process.exit(1);
+  }
   const calibreDbPath = (values["calibre-db"] as string | undefined) ?? DEFAULT_CALIBRE_DB;
   const cwaDbPath = (values["cwa-db"] as string | undefined) ?? DEFAULT_CWA_DB;
   const userEmail =
@@ -503,6 +562,8 @@ async function main(): Promise<void> {
         finishedAt: true,
         dnfAt: true,
         resetAt: true,
+        previousFinishedAt: true,
+        rereadAt: true,
         series: { select: { name: true } },
         seriesIndex: true,
         isbn: true,
@@ -513,7 +574,10 @@ async function main(): Promise<void> {
     });
     console.log(`Loaded ${bookshelfBooks.length} books from bookshelf`);
 
-    const results = computeResults(calibreBooks, bookshelfBooks);
+    const results = computeResults(calibreBooks, bookshelfBooks, {
+      minPriorProgress: rereadMinPriorProgress,
+      dropThreshold: rereadDropThreshold,
+    });
     const pageCountMap = await computePageCounts(results.toCreate);
     printResults(results, apply, pageCountMap);
 
@@ -528,14 +592,32 @@ async function main(): Promise<void> {
       const ratingErrors = await applyRatingUpdates(results.ratingUpdates);
       const progressErrors = await applyProgressUpdates(results.progressUpdates, user.id);
       const readNextErrors = await applyReadNextRemovals(cwaDbPath, results.readNextRemovals);
+      const rereadErrors = await applyRereadStarts(results.rereadStarts, user.id);
 
-      if (results.progressUpdates.length > 0 || createdProgressLogged > 0) {
+      if (results.progressUpdates.length > 0 || createdProgressLogged > 0 || results.rereadStarts.length > 0) {
         await recalculateAllUserStats(prisma, user);
       }
 
-      printApplySummary(results, createErrors, updateErrors, metadataErrors, ratingErrors, progressErrors, readNextErrors);
+      printApplySummary(
+        results,
+        createErrors,
+        updateErrors,
+        metadataErrors,
+        ratingErrors,
+        progressErrors,
+        readNextErrors,
+        rereadErrors,
+      );
 
-      const allErrors = [...createErrors, ...updateErrors, ...metadataErrors, ...ratingErrors, ...progressErrors, ...readNextErrors];
+      const allErrors = [
+        ...createErrors,
+        ...updateErrors,
+        ...metadataErrors,
+        ...ratingErrors,
+        ...progressErrors,
+        ...readNextErrors,
+        ...rereadErrors,
+      ];
       if (allErrors.length > 0) {
         console.log(`\n=== Errors (${allErrors.length}) ===`);
         for (const msg of allErrors) {
