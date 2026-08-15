@@ -18,6 +18,7 @@ import type {
 import {
   calculateDailyStats,
   calculateOverallStats,
+  calculatePagesForBook,
   calculateReadingStats,
   calculateStreakDetails,
   calculateWeeklyStats,
@@ -1075,6 +1076,55 @@ describe("reading-stats-utils", () => {
       expect(result[0].progressSinceLast).toEqual(25);
       expect(result[1].progressSinceLast).toEqual(25);
       expect(result[2].progressSinceLast).toEqual(25);
+    });
+  });
+
+  describe("calculatePagesForBook", () => {
+    const book = (overrides = {}) => ({
+      pageCount: 300,
+      finishedAt: null as Date | null,
+      previousFinishedAt: [] as Date[],
+      rereadAt: null as Date | null,
+      ...overrides,
+    });
+
+    it("matches the pre-existing max-progress formula for a book never reread", () => {
+      const entries = [{ progress: 40, createdAt: new Date("2026-01-01") }];
+      expect(calculatePagesForBook(entries as never, book())).toBe(120); // 40% of 300
+    });
+
+    it("credits the full page count once for a finished, never-reread book", () => {
+      expect(calculatePagesForBook([], book({ finishedAt: new Date("2026-01-01") }))).toBe(300);
+    });
+
+    it("credits full page count twice for a book finished, then finished again", () => {
+      expect(
+        calculatePagesForBook(
+          [],
+          book({
+            finishedAt: new Date("2026-08-01"),
+            previousFinishedAt: [new Date("2026-01-01")],
+          }),
+        ),
+      ).toBe(600);
+    });
+
+    it("does not leak a prior attempt's max progress into the open attempt's credit", () => {
+      const rereadAt = new Date("2026-07-01");
+      const entries = [
+        // Belongs to the FINISHED prior attempt — must not count toward the
+        // open attempt's max.
+        { progress: 100, createdAt: new Date("2026-06-01") },
+        // Belongs to the current, still-open attempt.
+        { progress: 20, createdAt: new Date("2026-07-15") },
+      ];
+      const result = calculatePagesForBook(
+        entries as never,
+        book({ finishedAt: null, previousFinishedAt: [new Date("2026-06-01")], rereadAt }),
+      );
+      // 1 finished credit (300) + 20% of the OPEN attempt only (60), not 100%
+      // of the pre-reread row leaking in.
+      expect(result).toBe(360);
     });
   });
 });

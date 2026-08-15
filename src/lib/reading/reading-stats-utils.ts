@@ -162,6 +162,26 @@ const calculatePagesPerDay = (
   return pagesPerDay;
 };
 
+// Credits every completed finish (matching calculateYearlyStats' logic)
+// plus the currently-open attempt's own progress, scoped to rows logged
+// after rereadAt so a prior attempt's higher max can't leak in as this
+// attempt's progress. Strict generalization of the old max-progress-per-book
+// formula: reduces to it exactly for any book that's never been reread
+// (timesRead <= 1, rereadAt === null).
+export const calculatePagesForBook = (
+  entries: ReadingProgressWithBook[],
+  book: Pick<Book, "pageCount" | "finishedAt" | "previousFinishedAt" | "rereadAt">,
+): number => {
+  const timesRead = book.previousFinishedAt.length + (book.finishedAt !== null ? 1 : 0);
+  const finishedPages = timesRead * (book.pageCount ?? 0);
+
+  if (book.finishedAt !== null) return finishedPages; // no open attempt — done
+
+  const openAttemptRows = entries.filter((e) => book.rereadAt === null || e.createdAt > book.rereadAt);
+  const openAttemptMax = openAttemptRows.length > 0 ? Math.max(...openAttemptRows.map((e) => e.progress)) : 0;
+  return finishedPages + calculatePagesFromProgress(openAttemptMax, book.pageCount);
+};
+
 export const calculateDailyStats = (
   progress: ReadingProgressWithBook[],
   timezone: string = DEFAULT_TIMEZONE,
@@ -182,20 +202,13 @@ export const calculateDailyStats = (
   const pagesYesterday = pagesPerDay.get(yesterday) ?? 0;
 
   let totalPages = 0;
-  const bookProgress = new Map<number, { max: number; pageCount: number | null }>();
+  const entriesByBook = new Map<number, ReadingProgressWithBook[]>();
   validProgress.forEach((entry) => {
-    const current = bookProgress.get(entry.bookId);
-    if (!current) {
-      bookProgress.set(entry.bookId, {
-        max: entry.progress,
-        pageCount: entry.book.pageCount,
-      });
-    } else {
-      current.max = Math.max(current.max, entry.progress);
-    }
+    const existing = entriesByBook.get(entry.bookId) ?? [];
+    entriesByBook.set(entry.bookId, [...existing, entry]);
   });
-  bookProgress.forEach(({ max, pageCount }) => {
-    totalPages += calculatePagesFromProgress(max, pageCount);
+  entriesByBook.forEach((entries) => {
+    totalPages += calculatePagesForBook(entries, entries[0]!.book);
   });
 
   const activeDays = progressByDay.size;
@@ -351,23 +364,15 @@ export const calculateOverallStats = (
   const activeDays = progressByDay.size;
   const weeksActive = progressByWeek.size;
 
-  const bookProgress = new Map<number, { max: number; pageCount: number | null }>();
-
+  const entriesByBook = new Map<number, ReadingProgressWithBook[]>();
   validProgress.forEach((entry) => {
-    const current = bookProgress.get(entry.bookId);
-    if (!current) {
-      bookProgress.set(entry.bookId, {
-        max: entry.progress,
-        pageCount: entry.book.pageCount,
-      });
-    } else {
-      current.max = Math.max(current.max, entry.progress);
-    }
+    const existing = entriesByBook.get(entry.bookId) ?? [];
+    entriesByBook.set(entry.bookId, [...existing, entry]);
   });
 
   let totalPagesRead = 0;
-  bookProgress.forEach(({ max, pageCount }) => {
-    totalPagesRead += calculatePagesFromProgress(max, pageCount);
+  entriesByBook.forEach((entries) => {
+    totalPagesRead += calculatePagesForBook(entries, entries[0]!.book);
   });
 
   const averagePagesPerWeek =
