@@ -1,6 +1,7 @@
 export {
   calculatePagesFromProgress,
   computeAuthorFields,
+  computeTimesRead,
   createAuthorSort,
   createTitleSort,
   formatSeriesIndex,

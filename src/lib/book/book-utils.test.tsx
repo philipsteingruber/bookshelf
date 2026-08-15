@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { ReadStatus } from "@/generated/prisma/enums";
 import {
   computeAuthorFields,
+  computeTimesRead,
   createAuthorSort,
   createTitleSort,
   formatSeriesIndex,
@@ -188,6 +189,31 @@ describe("bookUtils", () => {
 
     it("rounds zero to zero", () => {
       expect(roundToTwoDecimals(0)).toEqual(0);
+    });
+  });
+
+  describe("computeTimesRead", () => {
+    it("counts one read for a finished book with no reread history", () => {
+      expect(computeTimesRead({ previousFinishedAt: [], finishedAt: new Date("2026-01-01") })).toBe(1);
+    });
+
+    it("counts zero for a book that has never been finished", () => {
+      expect(computeTimesRead({ previousFinishedAt: [], finishedAt: null })).toBe(0);
+    });
+
+    it("does not overcount a book that is currently mid-reread", () => {
+      // one prior completed read, current attempt not yet finished (finishedAt
+      // is null while mid-reread) — must read as 1, not 2.
+      expect(computeTimesRead({ previousFinishedAt: [new Date("2026-01-01")], finishedAt: null })).toBe(1);
+    });
+
+    it("counts every completed finish for a book currently READ after two rereads", () => {
+      expect(
+        computeTimesRead({
+          previousFinishedAt: [new Date("2026-01-01"), new Date("2026-04-01")],
+          finishedAt: new Date("2026-08-01"),
+        }),
+      ).toBe(3);
     });
   });
 });

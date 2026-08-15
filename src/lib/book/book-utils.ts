@@ -110,3 +110,11 @@ export const formatSeriesIndex = (seriesIndex: number): number => {
 export const roundToTwoDecimals = (value: number): number => {
   return Math.round(value * 100) / 100;
 };
+
+// A book that's currently mid-reread has a null finishedAt (reset by
+// applyRereadStarts) even though previousFinishedAt already holds a prior
+// completion — counting previousFinishedAt.length + 1 unconditionally would
+// overcount an unfinished second read-through as two completed reads.
+export function computeTimesRead(book: { previousFinishedAt: Date[]; finishedAt: Date | null }): number {
+  return book.previousFinishedAt.length + (book.finishedAt !== null ? 1 : 0);
+}
