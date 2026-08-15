@@ -30,6 +30,8 @@ function makeBookshelf(overrides: Partial<BookshelfBookForAbs> = {}): BookshelfB
     finishedAt: null,
     dnfAt: null,
     resetAt: null,
+    previousFinishedAt: [],
+    rereadAt: null,
     isbn: null,
     ...overrides,
   };
@@ -234,5 +236,28 @@ describe("computeAbsResults — reset-below resume gating", () => {
     const bookshelf = makeBookshelf({ status: "TO_READ", resetAt: null });
     const { statusUpdates } = computeAbsResults([abs], [bookshelf]);
     expect(statusUpdates[0]!.newStatus).toBe("READING");
+  });
+});
+
+describe("computeAbsResults — reread detection", () => {
+  const finishedAt = new Date("2026-06-01");
+  const afterFinish = new Date("2026-07-01");
+
+  it("routes a detected reread to rereadStarts and NOT to statusUpdates or progressUpdates", () => {
+    const abs = makeAbs({ progressPercent: 5, isFinished: false, progressUpdatedAt: afterFinish });
+    const bookshelf = makeBookshelf({ status: "READ", progress: 100, finishedAt });
+    const { rereadStarts, statusUpdates, progressUpdates } = computeAbsResults([abs], [bookshelf]);
+
+    expect(rereadStarts).toHaveLength(1);
+    expect(rereadStarts[0]!.newProgress).toBe(5);
+    expect(statusUpdates).toHaveLength(0);
+    expect(progressUpdates).toHaveLength(0);
+  });
+
+  it("does not detect a reread for an ordinary in-progress item", () => {
+    const abs = makeAbs({ progressPercent: 40, isFinished: false, progressUpdatedAt: afterFinish });
+    const bookshelf = makeBookshelf({ status: "READING", progress: 20 });
+    const { rereadStarts } = computeAbsResults([abs], [bookshelf]);
+    expect(rereadStarts).toHaveLength(0);
   });
 });

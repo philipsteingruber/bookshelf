@@ -1,8 +1,11 @@
 import type { ReadStatus } from "@/generated/prisma/enums";
 
 import { buildCompositeKey, stripSubtitle } from "./normalizer";
-import { deriveAbsStatus, shouldLogProgress, shouldUpdateStatus } from "./sync-utils";
+import { deriveAbsStatus, isRereadStart, shouldLogProgress, shouldUpdateStatus } from "./sync-utils";
 import type { AbsBookSync } from "./abs-sync-reader";
+
+const REREAD_MIN_PRIOR_PROGRESS = 90;
+const REREAD_DROP_THRESHOLD = 50;
 
 export interface BookshelfBookForAbs {
   id: number;
@@ -14,7 +17,16 @@ export interface BookshelfBookForAbs {
   finishedAt: Date | null;
   dnfAt: Date | null;
   resetAt: Date | null;
+  previousFinishedAt: Date[];
+  rereadAt: Date | null;
   isbn: string | null;
+}
+
+export interface RereadStart {
+  absBook: AbsBookSync;
+  bookshelfBook: BookshelfBookForAbs;
+  newProgress: number;
+  newStartedAt: Date | null;
 }
 
 export interface AbsStatusUpdate {
@@ -41,6 +53,7 @@ export interface AbsSyncResults {
   progressUpdates: AbsProgressUpdate[];
   progressSkips: AbsProgressSkip[];
   notInBookshelf: AbsBookSync[];
+  rereadStarts: RereadStart[];
 }
 
 export function computeAbsResults(
@@ -67,6 +80,7 @@ export function computeAbsResults(
     progressUpdates: [],
     progressSkips: [],
     notInBookshelf: [],
+    rereadStarts: [],
   };
 
   for (const absBook of absBooks) {
@@ -84,11 +98,32 @@ export function computeAbsResults(
     }
 
     const derived = deriveAbsStatus(absBook.progressPercent, absBook.isFinished);
+
+    if (
+      isRereadStart(
+        bookshelfBook,
+        derived,
+        absBook.progressPercent,
+        absBook.progressUpdatedAt,
+        REREAD_MIN_PRIOR_PROGRESS,
+        REREAD_DROP_THRESHOLD,
+      )
+    ) {
+      results.rereadStarts.push({
+        absBook,
+        bookshelfBook,
+        newProgress: absBook.progressPercent,
+        newStartedAt: absBook.startedAt,
+      });
+      continue;
+    }
+
     const newStatus = shouldUpdateStatus(
       bookshelfBook.status,
       derived,
       bookshelfBook.dnfAt,
       bookshelfBook.resetAt,
+      bookshelfBook.rereadAt,
       absBook.progressUpdatedAt,
     )
       ? derived
@@ -107,7 +142,14 @@ export function computeAbsResults(
       results.statusUpdates.push({ absBook, bookshelfBook, newStatus, newStartedAt, newFinishedAt });
     }
 
-    if (shouldLogProgress(absBook.progressPercent, bookshelfBook.progress)) {
+    if (
+      shouldLogProgress(
+        absBook.progressPercent,
+        bookshelfBook.progress,
+        bookshelfBook.rereadAt,
+        absBook.progressUpdatedAt,
+      )
+    ) {
       results.progressUpdates.push({
         absBook,
         bookshelfBook,
@@ -117,6 +159,13 @@ export function computeAbsResults(
       results.progressSkips.push({ absBook, bookshelfBook });
     }
   }
+
+  const seenRereadIds = new Set<number>();
+  results.rereadStarts = results.rereadStarts.filter((r) => {
+    if (seenRereadIds.has(r.bookshelfBook.id)) return false;
+    seenRereadIds.add(r.bookshelfBook.id);
+    return true;
+  });
 
   return results;
 }
