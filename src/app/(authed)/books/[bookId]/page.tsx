@@ -24,6 +24,7 @@ import { useTimezone } from "@/hooks/ui";
 import { aggregateByDay, calculateAveragePace, calculateTrendline, estimateCompletion } from "@/lib/reading";
 import type { ChartDataPoint } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { computeTimesRead } from "@/lib/book";
 import { trpc } from "@/trpc/client";
 
 const Page = ({ params }: { params: Promise<{ bookId: string }> }): React.ReactElement => {
@@ -119,6 +120,12 @@ const Page = ({ params }: { params: Promise<{ bookId: string }> }): React.ReactE
                 </span>
               ) : (
                 <span className="text-sm font-semibold">Unknown publishing year</span>
+              )}
+              {computeTimesRead(book) > 1 && (
+                <>
+                  <span className="text-secondary align-middle">•</span>
+                  <span className="text-sm">Read {computeTimesRead(book)} times</span>
+                </>
               )}
               {(book.status === "READ" || book.status === "DNF") && (
                 <>
