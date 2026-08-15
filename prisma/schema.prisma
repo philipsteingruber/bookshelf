@@ -157,6 +157,17 @@ model Book {
     // newer than the reset — same mechanism as dnfAt, see shouldUpdateStatus in
     // scripts/lib/sync-utils.ts.
     resetAt           DateTime?
+    // History of prior finish dates, oldest first. Populated by
+    // applyRereadStarts (scripts/sync-calibre.ts, scripts/sync-abs.ts) when a
+    // reread is detected — the CURRENT finishedAt gets pushed here right
+    // before it's cleared. Purely additive: nothing else reads or writes it
+    // except computeTimesRead and the yearly/all-time stats functions.
+    previousFinishedAt DateTime[] @default([])
+    // Set once, at reread-start, and never cleared afterward. Gates whether a
+    // sync's own status/progress signal is newer than the reread itself —
+    // same mechanism as dnfAt/resetAt, see shouldUpdateStatus/shouldLogProgress
+    // in scripts/lib/sync-utils.ts.
+    rereadAt           DateTime?
     createdAt         DateTime          @default(now())
     updatedAt         DateTime          @updatedAt
     readingProgresses ReadingProgress[]
