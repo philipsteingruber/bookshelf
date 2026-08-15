@@ -40,6 +40,8 @@ function makeBookshelf(overrides: Partial<BookshelfBook> = {}): BookshelfBook {
     finishedAt: null,
     dnfAt: null,
     resetAt: null,
+    previousFinishedAt: [],
+    rereadAt: null,
     series: { name: "Gaunt's Ghosts" },
     seriesIndex: 8,
     isbn: null,
@@ -307,5 +309,46 @@ describe("computeResults — reset-below resume gating", () => {
     const bookshelf = makeBookshelf({ status: "TO_READ", resetAt: null });
     const { bookUpdates } = computeResults([calibre], [bookshelf]);
     expect(bookUpdates[0]!.newStatus).toBe("READING");
+  });
+});
+
+describe("computeResults — reread detection", () => {
+  const finishedAt = new Date("2026-06-01");
+  const afterFinish = new Date("2026-07-01");
+
+  it("routes a detected reread to rereadStarts and NOT to bookUpdates or progressUpdates", () => {
+    const calibre = makeCalibре({ readStatus: 2, readPercent: 5, progressUpdatedAt: afterFinish });
+    const bookshelf = makeBookshelf({ status: "READ", progress: 100, finishedAt });
+    const { rereadStarts, bookUpdates, progressUpdates } = computeResults([calibre], [bookshelf]);
+
+    expect(rereadStarts).toHaveLength(1);
+    expect(rereadStarts[0]!.newProgress).toBe(5);
+    expect(bookUpdates).toHaveLength(0);
+    expect(progressUpdates).toHaveLength(0);
+  });
+
+  it("does not detect a reread for an ordinary in-progress book", () => {
+    const calibre = makeCalibре({ readStatus: 2, readPercent: 40, progressUpdatedAt: afterFinish });
+    const bookshelf = makeBookshelf({ status: "READING", progress: 20 });
+    const { rereadStarts } = computeResults([calibre], [bookshelf]);
+    expect(rereadStarts).toHaveLength(0);
+  });
+
+  it("dedupes two Calibre rows matching the same bookshelf book into one rereadStarts entry", () => {
+    const calibreA = makeCalibре({
+      calibreId: 1,
+      readStatus: 2,
+      readPercent: 5,
+      progressUpdatedAt: afterFinish,
+    });
+    const calibreB = makeCalibре({
+      calibreId: 2,
+      readStatus: 2,
+      readPercent: 8,
+      progressUpdatedAt: afterFinish,
+    });
+    const bookshelf = makeBookshelf({ status: "READ", progress: 100, finishedAt });
+    const { rereadStarts } = computeResults([calibreA, calibreB], [bookshelf]);
+    expect(rereadStarts).toHaveLength(1);
   });
 });

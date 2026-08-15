@@ -1,8 +1,11 @@
 import type { ReadStatus } from "@/generated/prisma/enums";
 
 import { buildCompositeKey } from "./normalizer";
-import { deriveStatus, shouldLogProgress, shouldUpdateStatus } from "./sync-utils";
+import { deriveStatus, isRereadStart, shouldLogProgress, shouldUpdateStatus } from "./sync-utils";
 import type { CalibreBookSync } from "./calibre-sync-reader";
+
+const REREAD_MIN_PRIOR_PROGRESS = 90;
+const REREAD_DROP_THRESHOLD = 50;
 
 export interface BookshelfBook {
   id: number;
@@ -14,6 +17,8 @@ export interface BookshelfBook {
   finishedAt: Date | null;
   dnfAt: Date | null;
   resetAt: Date | null;
+  previousFinishedAt: Date[];
+  rereadAt: Date | null;
   series: { name: string } | null;
   seriesIndex: number | null;
   isbn: string | null;
@@ -57,6 +62,13 @@ export interface RatingUpdate {
   newRating: number; // bookshelf scale: 1–5
 }
 
+export interface RereadStart {
+  calibreBook: CalibreBookSync;
+  bookshelfBook: BookshelfBook;
+  newProgress: number; // sourceProgress, already confirmed non-null by isRereadStart
+  newStartedAt: Date | null; // the source's own start date — see computeResults below
+}
+
 export interface SyncResults {
   toCreate: CalibreBookSync[];
   bookUpdates: BookUpdate[];
@@ -66,6 +78,7 @@ export interface SyncResults {
   ratingUpdates: RatingUpdate[];
   notInCalibre: BookshelfBook[];
   readNextRemovals: CalibreBookSync[];
+  rereadStarts: RereadStart[];
 }
 
 export function computeResults(
@@ -89,6 +102,7 @@ export function computeResults(
     ratingUpdates: [],
     notInCalibre: [],
     readNextRemovals: [],
+    rereadStarts: [],
   };
 
   for (const calibreBook of calibreBooks) {
@@ -117,11 +131,31 @@ export function computeResults(
       calibreBook.isReadNext,
     );
 
+    if (
+      isRereadStart(
+        bookshelfBook,
+        derived,
+        calibreBook.readPercent,
+        calibreBook.progressUpdatedAt,
+        REREAD_MIN_PRIOR_PROGRESS,
+        REREAD_DROP_THRESHOLD,
+      )
+    ) {
+      results.rereadStarts.push({
+        calibreBook,
+        bookshelfBook,
+        newProgress: calibreBook.readPercent!, // non-null: isRereadStart requires it
+        newStartedAt: calibreBook.datestarted,
+      });
+      continue;
+    }
+
     const newStatus = shouldUpdateStatus(
       bookshelfBook.status,
       derived,
       bookshelfBook.dnfAt,
       bookshelfBook.resetAt,
+      bookshelfBook.rereadAt,
       calibreBook.progressUpdatedAt,
     )
       ? derived
@@ -148,7 +182,14 @@ export function computeResults(
       });
     }
 
-    if (shouldLogProgress(calibreBook.readPercent, bookshelfBook.progress)) {
+    if (
+      shouldLogProgress(
+        calibreBook.readPercent,
+        bookshelfBook.progress,
+        bookshelfBook.rereadAt,
+        calibreBook.progressUpdatedAt,
+      )
+    ) {
       results.progressUpdates.push({
         calibreBook,
         bookshelfBook,
@@ -210,6 +251,17 @@ export function computeResults(
     const base = deriveStatus(calibreBook.readStatus, calibreBook.readPercent, calibreBook.dnf);
     if (base !== "TO_READ") results.readNextRemovals.push(calibreBook);
   }
+
+  // Two source rows can resolve to the same bookshelf book (a Calibre
+  // duplicate, or a cron rerun after a partial prior failure) — dedupe by
+  // bookshelfBook.id so a rerun/duplicate can't double-append the same
+  // finish date via previousFinishedAt's `set` write in applyRereadStarts.
+  const seenRereadIds = new Set<number>();
+  results.rereadStarts = results.rereadStarts.filter((r) => {
+    if (seenRereadIds.has(r.bookshelfBook.id)) return false;
+    seenRereadIds.add(r.bookshelfBook.id);
+    return true;
+  });
 
   return results;
 }
