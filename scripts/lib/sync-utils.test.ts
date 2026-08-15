@@ -55,13 +55,16 @@ describe("deriveStatus", () => {
 });
 
 describe("shouldUpdateStatus", () => {
-  const NO_TIMESTAMPS: [Date | null, Date | null, Date | null] = [null, null, null];
+  const NO_TIMESTAMPS: [Date | null, Date | null, Date | null, Date | null] = [null, null, null, null];
   const DNF_AT = new Date("2026-06-01");
   const BEFORE_DNF = new Date("2026-05-01");
   const AFTER_DNF = new Date("2026-07-01");
   const RESET_AT = new Date("2026-06-01");
   const BEFORE_RESET = new Date("2026-05-01");
   const AFTER_RESET = new Date("2026-07-01");
+  const REREAD_AT = new Date("2026-06-01");
+  const BEFORE_REREAD = new Date("2026-05-01");
+  const AFTER_REREAD = new Date("2026-07-01");
 
   it("updates TO_READ to READING", () => {
     expect(shouldUpdateStatus("TO_READ", "READING", ...NO_TIMESTAMPS)).toBe(true);
@@ -88,46 +91,43 @@ describe("shouldUpdateStatus", () => {
   });
 
   it("clears DNF to READING when the source's progress signal is newer than the DNF decision", () => {
-    expect(shouldUpdateStatus("DNF", "READING", DNF_AT, null, AFTER_DNF)).toBe(true);
+    expect(shouldUpdateStatus("DNF", "READING", DNF_AT, null, null, AFTER_DNF)).toBe(true);
   });
 
   it("clears DNF to READ when the source's progress signal is newer than the DNF decision", () => {
-    expect(shouldUpdateStatus("DNF", "READ", DNF_AT, null, AFTER_DNF)).toBe(true);
+    expect(shouldUpdateStatus("DNF", "READ", DNF_AT, null, null, AFTER_DNF)).toBe(true);
   });
 
   it("does not clear DNF when the source's progress signal predates the DNF decision", () => {
-    expect(shouldUpdateStatus("DNF", "READ", DNF_AT, null, BEFORE_DNF)).toBe(false);
+    expect(shouldUpdateStatus("DNF", "READ", DNF_AT, null, null, BEFORE_DNF)).toBe(false);
   });
 
   it("does not clear DNF when dnfAt is unknown", () => {
-    expect(shouldUpdateStatus("DNF", "READ", null, null, AFTER_DNF)).toBe(false);
+    expect(shouldUpdateStatus("DNF", "READ", null, null, null, AFTER_DNF)).toBe(false);
   });
 
   it("does not clear DNF when the source has no progress timestamp", () => {
-    expect(shouldUpdateStatus("DNF", "READ", DNF_AT, null, null)).toBe(false);
+    expect(shouldUpdateStatus("DNF", "READ", DNF_AT, null, null, null)).toBe(false);
   });
 
   it("promotes a reset TO_READ book to READING when the source's progress signal is newer than the reset", () => {
-    expect(shouldUpdateStatus("TO_READ", "READING", null, RESET_AT, AFTER_RESET)).toBe(true);
+    expect(shouldUpdateStatus("TO_READ", "READING", null, RESET_AT, null, AFTER_RESET)).toBe(true);
   });
 
   it("promotes a reset TO_READ book to READ when the source's progress signal is newer than the reset", () => {
-    expect(shouldUpdateStatus("TO_READ", "READ", null, RESET_AT, AFTER_RESET)).toBe(true);
+    expect(shouldUpdateStatus("TO_READ", "READ", null, RESET_AT, null, AFTER_RESET)).toBe(true);
   });
 
   it("does not promote a reset TO_READ book when the source's progress signal predates the reset", () => {
-    expect(shouldUpdateStatus("TO_READ", "READING", null, RESET_AT, BEFORE_RESET)).toBe(false);
+    expect(shouldUpdateStatus("TO_READ", "READING", null, RESET_AT, null, BEFORE_RESET)).toBe(false);
   });
 
   it("does not promote a reset TO_READ book when the source has no progress timestamp", () => {
-    expect(shouldUpdateStatus("TO_READ", "READING", null, RESET_AT, null)).toBe(false);
+    expect(shouldUpdateStatus("TO_READ", "READING", null, RESET_AT, null, null)).toBe(false);
   });
 
   it("promotes an unreset TO_READ book to READING regardless of source timestamp", () => {
-    // resetAt is null for the overwhelming majority of TO_READ books — ones
-    // that were simply never started, not reset from an abandoned READING.
-    // That ordinary "starting a new book" case must keep working unconditionally.
-    expect(shouldUpdateStatus("TO_READ", "READING", null, null, BEFORE_RESET)).toBe(true);
+    expect(shouldUpdateStatus("TO_READ", "READING", null, null, null, BEFORE_RESET)).toBe(true);
   });
 
   it("does not change READ_NEXT to TO_READ", () => {
@@ -137,6 +137,25 @@ describe("shouldUpdateStatus", () => {
   it("does not update when status is unchanged", () => {
     expect(shouldUpdateStatus("READING", "READING", ...NO_TIMESTAMPS)).toBe(false);
     expect(shouldUpdateStatus("TO_READ", "TO_READ", ...NO_TIMESTAMPS)).toBe(false);
+  });
+
+  it("does not promote READING to READ off a stale signal after a reread", () => {
+    expect(shouldUpdateStatus("READING", "READ", null, null, REREAD_AT, BEFORE_REREAD)).toBe(false);
+  });
+
+  it("promotes READING to READ from a genuine post-reread signal", () => {
+    expect(shouldUpdateStatus("READING", "READ", null, null, REREAD_AT, AFTER_REREAD)).toBe(true);
+  });
+
+  it("does not promote READING to READ when rereadAt is set but the source has no timestamp", () => {
+    expect(shouldUpdateStatus("READING", "READ", null, null, REREAD_AT, null)).toBe(false);
+  });
+
+  it("promotes an unreread READING book to READ unconditionally", () => {
+    // rereadAt is null for every book that's never been reread — this
+    // ordinary "finished reading it" case must keep working exactly as
+    // before, with no timestamp requirement.
+    expect(shouldUpdateStatus("READING", "READ", null, null, null, null)).toBe(true);
   });
 });
 

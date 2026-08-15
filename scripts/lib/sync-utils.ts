@@ -31,6 +31,7 @@ export function shouldUpdateStatus(
   derived: ReadStatus,
   dnfAt: Date | null,
   resetAt: Date | null,
+  rereadAt: Date | null,
   sourceUpdatedAt: Date | null,
 ): boolean {
   // DNF and READ share a priority tier so neither sync source can silently
@@ -61,6 +62,15 @@ export function shouldUpdateStatus(
   // it falls through to the same unconditional promotion as before.
   if (current === "TO_READ" && (derived === "READING" || derived === "READ") && resetAt !== null) {
     return sourceUpdatedAt !== null && sourceUpdatedAt > resetAt;
+  }
+  // A book with a set rereadAt just had a reread detected (see
+  // isRereadStart). Promoting it back to READ needs the source's own
+  // signal to be newer than the reread itself — otherwise a source that
+  // was never touched (e.g. ABS still reporting isFinished from before the
+  // restart) would silently re-promote it before its own progress has ever
+  // been logged.
+  if (current === "READING" && derived === "READ" && rereadAt !== null) {
+    return sourceUpdatedAt !== null && sourceUpdatedAt > rereadAt;
   }
   return statusPriority(derived) > statusPriority(current);
 }
