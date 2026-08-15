@@ -99,3 +99,40 @@ export function deriveAbsStatus(progressPercent: number, isFinished: boolean): R
   if (progressPercent > 0) return "READING";
   return "TO_READ";
 }
+
+// Detects the start of a genuine reread from sync data alone. Deliberately a
+// standalone predicate, not folded into shouldUpdateStatus — shouldUpdateStatus
+// returns a bare boolean the caller uses to build an ordinary BookUpdate, which
+// would let a detected reread land in BOTH the normal update bucket and a new
+// reread bucket in the same sync run. Calling this FIRST and skipping the
+// normal branches when it fires is what keeps the two paths disjoint.
+export function isRereadStart(
+  bookshelfBook: { status: ReadStatus; progress: number; finishedAt: Date | null },
+  derived: ReadStatus,
+  sourceProgress: number | null,
+  sourceUpdatedAt: Date | null,
+  minPriorProgress: number,
+  dropThreshold: number,
+): boolean {
+  return (
+    bookshelfBook.status === "READ" &&
+    derived === "READING" && // NOT "TO_READ" — that signal on a READ book is far
+    // more likely a stale/wiped source row than a genuine reread.
+    sourceProgress !== null && // a null-coalesced 0 would satisfy every other
+    // condition and register as a reread to 0%, reopening the same
+    // self-contradictory-state problem the TO_READ exclusion above closes.
+    bookshelfBook.progress >= minPriorProgress && // the PREVIOUS read must have
+    // actually finished, not just that the new value is low — otherwise a
+    // book that's READ with low/zero recorded progress (a real live case:
+    // bulk-imported rows with no kobo_reading_state at all) would register
+    // its FIRST real read as a "reread" the moment it's opened.
+    bookshelfBook.progress - sourceProgress >= dropThreshold && // a genuine
+    // DELTA, not a single absolute cutoff — a book Kobo marks read at
+    // 90-99% (front/back matter) is common, and a bare progress<90 check
+    // would fire on a 90%->89% noise-level move.
+    bookshelfBook.finishedAt !== null &&
+    sourceUpdatedAt !== null &&
+    sourceUpdatedAt > bookshelfBook.finishedAt // rules out a stale source
+    // signal that predates the finish.
+  );
+}

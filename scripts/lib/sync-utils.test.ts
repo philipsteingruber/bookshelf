@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   deriveAbsStatus,
   deriveStatus,
+  isRereadStart,
   shouldLogProgress,
   shouldUpdateStatus,
   statusPriority,
@@ -223,5 +224,50 @@ describe("deriveAbsStatus", () => {
 
   it("returns TO_READ when progress is 0 and not finished", () => {
     expect(deriveAbsStatus(0, false)).toBe("TO_READ");
+  });
+});
+
+describe("isRereadStart", () => {
+  const finishedAt = new Date("2026-06-01");
+  const afterFinish = new Date("2026-07-01");
+  const beforeFinish = new Date("2026-05-01");
+  const readBook = { status: "READ" as const, progress: 100, finishedAt };
+
+  it("fires when a finished book's source progress drops meaningfully after a newer signal", () => {
+    expect(isRereadStart(readBook, "READING", 5, afterFinish, 90, 50)).toBe(true);
+  });
+
+  it("does not fire when status is not READ", () => {
+    expect(isRereadStart({ ...readBook, status: "READING" }, "READING", 5, afterFinish, 90, 50)).toBe(false);
+  });
+
+  it("does not fire when derived is TO_READ, not READING", () => {
+    expect(isRereadStart(readBook, "TO_READ", 0, afterFinish, 90, 50)).toBe(false);
+  });
+
+  it("does not fire when the previous read never reached minPriorProgress", () => {
+    // the 69-row bulk-import case: READ with low/zero recorded progress
+    expect(isRereadStart({ ...readBook, progress: 20 }, "READING", 5, afterFinish, 90, 50)).toBe(false);
+  });
+
+  it("does not fire on a drop smaller than dropThreshold", () => {
+    // 90% -> 89%, the noise-level move a book marked read at 90-99% can produce
+    expect(isRereadStart({ ...readBook, progress: 90 }, "READING", 89, afterFinish, 90, 50)).toBe(false);
+  });
+
+  it("does not fire when sourceProgress is null", () => {
+    expect(isRereadStart(readBook, "READING", null, afterFinish, 90, 50)).toBe(false);
+  });
+
+  it("does not fire when finishedAt is null", () => {
+    expect(isRereadStart({ ...readBook, finishedAt: null }, "READING", 5, afterFinish, 90, 50)).toBe(false);
+  });
+
+  it("does not fire on a stale timestamp that predates the finish", () => {
+    expect(isRereadStart(readBook, "READING", 5, beforeFinish, 90, 50)).toBe(false);
+  });
+
+  it("does not fire when the source has no timestamp", () => {
+    expect(isRereadStart(readBook, "READING", 5, null, 90, 50)).toBe(false);
   });
 });
