@@ -52,7 +52,7 @@ describe("recalculateAllUserStats", () => {
       userId: user.id,
       createdAt: recentDate,
       progress: 50,
-      book: { pageCount: 200, id: 1, title: "Book" },
+      book: { pageCount: 200, id: 1, title: "Book", finishedAt: null, previousFinishedAt: [], rereadAt: null },
     });
 
     vi.mocked(mockDb.readingProgress.findMany).mockResolvedValue([progress]);
@@ -77,13 +77,13 @@ describe("recalculateAllUserStats", () => {
       userId: user.id,
       createdAt: new Date("2026-03-09T10:00:00Z"),
       progress: 50,
-      book: { pageCount: 200, id: 1, title: "Book A" },
+      book: { pageCount: 200, id: 1, title: "Book A", finishedAt: null, previousFinishedAt: [], rereadAt: null },
     });
     const day2 = createFakeReadingProgressWithBook({
       userId: user.id,
       createdAt: new Date("2026-03-10T10:00:00Z"),
       progress: 50,
-      book: { pageCount: 200, id: 2, title: "Book B" },
+      book: { pageCount: 200, id: 2, title: "Book B", finishedAt: null, previousFinishedAt: [], rereadAt: null },
     });
 
     vi.mocked(mockDb.readingProgress.findMany).mockResolvedValue([day1, day2]);
@@ -127,13 +127,13 @@ describe("recalculateAllUserStats", () => {
       userId: user.id,
       createdAt: new Date(yesterday.toISOString().replace("T", "T") ),
       progress: 50,
-      book: { pageCount: 100, id: 1, title: "Book" },
+      book: { pageCount: 100, id: 1, title: "Book", finishedAt: null, previousFinishedAt: [], rereadAt: null },
     });
     const entry2 = createFakeReadingProgressWithBook({
       userId: user.id,
       createdAt: today,
       progress: 75,
-      book: { pageCount: 100, id: 1, title: "Book" },
+      book: { pageCount: 100, id: 1, title: "Book", finishedAt: null, previousFinishedAt: [], rereadAt: null },
     });
 
     vi.mocked(mockDb.readingProgress.findMany).mockResolvedValue([entry1, entry2]);

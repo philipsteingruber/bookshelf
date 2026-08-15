@@ -5,7 +5,7 @@ export type ReadingProgressWithProgressSinceLast = ReadingProgress & {
 };
 
 export type ReadingProgressWithBook = ReadingProgress & {
-  book: Pick<Book, "pageCount" | "id" | "title">;
+  book: Pick<Book, "pageCount" | "id" | "title" | "finishedAt" | "previousFinishedAt" | "rereadAt">;
 };
 
 export interface DailyStats {

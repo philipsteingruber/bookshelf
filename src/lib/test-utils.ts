@@ -155,6 +155,8 @@ export function createFakeBook(overrides: Partial<BookWithSeries> = {}): BookWit
     updatedAt: new Date(),
     startedAt: null,
     finishedAt: null,
+    previousFinishedAt: [],
+    rereadAt: null,
     series: null,
     ...overrides,
   } as BookWithSeries;
@@ -191,9 +193,7 @@ export function createFakeReadingProgressWithProgressSinceLast(
 }
 
 export const createFakeReadingProgressWithBook = (
-  overrides?: Partial<
-    ReadingProgress & { book: Pick<BookWithSeries, "pageCount" | "id" | "title"> }
-  >,
+  overrides?: Partial<ReadingProgressWithBook>,
 ): ReadingProgressWithBook => {
   const fakeBook = createFakeBook();
   const fakeProgress = createFakeReadingProgress();
@@ -207,6 +207,9 @@ export const createFakeReadingProgressWithBook = (
       pageCount: fakeBook.pageCount,
       id: fakeBook.id,
       title: fakeBook.title,
+      finishedAt: fakeBook.finishedAt,
+      previousFinishedAt: fakeBook.previousFinishedAt,
+      rereadAt: fakeBook.rereadAt,
     },
     ...overrides,
   };

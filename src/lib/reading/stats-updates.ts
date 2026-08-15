@@ -20,7 +20,18 @@ export const recalculateAllUserStats = async (
 ): Promise<void> => {
   const allProgress = await db.readingProgress.findMany({
     where: { userId: user.id },
-    include: { book: { select: { pageCount: true, id: true, title: true } } },
+    include: {
+      book: {
+        select: {
+          pageCount: true,
+          id: true,
+          title: true,
+          finishedAt: true,
+          previousFinishedAt: true,
+          rereadAt: true,
+        },
+      },
+    },
     orderBy: { createdAt: "asc" },
   });
 

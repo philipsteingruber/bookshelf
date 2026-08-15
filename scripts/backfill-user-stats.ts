@@ -30,7 +30,18 @@ const backfillUserStats = async (): Promise<void> => {
   for (const user of users) {
     const progress = await prisma.readingProgress.findMany({
       where: { userId: user.id },
-      include: { book: { select: { pageCount: true, id: true, title: true } } },
+      include: {
+        book: {
+          select: {
+            pageCount: true,
+            id: true,
+            title: true,
+            finishedAt: true,
+            previousFinishedAt: true,
+            rereadAt: true,
+          },
+        },
+      },
       orderBy: { createdAt: "asc" },
     });
 

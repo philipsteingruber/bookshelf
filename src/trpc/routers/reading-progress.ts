@@ -447,7 +447,16 @@ export const readingProgressRouter = createTRPCRouter({
       return ctx.db.readingProgress.findMany({
         where: { userId: ctx.currentUser.id, createdAt: { gte: sinceDate } },
         include: {
-          book: { select: { id: true, title: true, pageCount: true } },
+          book: {
+            select: {
+              id: true,
+              title: true,
+              pageCount: true,
+              finishedAt: true,
+              previousFinishedAt: true,
+              rereadAt: true,
+            },
+          },
         },
         orderBy: { createdAt: "asc" },
       });
