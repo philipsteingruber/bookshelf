@@ -144,7 +144,10 @@ export const bookCSVSchema = z.object({
     (v) => (typeof v === "string" && v.length > 0 ? v.split(",") : []),
     z.array(z.coerce.date()),
   ),
-  rereadAt: emptyToNullDate,
+  rereadAt: z.preprocess(
+    (v) => (v === "" || v === undefined ? null : v),
+    z.coerce.date().nullable(),
+  ),
 
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
