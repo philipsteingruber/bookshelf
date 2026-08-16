@@ -630,7 +630,7 @@ per the original Non-Goals decision on progress-curve granularity.
 
 ## Testing
 
-- `sync-utils.test.ts` — `isRereadStart`: fires only when all six gates pass; does not fire
+- `sync-utils.test.ts` — `isRereadStart`: fires only when all seven gates pass; does not fire
   when the previous read never reached `minPriorProgress` (the 69-row bulk-import case);
   does not fire on a drop smaller than `dropThreshold` (the 90%→89% noise case); does not
   fire when `sourceProgress` is null (the null-`koboreadpct` case); does not fire on a
