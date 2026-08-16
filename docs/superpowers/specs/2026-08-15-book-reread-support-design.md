@@ -222,7 +222,12 @@ both reviews).
 
 ```typescript
 function isRereadStart(
-  bookshelfBook: { status: ReadStatus; progress: number; finishedAt: Date | null },
+  bookshelfBook: {
+    status: ReadStatus;
+    progress: number;
+    finishedAt: Date | null;
+    rereadAt: Date | null;
+  },
   derived: ReadStatus,
   sourceProgress: number | null,
   sourceUpdatedAt: Date | null,
@@ -237,12 +242,24 @@ function isRereadStart(
     bookshelfBook.progress - sourceProgress >= dropThreshold &&
     bookshelfBook.finishedAt !== null &&
     sourceUpdatedAt !== null &&
-    sourceUpdatedAt > bookshelfBook.finishedAt
+    sourceUpdatedAt > bookshelfBook.finishedAt &&
+    (bookshelfBook.rereadAt === null || sourceUpdatedAt > bookshelfBook.rereadAt)
   );
 }
 ```
 
-Six gates. Two constants (`minPriorProgress` default `90`, `dropThreshold` default `50`),
+**Revised after the final whole-branch review:** a 7th gate (`rereadAt` suppression) was
+added late, closing a gap the review found in `manage-reread.ts`'s `--undo-last`: undo
+restores `finishedAt` to the book's original finish date, which is exactly the value that
+made the source's timestamp look "newer" the first time — so without this gate, the same
+unchanged stale source row would immediately re-trigger detection right after being undone,
+defeating the whole point of `--undo-last`. `--undo-last` was correspondingly changed to
+**not** clear `rereadAt` back to `null` on restore — it's left at whatever value the
+original (bad) detection set, and this gate then requires a genuinely newer source signal
+before a reread can fire again for that book. See False-positive cleanup, below, for the
+updated `--undo-last` behavior.
+
+Seven gates. Two constants (`minPriorProgress` default `90`, `dropThreshold` default `50`),
 both `--reread-min-prior-progress`/`--reread-drop-threshold` CLI flags — split out from a
 single first-draft `--reread-threshold` because the two questions ("did the previous read
 really finish" and "is this drop meaningful") turned out not to be the same threshold. Each
@@ -267,6 +284,9 @@ gate, and what it fixes:
   common real state). Requiring a real drop distinguishes noise from a restart.
 - **`sourceUpdatedAt > finishedAt`** — rules out a stale source signal that predates the
   finish.
+- **`rereadAt === null || sourceUpdatedAt > rereadAt`** — added late, after the final
+  review (see the note above the code block): suppresses re-detection from the same stale
+  source signal after a false positive has been undone via `manage-reread.ts --undo-last`.
 
 `isRereadStart` is checked in `computeResults`/`computeAbsResults` before the existing
 `shouldUpdateStatus`/`shouldLogProgress` calls for a given book; if it returns `true`, the
@@ -281,12 +301,17 @@ duplicate, or a cron rerun after a partial prior failure), `computeResults` dedu
 is what actually protects against a double-append, not the `set`-vs-`push` choice below
 (see Result type / apply function for why).
 
-**Why a rerun can't re-detect the same reread (this is _not_ what `rereadAt` is for — see
-Anti-refire gates):** after a successful `applyRereadStarts`, the book's `status` is
-`READING`, so gate 1 (`status === "READ"`) rejects it on every subsequent run regardless of
-anything else. This is a property of gate 1 alone, holds even if `rereadAt` were removed
-entirely, and is the actual reason a nightly reinflation loop can't occur through
-_re-detection_. `rereadAt`'s job is different — see below.
+**Why an ordinary rerun can't re-detect the same reread:** after a successful
+`applyRereadStarts`, the book's `status` is `READING`, so gate 1 (`status === "READ"`)
+rejects it on every subsequent run regardless of anything else. This is a property of gate
+1 alone, holds even if `rereadAt` were removed entirely, and is the actual reason a nightly
+reinflation loop can't occur through ordinary _re-detection_. `rereadAt` (gates 6/7 combined
+with the Anti-refire section below) has a narrower, different job: stopping a stale
+cross-source signal from silently undoing an _already-detected_ reread before its own
+progress is logged, and — as of the final review — stopping the exact same stale signal
+from re-triggering detection a second time after a false positive is manually undone. Both
+are about a signal that predates the reread's own timeline, not about an ordinary repeat
+sync of a book already mid-reread.
 
 ## Anti-refire gates (what `rereadAt` actually protects, and where)
 
@@ -549,15 +574,21 @@ New unscheduled script, `scripts/manage-reread.ts` — same tier as `find-fuzzy-
 - `--undo-last <bookId>` — pop the most recent `previousFinishedAt` entry back into
   `finishedAt`, restore `status: READ`, set `progress: 100` (an **approximation** — the
   exact pre-reread value isn't preserved; `isRereadStart`'s prior-progress gate means the
-  real value was at least `minPriorProgress`, so `100` is close), clear
-  `dnfAt`/`resetAt`/`rereadAt` back to `null`, and delete every `ReadingProgress` row
-  created **since `rereadAt`** — not since the popped `finishedAt` timestamp, which was a
-  bug in the first revision: `applyBookUpdates` (which sets `finishedAt`) and
-  `applyProgressUpdates` (which logs the 100% row) run as separate steps in each script's
-  main flow, so the original read's own final progress row is routinely stamped _after_
-  its `finishedAt` and would be wrongly deleted by a "since `finishedAt`" rule.
-  `previousStartedAt` isn't tracked (Non-Goals), so `startedAt` is left as whatever it
-  currently holds rather than restored — undo is explicitly lossy on that field.
+  real value was at least `minPriorProgress`, so `100` is close), clear `dnfAt`/`resetAt`
+  back to `null`, and delete every `ReadingProgress` row created **since `rereadAt`** — not
+  since the popped `finishedAt` timestamp, which was a bug in the first revision:
+  `applyBookUpdates` (which sets `finishedAt`) and `applyProgressUpdates` (which logs the
+  100% row) run as separate steps in each script's main flow, so the original read's own
+  final progress row is routinely stamped _after_ its `finishedAt` and would be wrongly
+  deleted by a "since `finishedAt`" rule. `previousStartedAt` isn't tracked (Non-Goals), so
+  `startedAt` is left as whatever it currently holds rather than restored — undo is
+  explicitly lossy on that field. **`rereadAt` is deliberately NOT cleared** — added after
+  the final whole-branch review found that clearing it let the exact same stale source
+  signal that caused the false positive immediately re-trigger `isRereadStart` on the very
+  next sync (its 7th gate requires a source timestamp newer than `rereadAt`; leaving the
+  original detection's `rereadAt` in place is what suppresses that same stale signal going
+  forward, while a genuinely newer signal still correctly passes and can start a real
+  reread later).
 - If `previousFinishedAt` is empty, `--undo-last` reports "nothing to undo" and makes no
   changes.
 - Both subcommands log the book's `id` alongside its title, since `--list`/`--undo-last` are
