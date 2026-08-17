@@ -20,6 +20,7 @@ echo "=== Abandoned Book Check started at $(date '+%Y-%m-%d %H:%M:%S') ===" >> "
 
 set +e
 node node_modules/tsx/dist/cli.mjs scripts/mark-abandoned-books.ts \
+  --days 7 \
   >> "$LOG_FILE" 2>&1
 EXIT_CODE=$?
 set -e
