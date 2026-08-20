@@ -16,6 +16,16 @@ export const env = createEnv({
     BETTERSTACK_INGESTING_HOST: z.string().url().optional(),
     SCRAPFLY_API_KEY: z.string().min(1),
     ANTHROPIC_API_KEY: z.string().min(1),
+    // Consumed by src/app/api/automations/reading-status — a small
+    // read-only endpoint for external personal-app widgets (currently:
+    // Nucleus's dashboard). Bearer-token auth, not Clerk — there's no
+    // browser session for a server-to-server automation caller.
+    AUTOMATION_API_KEY: z.string().min(1).optional(),
+    // Same "which user" convention scripts/sync-calibre.ts etc. already
+    // use via CALIBRE_SYNC_USER_EMAIL (previously read raw via
+    // process.env, not through this schema — added here since the
+    // automations route needs it validated at Next.js boot too).
+    CALIBRE_SYNC_USER_EMAIL: z.string().email().optional(),
     // Vercel-provided variables (optional, only present in Vercel deployments)
     VERCEL_URL: z.string().optional(),
     VERCEL_REGION: z.string().optional(),
@@ -43,6 +53,8 @@ export const env = createEnv({
     BETTERSTACK_INGESTING_HOST: process.env.BETTERSTACK_INGESTING_HOST,
     SCRAPFLY_API_KEY: process.env.SCRAPFLY_API_KEY,
     ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
+    AUTOMATION_API_KEY: process.env.AUTOMATION_API_KEY,
+    CALIBRE_SYNC_USER_EMAIL: process.env.CALIBRE_SYNC_USER_EMAIL,
     VERCEL_URL: process.env.VERCEL_URL,
     VERCEL_REGION: process.env.VERCEL_REGION,
     NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:
