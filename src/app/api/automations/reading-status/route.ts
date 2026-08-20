@@ -63,7 +63,16 @@ export async function GET(req: NextRequest): Promise<Response> {
         title: true,
         author: true,
         progress: true,
-        readingProgresses: { take: 1, orderBy: { createdAt: "desc" }, select: { createdAt: true } },
+        // take: 2, not 1 — [0] is the most-recent entry (used for sorting
+        // below, unchanged), [1] is the second-most-recent, which becomes
+        // progressBefore below: the "before last sync" boundary for the
+        // dashboard widget's two-segment progress bar. No extra query —
+        // this nested fetch already ran for the sort.
+        readingProgresses: {
+          take: 2,
+          orderBy: { createdAt: "desc" },
+          select: { createdAt: true, progress: true },
+        },
       },
     }),
     prisma.readingProgress.findMany({
@@ -85,7 +94,13 @@ export async function GET(req: NextRequest): Promise<Response> {
       if (bDate === null) return -1;
       return bDate.getTime() - aDate.getTime();
     })
-    .map(({ id, title, author, progress }) => ({ id, title, author, progress }));
+    .map(({ id, title, author, progress, readingProgresses }) => ({
+      id,
+      title,
+      author,
+      progress,
+      progressBefore: readingProgresses[1]?.progress ?? null,
+    }));
 
   return NextResponse.json({
     currentlyReading,
