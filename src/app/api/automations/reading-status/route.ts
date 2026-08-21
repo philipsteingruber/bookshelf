@@ -49,6 +49,13 @@ export async function GET(req: NextRequest): Promise<Response> {
   const timer = performanceLogger("Automation reading-status query", 1000, logger);
   timer.start();
 
+  // Shared with both the recentProgress query below and progressBefore's
+  // recency gate — a book whose most-recent entry falls outside this
+  // window has no "since last sync" delta to show, no matter how many
+  // older rows it has (see the progressBefore comment below for why this
+  // gate exists at all).
+  const recentCutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
   const [statsRow, readingBooksRaw, recentProgress] = await Promise.all([
     prisma.userStats.upsert({
       where: { userId: user.id },
@@ -64,7 +71,7 @@ export async function GET(req: NextRequest): Promise<Response> {
         author: true,
         progress: true,
         // take: 2, not 1 — [0] is the most-recent entry (used for sorting
-        // below, unchanged), [1] is the second-most-recent, which becomes
+        // below, unchanged), [1] is the second-most-recent, which feeds
         // progressBefore below: the "before last sync" boundary for the
         // dashboard widget's two-segment progress bar. No extra query —
         // this nested fetch already ran for the sort.
@@ -76,7 +83,7 @@ export async function GET(req: NextRequest): Promise<Response> {
       },
     }),
     prisma.readingProgress.findMany({
-      where: { userId: user.id, createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } },
+      where: { userId: user.id, createdAt: { gte: recentCutoff } },
       include: { book: { select: { id: true, title: true } } },
       orderBy: { createdAt: "asc" },
     }),
@@ -94,13 +101,23 @@ export async function GET(req: NextRequest): Promise<Response> {
       if (bDate === null) return -1;
       return bDate.getTime() - aDate.getTime();
     })
-    .map(({ id, title, author, progress, readingProgresses }) => ({
-      id,
-      title,
-      author,
-      progress,
-      progressBefore: readingProgresses[1]?.progress ?? null,
-    }));
+    .map(({ id, title, author, progress, readingProgresses }) => {
+      // progressBefore only means anything if the book was actually
+      // touched recently — a book whose most-recent row is from weeks
+      // ago still has a "second-most-recent row" mathematically, but
+      // showing it as a bright "since last sync" segment would be
+      // actively misleading (looked live: "Vengeful Spirit" showed a
+      // bright delta segment despite its last log being 4 days old).
+      const mostRecent = readingProgresses[0];
+      const hasRecentActivity = mostRecent !== undefined && mostRecent.createdAt >= recentCutoff;
+      return {
+        id,
+        title,
+        author,
+        progress,
+        progressBefore: hasRecentActivity ? (readingProgresses[1]?.progress ?? null) : null,
+      };
+    });
 
   return NextResponse.json({
     currentlyReading,
