@@ -16,7 +16,7 @@ const markAbandonedBooks = async (): Promise<void> => {
   const { values } = parseArgs({
     options: {
       apply: { type: "boolean", default: false },
-      days: { type: "string", default: "14" },
+      days: { type: "string", default: "7" },
       "reset-below": { type: "string", default: "5" },
       only: { type: "string" },
       exclude: { type: "string" },
