@@ -15,16 +15,13 @@ import { validateCurrentStreak } from "@/lib/reading";
  * as the assumed Momentum automation contract elsewhere in this
  * ecosystem (Bearer token, /api/automations/* path).
  *
- * Deliberately reuses the same Prisma queries and business logic the
- * app's own tRPC procedures use (bookRouter.getDashBoardBooks' reading-
- * books query/sort, userRouter.getUserStats' streak validation,
- * readingProgressRouter.getRecentReadingProgress' shape) rather than
- * hand-rolling simplified versions — the whole point of this endpoint
- * existing (vs. an external app reading Postgres directly) is that
- * Bookshelf's own interpretation of its data stays authoritative,
- * including edge cases like a stale cached streak (validateCurrentStreak
- * zeroes it if the last qualifying day wasn't today/yesterday) that a
- * naive raw-column read would get wrong.
+ * Deliberately reuses the same Prisma model and business logic the
+ * app's own tRPC procedures use (`bookRouter.getDashBoardBooks`'
+ * reading-books query/sort logic, `userRouter.getUserStats`' streak
+ * validation) rather than hand-rolling simplified versions, and returns
+ * one merged `books` list — any book currently being read, or with a
+ * progress log in the last 24h — instead of two separately-shaped
+ * lists.
  */
 export async function GET(req: NextRequest): Promise<Response> {
   const auth = req.headers.get("authorization");
@@ -49,32 +46,36 @@ export async function GET(req: NextRequest): Promise<Response> {
   const timer = performanceLogger("Automation reading-status query", 1000, logger);
   timer.start();
 
-  // Shared with both the recentProgress query below and progressBefore's
-  // recency gate — a book whose most-recent entry falls outside this
-  // window has no "since last sync" delta to show, no matter how many
-  // older rows it has (see the progressBefore comment below for why this
-  // gate exists at all).
+  // Recency gate for progressBefore below — a book whose most-recent row
+  // falls outside this window has no "recent" delta to show, no matter
+  // how many older rows it has (see the progressBefore comment below for
+  // why this gate exists at all).
   const recentCutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-  const [statsRow, readingBooksRaw, recentProgress] = await Promise.all([
+  const [statsRow, booksRaw] = await Promise.all([
     prisma.userStats.upsert({
       where: { userId: user.id },
       create: { userId: user.id },
       update: {},
     }),
+    // Every book that's either currently being read, or had a progress
+    // log in the last 24h regardless of status (e.g. one that was just
+    // finished and so is no longer "READING") — merged into one query so
+    // a book doesn't need two separate code paths depending on which
+    // side of that status line it's on.
     prisma.book.findMany({
-      where: { status: "READING", userId: user.id },
-      take: 10,
+      where: {
+        userId: user.id,
+        OR: [{ status: "READING" }, { readingProgresses: { some: { createdAt: { gte: recentCutoff } } } }],
+      },
       select: {
         id: true,
         title: true,
         author: true,
         progress: true,
-        // take: 2, not 1 — [0] is the most-recent entry (used for sorting
-        // below, unchanged), [1] is the second-most-recent, which feeds
-        // progressBefore below: the "before last sync" boundary for the
-        // dashboard widget's two-segment progress bar. No extra query —
-        // this nested fetch already ran for the sort.
+        // take: 2: [0] is the most-recent entry (used below to decide
+        // recency), [1] is the second-most-recent, which feeds
+        // progressBefore.
         readingProgresses: {
           take: 2,
           orderBy: { createdAt: "desc" },
@@ -82,55 +83,40 @@ export async function GET(req: NextRequest): Promise<Response> {
         },
       },
     }),
-    prisma.readingProgress.findMany({
-      where: { userId: user.id, createdAt: { gte: recentCutoff } },
-      include: { book: { select: { id: true, title: true } } },
-      orderBy: { createdAt: "asc" },
-    }),
   ]);
 
-  timer.end({ readingCount: readingBooksRaw.length, recentProgressCount: recentProgress.length });
+  timer.end({ bookCount: booksRaw.length });
 
-  // Same "most recently active first" sort as getDashBoardBooks.
-  const currentlyReading = [...readingBooksRaw]
-    .sort((a, b) => {
-      const aDate = a.readingProgresses[0]?.createdAt ?? null;
-      const bDate = b.readingProgresses[0]?.createdAt ?? null;
-      if (aDate === null && bDate === null) return 0;
-      if (aDate === null) return 1;
-      if (bDate === null) return -1;
-      return bDate.getTime() - aDate.getTime();
-    })
-    .map(({ id, title, author, progress, readingProgresses }) => {
-      // progressBefore only means anything if the book was actually
-      // touched recently — a book whose most-recent row is from weeks
-      // ago still has a "second-most-recent row" mathematically, but
-      // showing it as a bright "since last sync" segment would be
-      // actively misleading (looked live: "Vengeful Spirit" showed a
-      // bright delta segment despite its last log being 4 days old).
-      const mostRecent = readingProgresses[0];
-      const hasRecentActivity = mostRecent !== undefined && mostRecent.createdAt >= recentCutoff;
-      return {
-        id,
-        title,
-        author,
-        progress,
-        progressBefore: hasRecentActivity ? (readingProgresses[1]?.progress ?? null) : null,
-      };
-    });
+  const books = booksRaw.map(({ id, title, author, progress, readingProgresses }) => {
+    // progressBefore only means anything if the book was actually
+    // touched recently — a book whose most-recent row is from weeks ago
+    // still has a "second-most-recent row" mathematically, but showing
+    // it as a bright "recent" segment would be actively misleading
+    // (looked live: "Vengeful Spirit" showed a bright delta segment
+    // despite its last log being 4 days old).
+    const mostRecent = readingProgresses[0];
+    const hasRecentActivity = mostRecent !== undefined && mostRecent.createdAt >= recentCutoff;
+    // readingProgresses[1]?.progress ?? 0, not ?? null: a book with
+    // exactly one ReadingProgress row ever, logged inside the cutoff,
+    // has nothing to diff against — but that single log IS the recent
+    // activity, so the whole current progress should read as "recent"
+    // (progressBefore=0), not fall back to "no recent activity"
+    // (progressBefore=null).
+    return {
+      id,
+      title,
+      author,
+      progress,
+      progressBefore: hasRecentActivity ? (readingProgresses[1]?.progress ?? 0) : null,
+    };
+  });
 
   return NextResponse.json({
-    currentlyReading,
+    books,
     streak: {
       current: validateCurrentStreak(statsRow, user.timezone),
       longest: statsRow.longestStreak,
       lastReadingDate: statsRow.lastReadingDate?.toISOString() ?? null,
     },
-    recentProgress: recentProgress.map((rp) => ({
-      bookId: rp.bookId,
-      title: rp.book.title,
-      progress: rp.progress,
-      loggedAt: rp.createdAt.toISOString(),
-    })),
   });
 }
