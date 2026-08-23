@@ -16,9 +16,9 @@ import { validateCurrentStreak } from "@/lib/reading";
  * ecosystem (Bearer token, /api/automations/* path).
  *
  * Deliberately reuses the same Prisma model and business logic the
- * app's own tRPC procedures use (`bookRouter.getDashBoardBooks`'
- * reading-books query/sort logic, `userRouter.getUserStats`' streak
- * validation) rather than hand-rolling simplified versions, and returns
+ * app's own tRPC procedures use (a widened variant of
+ * `bookRouter.getDashBoardBooks`' reading-books query, `userRouter.getUserStats`'
+ * streak validation) rather than hand-rolling simplified versions, and returns
  * one merged `books` list — any book currently being read, or with a
  * progress log in the last 24h — instead of two separately-shaped
  * lists.
@@ -63,11 +63,19 @@ export async function GET(req: NextRequest): Promise<Response> {
     // finished and so is no longer "READING") — merged into one query so
     // a book doesn't need two separate code paths depending on which
     // side of that status line it's on.
+    // take: 50 covers both OR arms: the READING arm alone would never need
+    // a cap this high (reading lists are small), but a bulk Calibre import
+    // (scripts/sync-calibre.ts creates a ReadingProgress row dated "now" for
+    // every newly-imported book) can put many books into the recent-activity
+    // arm at once, and this widget is sized for a handful of rows, not a
+    // whole import burst — unlike the old take: 10, which was only ever
+    // justified for the smaller reading-list case.
     prisma.book.findMany({
       where: {
         userId: user.id,
         OR: [{ status: "READING" }, { readingProgresses: { some: { createdAt: { gte: recentCutoff } } } }],
       },
+      take: 50,
       select: {
         id: true,
         title: true,
