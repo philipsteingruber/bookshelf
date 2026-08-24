@@ -44,8 +44,12 @@ interface AbsLibraryItemsResponse {
 }
 
 async function absFetch<T>(baseUrl: string, token: string, path: string): Promise<T> {
+  // Timeout added 2026-08-24 alongside sync-calibre.ts's uploadCover() fix
+  // (docs/kb/bookshelf.md) — same unbounded-fetch pattern, shared by
+  // sync-abs.ts and find-fuzzy-duplicates.ts.
   const res = await fetch(`${baseUrl}${path}`, {
     headers: { Authorization: `Bearer ${token}` },
+    signal: AbortSignal.timeout(30_000),
   });
   if (!res.ok) {
     throw new Error(`ABS request to ${path} failed: ${res.status} ${res.statusText}`);

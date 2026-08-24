@@ -227,6 +227,11 @@ async function uploadCover(coverPath: string | null): Promise<string | null> {
     const blob = await put(`covers/${Date.now()}`, buffer, {
       access: "public",
       contentType: "image/jpeg",
+      // Root cause of the 2026-08-24 hang (docs/kb/bookshelf.md): this
+      // request has no client-side timeout by default, so a stalled network
+      // call blocks the entire sync indefinitely instead of failing the way
+      // the surrounding try/catch already expects.
+      abortSignal: AbortSignal.timeout(30_000),
     });
     return blob.url;
   } catch (err) {

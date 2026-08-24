@@ -21,7 +21,12 @@ echo "" >> "$LOG_FILE"
 echo "=== Calibre Sync started at $(date '+%Y-%m-%d %H:%M:%S') ===" >> "$LOG_FILE"
 
 set +e
-node node_modules/tsx/dist/cli.mjs scripts/sync-calibre.ts \
+# 30min ceiling, SIGKILL 60s after SIGTERM if the process ignores it — a stuck
+# run (e.g. an unbounded network call hanging forever) would otherwise hold
+# both flocks above indefinitely, blocking every future run silently.
+# See docs/kb/bookshelf.md's 2026-08-24 incident entry for why this exists.
+timeout --kill-after=60 1800 \
+  node node_modules/tsx/dist/cli.mjs scripts/sync-calibre.ts \
   --apply \
   --calibre-db /opt/docker/data/calibre-library/metadata.db \
   --cwa-db /opt/docker/data/cwa/config/app.db \

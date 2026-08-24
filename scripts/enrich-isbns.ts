@@ -51,7 +51,10 @@ const GB_RETRY_DELAYS_MS = [1000, 2000];
 async function fetchGoogleBooksWithRetry(url: string): Promise<Response> {
   let lastRes: Response | undefined;
   for (let attempt = 0; attempt <= GB_RETRY_DELAYS_MS.length; attempt++) {
-    const res = await fetch(url);
+    // No timeout here previously meant a stalled request would hang forever
+    // instead of hitting this function's own retry logic — see the sibling
+    // fix in sync-calibre.ts's uploadCover() (docs/kb/bookshelf.md, 2026-08-24).
+    const res = await fetch(url, { signal: AbortSignal.timeout(15_000) });
     if (res.ok || res.status < 500) return res;
     lastRes = res;
     if (attempt < GB_RETRY_DELAYS_MS.length) await sleep(GB_RETRY_DELAYS_MS[attempt]);
@@ -79,6 +82,7 @@ async function searchOpenLibrary(title: string, author: string): Promise<IsbnMat
 
   const res = await fetch(`${OPENLIBRARY_SEARCH}?${params}`, {
     headers: { "User-Agent": OL_USER_AGENT },
+    signal: AbortSignal.timeout(15_000),
   });
 
   if (!res.ok) throw new Error(`OpenLibrary HTTP ${res.status}`);
