@@ -19,7 +19,7 @@ export interface BookshelfBook {
   resetAt: Date | null;
   previousFinishedAt: Date[];
   rereadAt: Date | null;
-  series: { name: string } | null;
+  series: { id: string; name: string } | null;
   seriesIndex: number | null;
   isbn: string | null;
   publishedYear: number | null;
@@ -54,6 +54,12 @@ export interface MetadataUpdate {
   newIsbn: string | null;
   newPublishedYear: number | null;
   newSummary: string | null;
+  // Wrapped rather than two bare `T | null` fields like the others above,
+  // because null is a legitimate Calibre value here (no series) and needs to
+  // stay distinguishable from "no change" — see docs/kb/bookshelf.md's
+  // 2026-08-26 entry (series/seriesIndex were never refreshed on an
+  // already-matched book, only set at CREATE time).
+  newSeries: { name: string | null; index: number | null } | null;
 }
 
 export interface RatingUpdate {
@@ -219,12 +225,20 @@ export function computeResults(
         ? calibreBook.summary
         : null;
 
+    const currentSeriesName = bookshelfBook.series?.name ?? null;
+    const seriesChanged =
+      calibreBook.seriesName !== currentSeriesName || calibreBook.seriesIndex !== bookshelfBook.seriesIndex;
+    const newSeries = seriesChanged
+      ? { name: calibreBook.seriesName, index: calibreBook.seriesIndex }
+      : null;
+
     if (
       newTitle !== null ||
       newAuthor !== null ||
       newIsbn !== null ||
       newPublishedYear !== null ||
-      newSummary !== null
+      newSummary !== null ||
+      newSeries !== null
     ) {
       results.metadataUpdates.push({
         calibreBook,
@@ -234,6 +248,7 @@ export function computeResults(
         newIsbn,
         newPublishedYear,
         newSummary,
+        newSeries,
       });
     }
 

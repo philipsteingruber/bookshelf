@@ -42,7 +42,7 @@ function makeBookshelf(overrides: Partial<BookshelfBook> = {}): BookshelfBook {
     resetAt: null,
     previousFinishedAt: [],
     rereadAt: null,
-    series: { name: "Gaunt's Ghosts" },
+    series: { id: "series-1", name: "Gaunt's Ghosts" },
     seriesIndex: 8,
     isbn: null,
     publishedYear: null,
@@ -175,6 +175,48 @@ describe("computeResults — metadata updates", () => {
   it("does not produce a metadataUpdate when nothing has changed", () => {
     const { metadataUpdates } = computeResults([makeCalibре()], [makeBookshelf()]);
     expect(metadataUpdates).toHaveLength(0);
+  });
+
+  it("adds to metadataUpdates when Calibre assigns a series to a previously seriesless book", () => {
+    // Matches by ISBN (real-world root cause: a book created before Calibre had
+    // series metadata for it, so composite-key matching never applied — see
+    // docs/kb/bookshelf.md's 2026-08-26 entry).
+    const calibre = makeCalibре({ isbn: "9780000000001", seriesName: "Gaunt's Ghosts", seriesIndex: 8 });
+    const bookshelf = makeBookshelf({ isbn: "9780000000001", series: null, seriesIndex: null });
+    const { metadataUpdates } = computeResults([calibre], [bookshelf]);
+    expect(metadataUpdates).toHaveLength(1);
+    expect(metadataUpdates[0]!.newSeries).toEqual({ name: "Gaunt's Ghosts", index: 8 });
+  });
+
+  it("adds to metadataUpdates when only the series index has changed", () => {
+    // ISBN must be provided so the books match despite the differing composite
+    // key (series index is part of that key) — same reasoning as the title test above.
+    const calibre = makeCalibре({ isbn: "9780000000001", seriesName: "Gaunt's Ghosts", seriesIndex: 9 });
+    const bookshelf = makeBookshelf({
+      isbn: "9780000000001",
+      series: { id: "series-1", name: "Gaunt's Ghosts" },
+      seriesIndex: 8,
+    });
+    const { metadataUpdates } = computeResults([calibre], [bookshelf]);
+    expect(metadataUpdates).toHaveLength(1);
+    expect(metadataUpdates[0]!.newSeries).toEqual({ name: "Gaunt's Ghosts", index: 9 });
+  });
+
+  it("adds to metadataUpdates when Calibre no longer reports a series", () => {
+    const calibre = makeCalibре({ isbn: "9780000000001", seriesName: null, seriesIndex: null });
+    const bookshelf = makeBookshelf({
+      isbn: "9780000000001",
+      series: { id: "series-1", name: "Gaunt's Ghosts" },
+      seriesIndex: 8,
+    });
+    const { metadataUpdates } = computeResults([calibre], [bookshelf]);
+    expect(metadataUpdates).toHaveLength(1);
+    expect(metadataUpdates[0]!.newSeries).toEqual({ name: null, index: null });
+  });
+
+  it("does not add to metadataUpdates when series name and index already match", () => {
+    const { metadataUpdates } = computeResults([makeCalibре()], [makeBookshelf()]);
+    expect(metadataUpdates.every((u) => u.newSeries === null)).toBe(true);
   });
 });
 

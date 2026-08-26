@@ -7,7 +7,7 @@ import { parseArgs } from "node:util";
 import { put } from "@vercel/blob";
 
 import type { ReadStatus } from "@/generated/prisma/enums";
-import { computeAuthorFields, computeTimesRead, createTitleSort, estimateKepubPageCount, syncBookAuthors, upsertSeries } from "@/lib/book";
+import { cleanupOrphanedSeries, computeAuthorFields, computeTimesRead, createTitleSort, estimateKepubPageCount, syncBookAuthors, upsertSeries } from "@/lib/book";
 import prisma from "@/lib/prisma";
 import { recalculateAllUserStats } from "@/lib/reading/stats-updates";
 
@@ -105,13 +105,28 @@ function printResults(
   ).length;
   const renameSuffix = renameCount > 0 ? ` (${renameCount} renames)` : "";
   console.log(`\n${metadataLabel} (${results.metadataUpdates.length})${renameSuffix}`);
-  for (const { bookshelfBook, newTitle, newAuthor, newIsbn, newPublishedYear, newSummary } of results.metadataUpdates) {
+  for (const {
+    bookshelfBook,
+    newTitle,
+    newAuthor,
+    newIsbn,
+    newPublishedYear,
+    newSummary,
+    newSeries,
+  } of results.metadataUpdates) {
     console.log(`  • ${formatBook(bookshelfBook.title, bookshelfBook.author, null, null)}`);
     if (newTitle !== null) console.log(`    Title: "${bookshelfBook.title}" → "${newTitle}"`);
     if (newAuthor !== null) console.log(`    Author: "${bookshelfBook.author}" → "${newAuthor}"`);
     if (newIsbn !== null) console.log(`    ISBN: ${newIsbn}`);
     if (newPublishedYear !== null) console.log(`    Year: ${newPublishedYear}`);
     if (newSummary !== null) console.log(`    Summary: ${newSummary.slice(0, 80)}…`);
+    if (newSeries !== null) {
+      const from = bookshelfBook.series
+        ? `${bookshelfBook.series.name} #${bookshelfBook.seriesIndex}`
+        : "(none)";
+      const to = newSeries.name ? `${newSeries.name} #${newSeries.index}` : "(none)";
+      console.log(`    Series: ${from} → ${to}`);
+    }
   }
 
   const ratingLabel = apply ? "UPDATED RATINGS" : "WOULD UPDATE RATINGS";
@@ -337,7 +352,16 @@ async function applyBookUpdates(bookUpdates: BookUpdate[]): Promise<string[]> {
 
 async function applyMetadataUpdates(metadataUpdates: MetadataUpdate[], userId: string): Promise<string[]> {
   const errors: string[] = [];
-  for (const { calibreBook, bookshelfBook, newTitle, newAuthor, newIsbn, newPublishedYear, newSummary } of metadataUpdates) {
+  for (const {
+    calibreBook,
+    bookshelfBook,
+    newTitle,
+    newAuthor,
+    newIsbn,
+    newPublishedYear,
+    newSummary,
+    newSeries,
+  } of metadataUpdates) {
     try {
       const data: {
         title?: string;
@@ -347,6 +371,8 @@ async function applyMetadataUpdates(metadataUpdates: MetadataUpdate[], userId: s
         isbn?: string;
         publishedYear?: number;
         summary?: string;
+        seriesId?: string | null;
+        seriesIndex?: number | null;
       } = {};
       if (newTitle !== null) { data.title = newTitle; data.titleSort = createTitleSort(newTitle); }
       if (newAuthor !== null) {
@@ -359,10 +385,22 @@ async function applyMetadataUpdates(metadataUpdates: MetadataUpdate[], userId: s
       if (newPublishedYear !== null) data.publishedYear = newPublishedYear;
       if (newSummary !== null) data.summary = newSummary;
 
+      const oldSeriesId = bookshelfBook.series?.id ?? null;
+
       await prisma.$transaction(async (tx) => {
+        // Resolved inside the transaction so the upsert and the book write
+        // that references its id can't drift apart under a concurrent run.
+        if (newSeries !== null) {
+          data.seriesId = newSeries.name ? await upsertSeries(tx, newSeries.name, userId) : null;
+          data.seriesIndex = newSeries.index;
+        }
+
         await tx.book.update({ where: { id: bookshelfBook.id }, data });
         if (newAuthor !== null) {
           await syncBookAuthors(tx, calibreBook.authors.map((a) => a.name), bookshelfBook.id, userId);
+        }
+        if (newSeries !== null && oldSeriesId !== null && oldSeriesId !== data.seriesId) {
+          await cleanupOrphanedSeries(tx, oldSeriesId);
         }
       });
     } catch (err) {
@@ -569,7 +607,7 @@ async function main(): Promise<void> {
         resetAt: true,
         previousFinishedAt: true,
         rereadAt: true,
-        series: { select: { name: true } },
+        series: { select: { id: true, name: true } },
         seriesIndex: true,
         isbn: true,
         publishedYear: true,
