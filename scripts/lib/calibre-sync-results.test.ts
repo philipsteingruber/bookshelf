@@ -352,6 +352,40 @@ describe("computeResults — reset-below resume gating", () => {
     const { bookUpdates } = computeResults([calibre], [bookshelf]);
     expect(bookUpdates[0]!.newStatus).toBe("READING");
   });
+
+  // The progress half of the same bug, found live on 2026-08-31: the status
+  // gate above held "Misery" and "Player Manager" at TO_READ correctly, but
+  // shouldLogProgress knew about rereadAt only, so the identical stale CWA row
+  // was replayed as a fresh ReadingProgress entry against the wiped 0%.
+  it("does not log progress on a reset book from a Calibre signal predating the reset", () => {
+    const calibre = makeCalibре({
+      readStatus: 2,
+      readPercent: 1.02,
+      progressUpdatedAt: new Date("2026-08-22T12:26:49Z"),
+    });
+    const bookshelf = makeBookshelf({
+      status: "TO_READ",
+      progress: 0,
+      resetAt: new Date("2026-08-30T09:33:12Z"),
+    });
+    const { progressUpdates } = computeResults([calibre], [bookshelf]);
+    expect(progressUpdates).toHaveLength(0);
+  });
+
+  it("logs progress on a reset book once Calibre's signal is newer than the reset", () => {
+    const calibre = makeCalibре({
+      readStatus: 2,
+      readPercent: 4,
+      progressUpdatedAt: new Date("2026-09-02T00:00:00Z"),
+    });
+    const bookshelf = makeBookshelf({
+      status: "TO_READ",
+      progress: 0,
+      resetAt: new Date("2026-08-30T09:33:12Z"),
+    });
+    const { progressUpdates } = computeResults([calibre], [bookshelf]);
+    expect(progressUpdates[0]!.newProgress).toBe(4);
+  });
 });
 
 describe("computeResults — reread detection", () => {

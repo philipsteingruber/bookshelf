@@ -75,23 +75,43 @@ export function shouldUpdateStatus(
   return statusPriority(derived) > statusPriority(current);
 }
 
+// Parameter order deliberately mirrors shouldUpdateStatus. The two functions
+// gate the same stale-source-signal problem against the same three markers,
+// and when only this one knew about rereadAt the divergence was invisible at
+// the call sites — a reset book had its status correctly held at TO_READ
+// while its progress was silently reinflated from a source row that predated
+// the reset (see docs/kb/bookshelf.md, 2026-08-31).
 export function shouldLogProgress(
   sourceProgress: number | null,
   currentProgress: number,
+  dnfAt: Date | null = null,
+  resetAt: Date | null = null,
   rereadAt: Date | null = null,
   sourceUpdatedAt: Date | null = null,
 ): boolean {
   if (sourceProgress === null || sourceProgress <= currentProgress) return false;
-  // A book with a set rereadAt just had a reread detected. Logging progress
-  // from a source that hasn't itself been touched since (e.g. ABS still
-  // reporting its old 100% from before the restart) would silently
-  // overwrite the reread's own low progress. Require the source's own
-  // signal to be newer than the reread itself, same shape as the
-  // shouldUpdateStatus gate below.
-  if (rereadAt !== null) {
-    return sourceUpdatedAt !== null && sourceUpdatedAt > rereadAt;
+  // Each of these three markers records a moment the user deliberately
+  // overrode what the sync sources say: DNF'd a book, reset it to TO_READ
+  // (which WIPES progress to 0, reopening the bare `sourceProgress >
+  // currentProgress` comparison above), or started a reread. None of those
+  // touch Calibre/CWA or ABS, so the source keeps reporting whatever it held
+  // beforehand — and that stale value must not be replayed as new progress.
+  //
+  // The newest marker wins: the source's own signal has to postdate every
+  // override, not just the most recently added one. If any marker is set and
+  // the source timestamp is unknown, don't risk it.
+  const overriddenAt = mostRecent(dnfAt, resetAt, rereadAt);
+  if (overriddenAt !== null) {
+    return sourceUpdatedAt !== null && sourceUpdatedAt > overriddenAt;
   }
   return true;
+}
+
+function mostRecent(...dates: (Date | null)[]): Date | null {
+  return dates.reduce<Date | null>(
+    (latest, date) => (date !== null && (latest === null || date > latest) ? date : latest),
+    null,
+  );
 }
 
 export function deriveAbsStatus(progressPercent: number, isFinished: boolean): ReadStatus {

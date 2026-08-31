@@ -188,23 +188,52 @@ describe("shouldLogProgress", () => {
   it("does not overwrite progress from a stale cross-source signal after a reread", () => {
     const rereadAt = new Date("2026-08-01");
     const staleSignal = new Date("2026-07-01"); // predates the reread
-    expect(shouldLogProgress(100, 5, rereadAt, staleSignal)).toBe(false);
+    expect(shouldLogProgress(100, 5, null, null, rereadAt, staleSignal)).toBe(false);
   });
 
   it("logs progress from a genuine post-reread signal", () => {
     const rereadAt = new Date("2026-08-01");
     const freshSignal = new Date("2026-08-05");
-    expect(shouldLogProgress(15, 5, rereadAt, freshSignal)).toBe(true);
+    expect(shouldLogProgress(15, 5, null, null, rereadAt, freshSignal)).toBe(true);
   });
 
   it("does not log when rereadAt is set but the source timestamp is unknown", () => {
     const rereadAt = new Date("2026-08-01");
-    expect(shouldLogProgress(15, 5, rereadAt, null)).toBe(false);
+    expect(shouldLogProgress(15, 5, null, null, rereadAt, null)).toBe(false);
   });
 
-  it("is unaffected by rereadAt/sourceUpdatedAt when rereadAt is null", () => {
-    expect(shouldLogProgress(60, 50, null, null)).toBe(true);
+  it("is unaffected by the override markers when all of them are null", () => {
+    expect(shouldLogProgress(60, 50, null, null, null, null)).toBe(true);
     expect(shouldLogProgress(60, 50)).toBe(true); // existing 2-arg call sites keep working
+  });
+
+  it("does not reinflate wiped progress from a source signal predating the reset", () => {
+    const resetAt = new Date("2026-08-30");
+    const staleSignal = new Date("2026-08-22"); // CWA untouched since before the reset
+    expect(shouldLogProgress(1.02, 0, null, resetAt, null, staleSignal)).toBe(false);
+  });
+
+  it("logs progress from a source signal newer than the reset", () => {
+    const resetAt = new Date("2026-08-30");
+    const freshSignal = new Date("2026-09-02"); // book genuinely picked back up
+    expect(shouldLogProgress(4, 0, null, resetAt, null, freshSignal)).toBe(true);
+  });
+
+  it("does not log when resetAt is set but the source timestamp is unknown", () => {
+    expect(shouldLogProgress(1.02, 0, null, new Date("2026-08-30"), null, null)).toBe(false);
+  });
+
+  it("does not replay a source signal predating a DNF onto wiped progress", () => {
+    const dnfAt = new Date("2026-08-30");
+    const staleSignal = new Date("2026-08-22");
+    expect(shouldLogProgress(40, 0, dnfAt, null, null, staleSignal)).toBe(false);
+  });
+
+  it("gates against the newest marker when several are set", () => {
+    const dnfAt = new Date("2026-08-01");
+    const resetAt = new Date("2026-08-30"); // newest — this is the one that must apply
+    const between = new Date("2026-08-15"); // newer than the DNF, older than the reset
+    expect(shouldLogProgress(20, 0, dnfAt, resetAt, null, between)).toBe(false);
   });
 });
 

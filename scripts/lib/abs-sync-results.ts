@@ -150,6 +150,8 @@ export function computeAbsResults(
       shouldLogProgress(
         absBook.progressPercent,
         bookshelfBook.progress,
+        bookshelfBook.dnfAt,
+        bookshelfBook.resetAt,
         bookshelfBook.rereadAt,
         absBook.progressUpdatedAt,
       )

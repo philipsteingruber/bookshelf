@@ -196,6 +196,8 @@ export function computeResults(
       shouldLogProgress(
         calibreBook.readPercent,
         bookshelfBook.progress,
+        bookshelfBook.dnfAt,
+        bookshelfBook.resetAt,
         bookshelfBook.rereadAt,
         calibreBook.progressUpdatedAt,
       )
