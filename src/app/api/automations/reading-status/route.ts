@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-import { env } from "@/env";
+import { resolveAutomationUser } from "@/lib/automations/auth";
 import { logger, performanceLogger } from "@/lib/common/logger";
 import prisma from "@/lib/prisma";
 import { validateCurrentStreak } from "@/lib/reading";
@@ -24,24 +24,9 @@ import { validateCurrentStreak } from "@/lib/reading";
  * lists.
  */
 export async function GET(req: NextRequest): Promise<Response> {
-  const auth = req.headers.get("authorization");
-  const expected = env.AUTOMATION_API_KEY;
-  if (!expected || auth !== `Bearer ${expected}`) {
-    logger.warn("Automation reading-status: unauthorized request");
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const userEmail = env.CALIBRE_SYNC_USER_EMAIL;
-  if (!userEmail) {
-    logger.error("Automation reading-status: CALIBRE_SYNC_USER_EMAIL not set");
-    return NextResponse.json({ error: "Not configured" }, { status: 500 });
-  }
-
-  const user = await prisma.user.findUnique({ where: { email: userEmail } });
-  if (!user) {
-    logger.error({ userEmail }, "Automation reading-status: configured user not found");
-    return NextResponse.json({ error: "User not found" }, { status: 500 });
-  }
+  const auth = await resolveAutomationUser(req, "reading-status");
+  if (!auth.ok) return auth.response;
+  const { user } = auth;
 
   const timer = performanceLogger("Automation reading-status query", 1000, logger);
   timer.start();
