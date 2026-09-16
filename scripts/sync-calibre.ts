@@ -7,12 +7,21 @@ import { parseArgs } from "node:util";
 import { put } from "@vercel/blob";
 
 import type { ReadStatus } from "@/generated/prisma/enums";
-import { cleanupOrphanedSeries, computeAuthorFields, computeTimesRead, createTitleSort, estimateKepubPageCount, syncBookAuthors, upsertSeries } from "@/lib/book";
+import {
+  cleanupOrphanedSeries,
+  computeAuthorFields,
+  computeTimesRead,
+  createTitleSort,
+  estimateKepubPageCount,
+  syncBookAuthors,
+  upsertSeries,
+} from "@/lib/book";
 import prisma from "@/lib/prisma";
 import { recalculateAllUserStats } from "@/lib/reading/stats-updates";
 
 import { DEFAULT_CALIBRE_DB, DEFAULT_CWA_DB, extractErrorMessage } from "./lib/calibre-constants";
 import { readCalibreSyncData, type CalibreBookSync } from "./lib/calibre-sync-reader";
+import { EXCLUDED_CALIBRE_IDS, partitionExcluded } from "./lib/sync-exclusions";
 import {
   computeResults,
   type BookUpdate,
@@ -28,22 +37,14 @@ import { deriveStatus } from "./lib/sync-utils";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function formatBook(
-  title: string,
-  author: string,
-  seriesName: string | null,
-  seriesIndex: number | null,
-): string {
-  const series =
-    seriesName !== null && seriesIndex !== null ? ` [${seriesName} #${seriesIndex}]` : "";
+function formatBook(title: string, author: string, seriesName: string | null, seriesIndex: number | null): string {
+  const series = seriesName !== null && seriesIndex !== null ? ` [${seriesName} #${seriesIndex}]` : "";
   return `${title} — ${author}${series}`;
 }
 
 // ─── Page count ───────────────────────────────────────────────────────────────
 
-async function computePageCounts(
-  books: CalibreBookSync[],
-): Promise<Map<number, number>> {
+async function computePageCounts(books: CalibreBookSync[]): Promise<Map<number, number>> {
   const map = new Map<number, number>();
   if (books.length === 0) return map;
 
@@ -54,7 +55,9 @@ async function computePageCounts(
       const buffer = readFileSync(b.bookFilePath);
       map.set(b.calibreId, await estimateKepubPageCount(buffer, parser));
     } catch (err) {
-      console.warn(`  ⚠ Could not estimate page count for "${b.title}": ${err instanceof Error ? err.message : String(err)}`);
+      console.warn(
+        `  ⚠ Could not estimate page count for "${b.title}": ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
   }
   return map;
@@ -62,26 +65,19 @@ async function computePageCounts(
 
 // ─── Output ───────────────────────────────────────────────────────────────────
 
-function printResults(
-  results: SyncResults,
-  apply: boolean,
-  pageCountMap: Map<number, number>,
-): void {
+function printResults(results: SyncResults, apply: boolean, pageCountMap: Map<number, number>): void {
   const mode = apply ? "APPLYING" : "DRY RUN";
   console.log(`\n=== Calibre Sync — ${mode} ===\n`);
 
   const createLabel = apply ? "CREATED" : "WOULD CREATE";
   const createdWithProgress = results.toCreate.filter((b) => (b.readPercent ?? 0) > 0).length;
-  const createdProgressSuffix =
-    createdWithProgress > 0 ? ` (${createdWithProgress} with progress logged)` : "";
+  const createdProgressSuffix = createdWithProgress > 0 ? ` (${createdWithProgress} with progress logged)` : "";
   console.log(`${createLabel} (${results.toCreate.length})${createdProgressSuffix}`);
   for (const b of results.toCreate) {
     const derived = deriveStatus(b.readStatus, b.readPercent, b.dnf, b.isReadNext);
     const pct = b.readPercent ? ` (${b.readPercent}%)` : "";
     const pages = pageCountMap.has(b.calibreId) ? ` | Pages: ${pageCountMap.get(b.calibreId)}` : "";
-    const started = b.datestarted
-      ? ` | Started: ${b.datestarted.toISOString().slice(0, 10)}`
-      : "";
+    const started = b.datestarted ? ` | Started: ${b.datestarted.toISOString().slice(0, 10)}` : "";
     console.log(`  • ${formatBook(b.title, b.author, b.seriesName, b.seriesIndex)}`);
     console.log(`    Status: ${derived}${pct}${pages}${started}`);
   }
@@ -90,9 +86,7 @@ function printResults(
   const updateLabel = apply ? "UPDATED STATUS" : "WOULD UPDATE STATUS";
   console.log(`\n${updateLabel} (${bookUpdatesWithStatus.length})`);
   for (const { calibreBook, bookshelfBook, newStatus, newFinishedAt } of bookUpdatesWithStatus) {
-    const finished = newFinishedAt
-      ? ` | Finished: ${newFinishedAt.toISOString().slice(0, 10)}`
-      : "";
+    const finished = newFinishedAt ? ` | Finished: ${newFinishedAt.toISOString().slice(0, 10)}` : "";
     console.log(
       `  • ${formatBook(bookshelfBook.title, bookshelfBook.author, calibreBook.seriesName, calibreBook.seriesIndex)}`,
     );
@@ -100,9 +94,7 @@ function printResults(
   }
 
   const metadataLabel = apply ? "UPDATED METADATA" : "WOULD UPDATE METADATA";
-  const renameCount = results.metadataUpdates.filter(
-    (u) => u.newTitle !== null || u.newAuthor !== null,
-  ).length;
+  const renameCount = results.metadataUpdates.filter((u) => u.newTitle !== null || u.newAuthor !== null).length;
   const renameSuffix = renameCount > 0 ? ` (${renameCount} renames)` : "";
   console.log(`\n${metadataLabel} (${results.metadataUpdates.length})${renameSuffix}`);
   for (const {
@@ -121,9 +113,7 @@ function printResults(
     if (newPublishedYear !== null) console.log(`    Year: ${newPublishedYear}`);
     if (newSummary !== null) console.log(`    Summary: ${newSummary.slice(0, 80)}…`);
     if (newSeries !== null) {
-      const from = bookshelfBook.series
-        ? `${bookshelfBook.series.name} #${bookshelfBook.seriesIndex}`
-        : "(none)";
+      const from = bookshelfBook.series ? `${bookshelfBook.series.name} #${bookshelfBook.seriesIndex}` : "(none)";
       const to = newSeries.name ? `${newSeries.name} #${newSeries.index}` : "(none)";
       console.log(`    Series: ${from} → ${to}`);
     }
@@ -152,9 +142,7 @@ function printResults(
       console.log(
         `  • ${formatBook(bookshelfBook.title, bookshelfBook.author, calibreBook.seriesName, calibreBook.seriesIndex)}`,
       );
-      console.log(
-        `    Already at ${bookshelfBook.progress}%, Calibre reports ${calibreBook.readPercent}%`,
-      );
+      console.log(`    Already at ${bookshelfBook.progress}%, Calibre reports ${calibreBook.readPercent}%`);
     }
   }
 
@@ -178,13 +166,11 @@ function printResults(
   console.log(`\nNOT IN CALIBRE (${results.notInCalibre.length})`);
   for (const b of results.notInCalibre) {
     console.log(`  • ${formatBook(b.title, b.author, b.series?.name ?? null, b.seriesIndex)}`);
-  };
+  }
 
   if (!apply) {
     const pad = (n: number) => String(n).padStart(3);
-    const renameCount = results.metadataUpdates.filter(
-      (u) => u.newTitle !== null || u.newAuthor !== null,
-    ).length;
+    const renameCount = results.metadataUpdates.filter((u) => u.newTitle !== null || u.newAuthor !== null).length;
     const renameSuffix = renameCount > 0 ? ` (${renameCount} renames)` : "";
     console.log("\n=== Summary ===");
     console.log(`Would create:         ${pad(results.toCreate.length)}`);
@@ -215,9 +201,7 @@ function printApplySummary(
   const pad = (n: number) => String(n).padStart(3);
   const bookUpdatesWithStatus = results.bookUpdates.filter((u) => u.newStatus !== null);
 
-  const renameCount = results.metadataUpdates.filter(
-    (u) => u.newTitle !== null || u.newAuthor !== null,
-  ).length;
+  const renameCount = results.metadataUpdates.filter((u) => u.newTitle !== null || u.newAuthor !== null).length;
   const renameSuffix = renameCount > 0 ? ` (${renameCount} renames)` : "";
   console.log("\n=== Summary ===");
   console.log(`Created:              ${pad(results.toCreate.length - createErrors.length)}`);
@@ -250,10 +234,7 @@ async function uploadCover(coverPath: string | null): Promise<string | null> {
     });
     return blob.url;
   } catch (err) {
-    console.error(
-      `  ⚠ Cover upload failed for ${path.basename(path.dirname(coverPath))}:`,
-      err,
-    );
+    console.error(`  ⚠ Cover upload failed for ${path.basename(path.dirname(coverPath))}:`, err);
     return null;
   }
 }
@@ -318,9 +299,7 @@ async function applyCreates(
       const target = prismaErr.meta?.target;
       const targetStr = Array.isArray(target) ? target.join(",") : (target ?? "");
       const isSeriesConflict =
-        prismaErr.code === "P2002" &&
-        targetStr.includes("seriesId") &&
-        targetStr.includes("seriesIndex");
+        prismaErr.code === "P2002" && targetStr.includes("seriesId") && targetStr.includes("seriesIndex");
 
       errors.push(
         isSeriesConflict
@@ -374,7 +353,10 @@ async function applyMetadataUpdates(metadataUpdates: MetadataUpdate[], userId: s
         seriesId?: string | null;
         seriesIndex?: number | null;
       } = {};
-      if (newTitle !== null) { data.title = newTitle; data.titleSort = createTitleSort(newTitle); }
+      if (newTitle !== null) {
+        data.title = newTitle;
+        data.titleSort = createTitleSort(newTitle);
+      }
       if (newAuthor !== null) {
         const authorNames = calibreBook.authors.map((a) => a.name);
         const fields = computeAuthorFields(authorNames);
@@ -397,16 +379,19 @@ async function applyMetadataUpdates(metadataUpdates: MetadataUpdate[], userId: s
 
         await tx.book.update({ where: { id: bookshelfBook.id }, data });
         if (newAuthor !== null) {
-          await syncBookAuthors(tx, calibreBook.authors.map((a) => a.name), bookshelfBook.id, userId);
+          await syncBookAuthors(
+            tx,
+            calibreBook.authors.map((a) => a.name),
+            bookshelfBook.id,
+            userId,
+          );
         }
         if (newSeries !== null && oldSeriesId !== null && oldSeriesId !== data.seriesId) {
           await cleanupOrphanedSeries(tx, oldSeriesId);
         }
       });
     } catch (err) {
-      errors.push(
-        `Failed to update metadata for "${bookshelfBook.title}": ${extractErrorMessage(err)}`,
-      );
+      errors.push(`Failed to update metadata for "${bookshelfBook.title}": ${extractErrorMessage(err)}`);
     }
   }
   return errors;
@@ -424,10 +409,7 @@ async function applyRatingUpdates(ratingUpdates: RatingUpdate[]): Promise<string
   return errors;
 }
 
-async function applyProgressUpdates(
-  progressUpdates: ProgressUpdate[],
-  userId: string,
-): Promise<string[]> {
+async function applyProgressUpdates(progressUpdates: ProgressUpdate[], userId: string): Promise<string[]> {
   const errors: string[] = [];
   for (const { calibreBook, bookshelfBook, newProgress } of progressUpdates) {
     try {
@@ -445,9 +427,7 @@ async function applyProgressUpdates(
         });
       });
     } catch (err) {
-      errors.push(
-        `Failed to log progress for "${bookshelfBook.title}": ${extractErrorMessage(err)}`,
-      );
+      errors.push(`Failed to log progress for "${bookshelfBook.title}": ${extractErrorMessage(err)}`);
     }
   }
   return errors;
@@ -491,28 +471,23 @@ async function applyRereadStarts(rereadStarts: RereadStart[], userId: string): P
   return errors;
 }
 
-async function applyReadNextRemovals(
-  cwaDbPath: string,
-  books: CalibreBookSync[],
-): Promise<string[]> {
+async function applyReadNextRemovals(cwaDbPath: string, books: CalibreBookSync[]): Promise<string[]> {
   if (books.length === 0) return [];
   const errors: string[] = [];
   let db: import("better-sqlite3").Database | null = null;
   try {
     const Database = (await import("better-sqlite3")).default;
     db = new Database(cwaDbPath);
-    const shelf = db
-      .prepare("SELECT id FROM shelf WHERE name = 'Read Next' LIMIT 1")
-      .get() as { id: number } | undefined;
+    const shelf = db.prepare("SELECT id FROM shelf WHERE name = 'Read Next' LIMIT 1").get() as
+      | { id: number }
+      | undefined;
     if (!shelf) return [];
     const del = db.prepare("DELETE FROM book_shelf_link WHERE shelf = ? AND book_id = ?");
     for (const b of books) {
       try {
         del.run(shelf.id, b.calibreId);
       } catch (err) {
-        errors.push(
-          `Failed to remove "${b.title}" from Read Next shelf: ${extractErrorMessage(err)}`,
-        );
+        errors.push(`Failed to remove "${b.title}" from Read Next shelf: ${extractErrorMessage(err)}`);
       }
     }
   } catch (err) {
@@ -546,13 +521,10 @@ async function main(): Promise<void> {
   }
   const calibreDbPath = (values["calibre-db"] as string | undefined) ?? DEFAULT_CALIBRE_DB;
   const cwaDbPath = (values["cwa-db"] as string | undefined) ?? DEFAULT_CWA_DB;
-  const userEmail =
-    (values["user-email"] as string | undefined) ?? process.env.CALIBRE_SYNC_USER_EMAIL;
+  const userEmail = (values["user-email"] as string | undefined) ?? process.env.CALIBRE_SYNC_USER_EMAIL;
 
   if (!userEmail) {
-    console.error(
-      "Error: No user specified. Set CALIBRE_SYNC_USER_EMAIL in .env or pass --user-email",
-    );
+    console.error("Error: No user specified. Set CALIBRE_SYNC_USER_EMAIL in .env or pass --user-email");
     process.exit(1);
   }
 
@@ -588,8 +560,15 @@ async function main(): Promise<void> {
   try {
     console.log(`Reading Calibre library from: ${calibreDbPath}`);
     console.log(`Reading CWA database from: ${cwaDbPath}`);
-    const calibreBooks = readCalibreSyncData(calibreDbPath, cwaDbPath);
+    const { kept: calibreBooks, skipped: excludedCalibre } = partitionExcluded(
+      readCalibreSyncData(calibreDbPath, cwaDbPath),
+      (b) => b.calibreId,
+      EXCLUDED_CALIBRE_IDS,
+    );
     console.log(`Loaded ${calibreBooks.length} books from Calibre`);
+    for (const b of excludedCalibre) {
+      console.log(`EXCLUDED (sync-exclusions.ts): ${b.title} [calibre ${b.calibreId}]`);
+    }
 
     console.log(`Syncing for user: ${user.email}`);
 

@@ -5,6 +5,7 @@ import { parseArgs } from "node:util";
 import { extractErrorMessage } from "./lib/calibre-constants";
 import { DEFAULT_ABS_URL, resolveBookLibraryId } from "./lib/abs-client";
 import { readAbsSyncData } from "./lib/abs-sync-reader";
+import { EXCLUDED_ABS_ITEM_IDS, partitionExcluded } from "./lib/sync-exclusions";
 import {
   computeAbsResults,
   type AbsProgressUpdate,
@@ -100,7 +101,11 @@ async function applyStatusUpdates(statusUpdates: AbsStatusUpdate[]): Promise<str
   const errors: string[] = [];
   for (const { bookshelfBook, newStatus, newStartedAt, newFinishedAt } of statusUpdates) {
     try {
-      const data: { status?: "TO_READ" | "READING" | "READ" | "READ_NEXT" | "DNF"; startedAt?: Date; finishedAt?: Date } = {};
+      const data: {
+        status?: "TO_READ" | "READING" | "READ" | "READ_NEXT" | "DNF";
+        startedAt?: Date;
+        finishedAt?: Date;
+      } = {};
       if (newStatus !== null) data.status = newStatus;
       if (newStartedAt !== null) data.startedAt = newStartedAt;
       if (newFinishedAt !== null) data.finishedAt = newFinishedAt;
@@ -112,10 +117,7 @@ async function applyStatusUpdates(statusUpdates: AbsStatusUpdate[]): Promise<str
   return errors;
 }
 
-async function applyProgressUpdates(
-  progressUpdates: AbsProgressUpdate[],
-  userId: string,
-): Promise<string[]> {
+async function applyProgressUpdates(progressUpdates: AbsProgressUpdate[], userId: string): Promise<string[]> {
   const errors: string[] = [];
   for (const { bookshelfBook, newProgress } of progressUpdates) {
     try {
@@ -185,8 +187,7 @@ async function main(): Promise<void> {
     process.exit(1);
   }
   const absUrl = (values["abs-url"] as string | undefined) ?? DEFAULT_ABS_URL;
-  const userEmail =
-    (values["user-email"] as string | undefined) ?? process.env.CALIBRE_SYNC_USER_EMAIL;
+  const userEmail = (values["user-email"] as string | undefined) ?? process.env.CALIBRE_SYNC_USER_EMAIL;
   const absToken = process.env.ABS_TOKEN;
 
   if (!absToken) {
@@ -195,9 +196,7 @@ async function main(): Promise<void> {
   }
 
   if (!userEmail) {
-    console.error(
-      "Error: No user specified. Set CALIBRE_SYNC_USER_EMAIL in .env or pass --user-email",
-    );
+    console.error("Error: No user specified. Set CALIBRE_SYNC_USER_EMAIL in .env or pass --user-email");
     process.exit(1);
   }
 
@@ -212,12 +211,18 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  const libraryId =
-    (values["library-id"] as string | undefined) ?? (await resolveBookLibraryId(absUrl, absToken));
+  const libraryId = (values["library-id"] as string | undefined) ?? (await resolveBookLibraryId(absUrl, absToken));
 
   console.log(`Reading ABS library from: ${absUrl} (library ${libraryId})`);
-  const absBooks = await readAbsSyncData(absUrl, absToken, libraryId);
+  const { kept: absBooks, skipped: excludedAbs } = partitionExcluded(
+    await readAbsSyncData(absUrl, absToken, libraryId),
+    (b) => b.absLibraryItemId,
+    EXCLUDED_ABS_ITEM_IDS,
+  );
   console.log(`Loaded ${absBooks.length} in-progress/finished items from ABS`);
+  for (const b of excludedAbs) {
+    console.log(`EXCLUDED (sync-exclusions.ts): ${b.title} [abs ${b.absLibraryItemId}]`);
+  }
 
   console.log(`Syncing for user: ${user.email}`);
 
@@ -248,9 +253,7 @@ async function main(): Promise<void> {
 
   let exitCode = 0;
   if (apply) {
-    const statusErrors = await applyStatusUpdates(
-      results.statusUpdates.filter((u) => u.newStatus !== null),
-    );
+    const statusErrors = await applyStatusUpdates(results.statusUpdates.filter((u) => u.newStatus !== null));
     const progressErrors = await applyProgressUpdates(results.progressUpdates, user.id);
     const rereadErrors = await applyRereadStarts(results.rereadStarts, user.id);
 
