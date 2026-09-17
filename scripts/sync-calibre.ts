@@ -471,6 +471,17 @@ async function applyRereadStarts(rereadStarts: RereadStart[], userId: string): P
   return errors;
 }
 
+/** Run `fn` with CWA stopped, restarting it afterwards even if `fn` throws. */
+async function withCwaStopped<T>(needed: boolean, fn: () => Promise<T>): Promise<T> {
+  if (!needed) return fn();
+  await stopContainer();
+  try {
+    return await fn();
+  } finally {
+    await startContainer();
+  }
+}
+
 async function applyReadNextRemovals(cwaDbPath: string, books: CalibreBookSync[]): Promise<string[]> {
   if (books.length === 0) return [];
   const errors: string[] = [];
@@ -543,18 +554,12 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  // Resolve the user before stopping the container. Any process.exit() here
-  // bypasses the finally block below, so all early exits must happen while the
-  // container is still running — once it's stopped, the finally is the only
-  // thing that brings it back.
   const user = await prisma.user.findFirst({ where: { email: userEmail } });
 
   if (!user) {
     console.error(`Error: No bookshelf user found with email "${userEmail}"`);
     process.exit(1);
   }
-
-  await stopContainer();
 
   let exitCode = 0;
   try {
@@ -613,7 +618,12 @@ async function main(): Promise<void> {
       const metadataErrors = await applyMetadataUpdates(results.metadataUpdates, user.id);
       const ratingErrors = await applyRatingUpdates(results.ratingUpdates);
       const progressErrors = await applyProgressUpdates(results.progressUpdates, user.id);
-      const readNextErrors = await applyReadNextRemovals(cwaDbPath, results.readNextRemovals);
+      // The only step that writes to CWA's own database, so the only one that needs
+      // CWA stopped. Everything else reads metadata.db and app.db read-only, or reads
+      // book files — all safe against a running CWA. Dry runs never stop it at all.
+      const readNextErrors = await withCwaStopped(results.readNextRemovals.length > 0, () =>
+        applyReadNextRemovals(cwaDbPath, results.readNextRemovals),
+      );
       const rereadErrors = await applyRereadStarts(results.rereadStarts, user.id);
 
       if (results.progressUpdates.length > 0 || createdProgressLogged > 0 || results.rereadStarts.length > 0) {
@@ -649,7 +659,7 @@ async function main(): Promise<void> {
       }
     }
   } finally {
-    await startContainer();
+    await prisma.$disconnect();
   }
 
   if (exitCode !== 0) process.exit(exitCode);
