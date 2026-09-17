@@ -265,20 +265,6 @@ describe("computeResults — rating updates", () => {
   });
 });
 
-describe("computeResults — Read Next removals", () => {
-  it("adds to readNextRemovals when a book is on Read Next shelf but has progress", () => {
-    const calibre = makeCalibре({ isReadNext: true, readPercent: 50 }); // READING, not TO_READ
-    const { readNextRemovals } = computeResults([calibre], []);
-    expect(readNextRemovals).toHaveLength(1);
-  });
-
-  it("does not add to readNextRemovals when a book is on Read Next with no other signals", () => {
-    const calibre = makeCalibре({ isReadNext: true, readStatus: 0, readPercent: null });
-    const { readNextRemovals } = computeResults([calibre], []);
-    expect(readNextRemovals).toHaveLength(0);
-  });
-});
-
 describe("computeResults — DNF resume gating", () => {
   // Regression test for the 13th Legion incident: CWA's book_read_link.read_status
   // had been sitting at "Read" since long before the book was DNFed in Bookshelf.

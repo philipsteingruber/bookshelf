@@ -83,7 +83,6 @@ export interface SyncResults {
   metadataUpdates: MetadataUpdate[];
   ratingUpdates: RatingUpdate[];
   notInCalibre: BookshelfBook[];
-  readNextRemovals: CalibreBookSync[];
   rereadStarts: RereadStart[];
 }
 
@@ -111,7 +110,6 @@ export function computeResults(
     metadataUpdates: [],
     ratingUpdates: [],
     notInCalibre: [],
-    readNextRemovals: [],
     rereadStarts: [],
   };
 
@@ -119,12 +117,7 @@ export function computeResults(
     const bookshelfBook =
       (calibreBook.isbn ? bookshelfByIsbn.get(calibreBook.isbn) : undefined) ??
       bookshelfByKey.get(
-        buildCompositeKey(
-          calibreBook.title,
-          calibreBook.author,
-          calibreBook.seriesName,
-          calibreBook.seriesIndex,
-        ),
+        buildCompositeKey(calibreBook.title, calibreBook.author, calibreBook.seriesName, calibreBook.seriesIndex),
       );
 
     if (!bookshelfBook) {
@@ -173,14 +166,9 @@ export function computeResults(
     const effectiveStatus = newStatus ?? bookshelfBook.status;
 
     const newStartedAt =
-      bookshelfBook.startedAt === null && calibreBook.datestarted !== null
-        ? calibreBook.datestarted
-        : null;
+      bookshelfBook.startedAt === null && calibreBook.datestarted !== null ? calibreBook.datestarted : null;
 
-    const newFinishedAt =
-      bookshelfBook.finishedAt === null && effectiveStatus === "READ"
-        ? new Date()
-        : null;
+    const newFinishedAt = bookshelfBook.finishedAt === null && effectiveStatus === "READ" ? new Date() : null;
 
     if (newStatus !== null || newStartedAt !== null || newFinishedAt !== null) {
       results.bookUpdates.push({
@@ -207,11 +195,7 @@ export function computeResults(
         bookshelfBook,
         newProgress: calibreBook.readPercent!,
       });
-    } else if (
-      calibreBook.readPercent !== null &&
-      calibreBook.readPercent > 0 &&
-      bookshelfBook.progress < 100
-    ) {
+    } else if (calibreBook.readPercent !== null && calibreBook.readPercent > 0 && bookshelfBook.progress < 100) {
       results.progressSkips.push({ calibreBook, bookshelfBook });
     }
 
@@ -219,20 +203,14 @@ export function computeResults(
     const newAuthor = calibreBook.author !== bookshelfBook.author ? calibreBook.author : null;
     const newIsbn = bookshelfBook.isbn === null && calibreBook.isbn !== null ? calibreBook.isbn : null;
     const newPublishedYear =
-      bookshelfBook.publishedYear === null && calibreBook.publishedYear !== null
-        ? calibreBook.publishedYear
-        : null;
+      bookshelfBook.publishedYear === null && calibreBook.publishedYear !== null ? calibreBook.publishedYear : null;
     const newSummary =
-      calibreBook.summary !== null && bookshelfBook.summary !== calibreBook.summary
-        ? calibreBook.summary
-        : null;
+      calibreBook.summary !== null && bookshelfBook.summary !== calibreBook.summary ? calibreBook.summary : null;
 
     const currentSeriesName = bookshelfBook.series?.name ?? null;
     const seriesChanged =
       calibreBook.seriesName !== currentSeriesName || calibreBook.seriesIndex !== bookshelfBook.seriesIndex;
-    const newSeries = seriesChanged
-      ? { name: calibreBook.seriesName, index: calibreBook.seriesIndex }
-      : null;
+    const newSeries = seriesChanged ? { name: calibreBook.seriesName, index: calibreBook.seriesIndex } : null;
 
     if (
       newTitle !== null ||
@@ -265,12 +243,6 @@ export function computeResults(
 
   for (const b of bookshelfBooks) {
     if (!matchedIds.has(b.id)) results.notInCalibre.push(b);
-  }
-
-  for (const calibreBook of calibreBooks) {
-    if (!calibreBook.isReadNext) continue;
-    const base = deriveStatus(calibreBook.readStatus, calibreBook.readPercent, calibreBook.dnf);
-    if (base !== "TO_READ") results.readNextRemovals.push(calibreBook);
   }
 
   // Two source rows can resolve to the same bookshelf book (a Calibre

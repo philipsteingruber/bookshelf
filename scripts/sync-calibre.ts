@@ -31,7 +31,6 @@ import {
   type RereadStart,
   type SyncResults,
 } from "./lib/calibre-sync-results";
-import { startContainer, stopContainer } from "./lib/docker";
 import { makeScriptParser } from "./lib/script-parser";
 import { deriveStatus } from "./lib/sync-utils";
 
@@ -146,14 +145,6 @@ function printResults(results: SyncResults, apply: boolean, pageCountMap: Map<nu
     }
   }
 
-  const removeLabel = apply ? "REMOVED FROM CWA READ NEXT SHELF" : "WOULD REMOVE FROM CWA READ NEXT SHELF";
-  console.log(`\n${removeLabel} (${results.readNextRemovals.length})`);
-  for (const b of results.readNextRemovals) {
-    const base = deriveStatus(b.readStatus, b.readPercent, b.dnf);
-    console.log(`  • ${formatBook(b.title, b.author, b.seriesName, b.seriesIndex)}`);
-    console.log(`    Reason: ${base}`);
-  }
-
   const rereadLabel = apply ? "STARTED REREAD" : "WOULD START REREAD";
   console.log(`\n${rereadLabel} (${results.rereadStarts.length})`);
   for (const { calibreBook, bookshelfBook, newProgress } of results.rereadStarts) {
@@ -178,7 +169,6 @@ function printResults(results: SyncResults, apply: boolean, pageCountMap: Map<nu
     console.log(`Would log:            ${pad(results.progressUpdates.length)}`);
     console.log(`Would update meta:    ${pad(results.metadataUpdates.length)}${renameSuffix}`);
     console.log(`Would update ratings: ${pad(results.ratingUpdates.length)}`);
-    console.log(`Would remove from Read Next (CWA):  ${pad(results.readNextRemovals.length)}`);
     console.log(`Would start reread:   ${pad(results.rereadStarts.length)}`);
     if (results.progressSkips.length > 0) {
       console.log(`Skipped (no change):  ${pad(results.progressSkips.length)}`);
@@ -195,7 +185,6 @@ function printApplySummary(
   metadataErrors: string[],
   ratingErrors: string[],
   progressErrors: string[],
-  readNextErrors: string[],
   rereadErrors: string[],
 ): void {
   const pad = (n: number) => String(n).padStart(3);
@@ -209,7 +198,6 @@ function printApplySummary(
   console.log(`Logged progress:      ${pad(results.progressUpdates.length - progressErrors.length)}`);
   console.log(`Updated metadata:     ${pad(results.metadataUpdates.length - metadataErrors.length)}${renameSuffix}`);
   console.log(`Updated ratings:      ${pad(results.ratingUpdates.length - ratingErrors.length)}`);
-  console.log(`Removed from Read Next (CWA):  ${pad(results.readNextRemovals.length - readNextErrors.length)}`);
   console.log(`Started reread:       ${pad(results.rereadStarts.length - rereadErrors.length)}`);
   if (results.progressSkips.length > 0) {
     console.log(`Skipped (no change):  ${pad(results.progressSkips.length)}`);
@@ -471,44 +459,6 @@ async function applyRereadStarts(rereadStarts: RereadStart[], userId: string): P
   return errors;
 }
 
-/** Run `fn` with CWA stopped, restarting it afterwards even if `fn` throws. */
-async function withCwaStopped<T>(needed: boolean, fn: () => Promise<T>): Promise<T> {
-  if (!needed) return fn();
-  await stopContainer();
-  try {
-    return await fn();
-  } finally {
-    await startContainer();
-  }
-}
-
-async function applyReadNextRemovals(cwaDbPath: string, books: CalibreBookSync[]): Promise<string[]> {
-  if (books.length === 0) return [];
-  const errors: string[] = [];
-  let db: import("better-sqlite3").Database | null = null;
-  try {
-    const Database = (await import("better-sqlite3")).default;
-    db = new Database(cwaDbPath);
-    const shelf = db.prepare("SELECT id FROM shelf WHERE name = 'Read Next' LIMIT 1").get() as
-      | { id: number }
-      | undefined;
-    if (!shelf) return [];
-    const del = db.prepare("DELETE FROM book_shelf_link WHERE shelf = ? AND book_id = ?");
-    for (const b of books) {
-      try {
-        del.run(shelf.id, b.calibreId);
-      } catch (err) {
-        errors.push(`Failed to remove "${b.title}" from Read Next shelf: ${extractErrorMessage(err)}`);
-      }
-    }
-  } catch (err) {
-    errors.push(`Failed to open CWA database: ${extractErrorMessage(err)}`);
-  } finally {
-    db?.close();
-  }
-  return errors;
-}
-
 // ─── Entry point ──────────────────────────────────────────────────────────────
 
 async function main(): Promise<void> {
@@ -618,12 +568,6 @@ async function main(): Promise<void> {
       const metadataErrors = await applyMetadataUpdates(results.metadataUpdates, user.id);
       const ratingErrors = await applyRatingUpdates(results.ratingUpdates);
       const progressErrors = await applyProgressUpdates(results.progressUpdates, user.id);
-      // The only step that writes to CWA's own database, so the only one that needs
-      // CWA stopped. Everything else reads metadata.db and app.db read-only, or reads
-      // book files — all safe against a running CWA. Dry runs never stop it at all.
-      const readNextErrors = await withCwaStopped(results.readNextRemovals.length > 0, () =>
-        applyReadNextRemovals(cwaDbPath, results.readNextRemovals),
-      );
       const rereadErrors = await applyRereadStarts(results.rereadStarts, user.id);
 
       if (results.progressUpdates.length > 0 || createdProgressLogged > 0 || results.rereadStarts.length > 0) {
@@ -637,7 +581,6 @@ async function main(): Promise<void> {
         metadataErrors,
         ratingErrors,
         progressErrors,
-        readNextErrors,
         rereadErrors,
       );
 
@@ -647,7 +590,6 @@ async function main(): Promise<void> {
         ...metadataErrors,
         ...ratingErrors,
         ...progressErrors,
-        ...readNextErrors,
         ...rereadErrors,
       ];
       if (allErrors.length > 0) {
