@@ -66,6 +66,12 @@ export async function GET(req: NextRequest): Promise<Response> {
         title: true,
         author: true,
         progress: true,
+        // status and isbn are for Concordance (the CWA/ABS position sync),
+        // which only writes positions for books Bookshelf has as READING —
+        // the OR arm below also returns books finished or DNF'd in the last
+        // 24h, so list membership alone can't answer that.
+        status: true,
+        isbn: true,
         // take: 2: [0] is the most-recent entry (used below to decide
         // recency), [1] is the second-most-recent, which feeds
         // progressBefore.
@@ -80,7 +86,7 @@ export async function GET(req: NextRequest): Promise<Response> {
 
   timer.end({ bookCount: booksRaw.length });
 
-  const books = booksRaw.map(({ id, title, author, progress, readingProgresses }) => {
+  const books = booksRaw.map(({ id, title, author, progress, status, isbn, readingProgresses }) => {
     // progressBefore only means anything if the book was actually
     // touched recently — a book whose most-recent row is from weeks ago
     // still has a "second-most-recent row" mathematically, but showing
@@ -100,6 +106,8 @@ export async function GET(req: NextRequest): Promise<Response> {
       title,
       author,
       progress,
+      status,
+      isbn,
       progressBefore: hasRecentActivity ? (readingProgresses[1]?.progress ?? 0) : null,
     };
   });
