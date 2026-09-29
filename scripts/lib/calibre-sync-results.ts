@@ -160,6 +160,8 @@ export function computeResults(
       bookshelfBook.resetAt,
       bookshelfBook.rereadAt,
       calibreBook.progressUpdatedAt,
+      calibreBook.readPercent,
+      bookshelfBook.progress,
     )
       ? derived
       : null;

@@ -91,12 +91,20 @@ describe("shouldUpdateStatus", () => {
     expect(shouldUpdateStatus("READ", "DNF", ...NO_TIMESTAMPS)).toBe(false);
   });
 
-  it("clears DNF to READING when the source's progress signal is newer than the DNF decision", () => {
-    expect(shouldUpdateStatus("DNF", "READING", DNF_AT, null, null, AFTER_DNF)).toBe(true);
+  it("clears DNF to READING when the source reports more progress after the DNF decision", () => {
+    expect(shouldUpdateStatus("DNF", "READING", DNF_AT, null, null, AFTER_DNF, 65, 62)).toBe(true);
   });
 
-  it("clears DNF to READ when the source's progress signal is newer than the DNF decision", () => {
-    expect(shouldUpdateStatus("DNF", "READ", DNF_AT, null, null, AFTER_DNF)).toBe(true);
+  it("clears DNF to READ when the source reports more progress after the DNF decision", () => {
+    expect(shouldUpdateStatus("DNF", "READ", DNF_AT, null, null, AFTER_DNF, 100, 62)).toBe(true);
+  });
+
+  it("does not clear DNF when a newer source timestamp carries the same progress", () => {
+    expect(shouldUpdateStatus("DNF", "READING", DNF_AT, null, null, AFTER_DNF, 62, 62)).toBe(false);
+  });
+
+  it("clears DNF on a newer timestamp alone when the source reports no percentage", () => {
+    expect(shouldUpdateStatus("DNF", "READ", DNF_AT, null, null, AFTER_DNF, null, 62)).toBe(true);
   });
 
   it("does not clear DNF when the source's progress signal predates the DNF decision", () => {

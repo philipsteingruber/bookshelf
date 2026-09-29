@@ -200,6 +200,18 @@ describe("computeAbsResults — DNF resume gating", () => {
     const { statusUpdates } = computeAbsResults([abs], [bookshelf]);
     expect(statusUpdates).toHaveLength(0);
   });
+
+  // Regression test for Space for More (2026-09-29): an ABS client re-saved the
+  // unchanged 62% position after the DNF, bumping lastUpdate with no listening.
+  it("does not clear DNF when ABS's newer timestamp carries no more progress than Bookshelf has", () => {
+    const abs = makeAbs({
+      progressPercent: 62,
+      progressUpdatedAt: new Date("2026-07-01T00:00:00Z"),
+    });
+    const bookshelf = makeBookshelf({ status: "DNF", progress: 62, dnfAt: new Date("2026-06-01T00:00:00Z") });
+    const { statusUpdates } = computeAbsResults([abs], [bookshelf]);
+    expect(statusUpdates).toHaveLength(0);
+  });
 });
 
 describe("computeAbsResults — reset-below resume gating", () => {

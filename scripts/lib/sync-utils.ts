@@ -33,6 +33,8 @@ export function shouldUpdateStatus(
   resetAt: Date | null,
   rereadAt: Date | null,
   sourceUpdatedAt: Date | null,
+  sourceProgress: number | null = null,
+  currentProgress: number | null = null,
 ): boolean {
   // DNF and READ share a priority tier so neither sync source can silently
   // downgrade a finished/abandoned book. But a DNF book with newly-synced
@@ -45,8 +47,19 @@ export function shouldUpdateStatus(
   // before the DNF (e.g. CWA's read_status left at "Read" from months ago)
   // would silently clear a DNF that was never actually resumed. If either
   // timestamp is unknown, don't risk a silent clear.
+  //
+  // A newer timestamp alone isn't enough either: an ABS client re-saving an
+  // unchanged position bumps mediaProgress.lastUpdate with no reading at all,
+  // which revived an abandoned book (see docs/kb/bookshelf.md, 2026-09-29).
+  // So when both sides report a percentage, the source must also be further
+  // along than Bookshelf. With no source percentage (CWA's "Read" checkbox
+  // alone), the timestamp is the only signal there is, so it still decides.
   if (current === "DNF" && (derived === "READING" || derived === "READ")) {
-    return dnfAt !== null && sourceUpdatedAt !== null && sourceUpdatedAt > dnfAt;
+    const timestampNewer = dnfAt !== null && sourceUpdatedAt !== null && sourceUpdatedAt > dnfAt;
+    if (sourceProgress === null || currentProgress === null) {
+      return timestampNewer;
+    }
+    return timestampNewer && sourceProgress > currentProgress;
   }
   // Same problem, one priority tier down: a book reset to TO_READ (by
   // mark-abandoned-books.ts's --reset-below branch, or manually via the UI)

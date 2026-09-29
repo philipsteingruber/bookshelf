@@ -129,6 +129,8 @@ export function computeAbsResults(
       bookshelfBook.resetAt,
       bookshelfBook.rereadAt,
       absBook.progressUpdatedAt,
+      absBook.progressPercent,
+      bookshelfBook.progress,
     )
       ? derived
       : null;
