@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 import { resolveAutomationUser } from "@/lib/automations/auth";
+import { getProgressBefore } from "@/lib/automations/progress-before";
 import { logger, performanceLogger } from "@/lib/common/logger";
 import prisma from "@/lib/prisma";
 import { validateCurrentStreak } from "@/lib/reading";
@@ -31,10 +32,8 @@ export async function GET(req: NextRequest): Promise<Response> {
   const timer = performanceLogger("Automation reading-status query", 1000, logger);
   timer.start();
 
-  // Recency gate for progressBefore below — a book whose most-recent row
-  // falls outside this window has no "recent" delta to show, no matter
-  // how many older rows it has (see the progressBefore comment below for
-  // why this gate exists at all).
+  // Start of the "recent" window: gates which books count as recently
+  // active, and is the point progressBefore measures from.
   const recentCutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
   const [statsRow, booksRaw] = await Promise.all([
@@ -72,11 +71,14 @@ export async function GET(req: NextRequest): Promise<Response> {
         // 24h, so list membership alone can't answer that.
         status: true,
         isbn: true,
-        // take: 2: [0] is the most-recent entry (used below to decide
-        // recency), [1] is the second-most-recent, which feeds
-        // progressBefore.
+        // resetAt/rereadAt bound which rows can anchor progressBefore —
+        // see getProgressBefore.
+        resetAt: true,
+        rereadAt: true,
+        // take: 1: only the most-recent entry, used to decide recency.
+        // progressBefore's anchor row is fetched separately.
         readingProgresses: {
-          take: 2,
+          take: 1,
           orderBy: { createdAt: "desc" },
           select: { createdAt: true, progress: true },
         },
@@ -84,33 +86,28 @@ export async function GET(req: NextRequest): Promise<Response> {
     }),
   ]);
 
-  timer.end({ bookCount: booksRaw.length });
-
-  const books = booksRaw.map(({ id, title, author, progress, status, isbn, readingProgresses }) => {
-    // progressBefore only means anything if the book was actually
-    // touched recently — a book whose most-recent row is from weeks ago
-    // still has a "second-most-recent row" mathematically, but showing
-    // it as a bright "recent" segment would be actively misleading
-    // (looked live: "Vengeful Spirit" showed a bright delta segment
-    // despite its last log being 4 days old).
-    const mostRecent = readingProgresses[0];
-    const hasRecentActivity = mostRecent !== undefined && mostRecent.createdAt >= recentCutoff;
-    // readingProgresses[1]?.progress ?? 0, not ?? null: a book with
-    // exactly one ReadingProgress row ever, logged inside the cutoff,
-    // has nothing to diff against — but that single log IS the recent
-    // activity, so the whole current progress should read as "recent"
-    // (progressBefore=0), not fall back to "no recent activity"
-    // (progressBefore=null).
-    return {
+  // progressBefore is null unless the book was touched since the cutoff —
+  // a book whose last log is weeks old still has older rows, but showing a
+  // bright "recent" segment for it would be misleading (looked live:
+  // "Vengeful Spirit" showed one despite its last log being 4 days old).
+  // One small query per recently active book, usually a handful.
+  const books = await Promise.all(
+    booksRaw.map(async ({ id, title, author, progress, status, isbn, resetAt, rereadAt, readingProgresses }) => ({
       id,
       title,
       author,
       progress,
       status,
       isbn,
-      progressBefore: hasRecentActivity ? (readingProgresses[1]?.progress ?? 0) : null,
-    };
-  });
+      progressBefore: await getProgressBefore(
+        prisma,
+        { id, resetAt, rereadAt, latestProgressAt: readingProgresses[0]?.createdAt },
+        recentCutoff,
+      ),
+    })),
+  );
+
+  timer.end({ bookCount: books.length });
 
   return NextResponse.json({
     books,
