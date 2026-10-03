@@ -20,7 +20,9 @@ export function getAttr(attrs: string, name: string): string | null {
 
 export function parseElements(src: string, tagName: string): MinimalElement[] {
   const elements: MinimalElement[] = [];
-  const re = new RegExp(`<${tagName}\\b([^>]*?)\\s*/?>`, "gi");
+  // Optional namespace prefix: some OPFs write <opf:item>/<opf:itemref>, and
+  // missing them leaves the spine empty, so the page count falls back to 1.
+  const re = new RegExp(`<(?:[\\w-]+:)?${tagName}\\b([^>]*?)\\s*/?>`, "gi");
   let m: RegExpExecArray | null;
   while ((m = re.exec(src)) !== null) {
     const attrs = m[1];

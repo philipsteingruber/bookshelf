@@ -52,6 +52,16 @@ describe("parseElements", () => {
     const elements = parseElements(`<item href="ch1.xhtml"></item>`, "item");
     expect(elements).toHaveLength(1);
   });
+
+  it("finds a namespace-prefixed element", () => {
+    const elements = parseElements(`<opf:item id="part1" href="part1.xhtml"/>`, "item");
+    expect(elements).toHaveLength(1);
+    expect(elements[0]!.getAttribute("href")).toBe("part1.xhtml");
+  });
+
+  it("does not match a prefixed tag whose name only starts with the wanted tag", () => {
+    expect(parseElements(`<opf:itemref idref="part1"/>`, "item")).toHaveLength(0);
+  });
 });
 
 describe("parseXml", () => {
@@ -68,6 +78,12 @@ describe("parseXml", () => {
     const doc = parseXml(src);
     const items = doc.querySelectorAll("spine itemref");
     expect(items).toHaveLength(2);
+  });
+
+  it("returns spine itemrefs from an OPF that uses the opf: namespace prefix", () => {
+    const src = `<opf:package xmlns:opf="http://www.idpf.org/2007/opf"><opf:spine><opf:itemref idref="part1"/><opf:itemref idref="part2"/></opf:spine></opf:package>`;
+    const items = parseXml(src).querySelectorAll("spine itemref");
+    expect(items.map((i) => i.getAttribute("idref"))).toEqual(["part1", "part2"]);
   });
 
   it("returns an empty array for an unrecognised selector", () => {
