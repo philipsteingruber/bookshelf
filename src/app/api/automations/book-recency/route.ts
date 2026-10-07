@@ -18,10 +18,13 @@ import prisma from "@/lib/prisma";
  */
 
 // Generous relative to any realistic consumer (Nucleus has ~19 companion
-// files) while keeping the response bounded — four small fields per row.
+// files) while keeping the response bounded — five small fields per row.
 const MAX_BOOKS = 300;
 
-type RecencyEntry = { id: number; title: string; author: string; lastReadAt: string };
+// finishedAt is the current finish date only — a reread clears it (the old
+// one moves to previousFinishedAt), so non-null means "finished, not being
+// reread". Nucleus uses it to tuck long-finished companions away.
+type RecencyEntry = { id: number; title: string; author: string; lastReadAt: string; finishedAt: string | null };
 
 export async function GET(req: NextRequest): Promise<Response> {
   const auth = await resolveAutomationUser(req, "book-recency");
@@ -63,7 +66,7 @@ export async function GET(req: NextRequest): Promise<Response> {
   // groupBy returns bookIds only — a second query resolves the titles.
   const loggedBooks = await prisma.book.findMany({
     where: { id: { in: progressGroups.map((group) => group.bookId) } },
-    select: { id: true, title: true, author: true },
+    select: { id: true, title: true, author: true, finishedAt: true },
   });
   const byId = new Map(loggedBooks.map((book) => [book.id, book]));
 
@@ -72,7 +75,13 @@ export async function GET(req: NextRequest): Promise<Response> {
     const book = byId.get(group.bookId);
     const lastReadAt = group._max.createdAt;
     if (!book || !lastReadAt) continue;
-    entries.push({ id: book.id, title: book.title, author: book.author, lastReadAt: lastReadAt.toISOString() });
+    entries.push({
+      id: book.id,
+      title: book.title,
+      author: book.author,
+      lastReadAt: lastReadAt.toISOString(),
+      finishedAt: book.finishedAt?.toISOString() ?? null,
+    });
   }
   for (const book of unloggedBooks) {
     // Both can be set; the later one is the better "last read" signal.
@@ -80,7 +89,13 @@ export async function GET(req: NextRequest): Promise<Response> {
       .filter((date): date is Date => date !== null)
       .sort((a, b) => b.getTime() - a.getTime())[0];
     if (!lastRead) continue;
-    entries.push({ id: book.id, title: book.title, author: book.author, lastReadAt: lastRead.toISOString() });
+    entries.push({
+      id: book.id,
+      title: book.title,
+      author: book.author,
+      lastReadAt: lastRead.toISOString(),
+      finishedAt: book.finishedAt?.toISOString() ?? null,
+    });
   }
 
   entries.sort((a, b) => b.lastReadAt.localeCompare(a.lastReadAt));
