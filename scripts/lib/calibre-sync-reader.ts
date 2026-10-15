@@ -2,6 +2,8 @@ import path from "node:path";
 
 import Database from "better-sqlite3";
 
+import { normalizeProgressPercent } from "./sync-utils";
+
 export interface CalibreAuthorSync {
   name: string;
   sort: string;
@@ -154,10 +156,7 @@ export function extractYear(pubdate: string | null): number | null {
   return isNaN(year) || year < 1000 ? null : year;
 }
 
-export function readCalibreSyncData(
-  calibreDbPath: string,
-  cwaDbPath: string,
-): CalibreBookSync[] {
+export function readCalibreSyncData(calibreDbPath: string, cwaDbPath: string): CalibreBookSync[] {
   const calibreDb = new Database(calibreDbPath, { readonly: true });
   const cwaDb = new Database(cwaDbPath, { readonly: true });
 
@@ -193,14 +192,14 @@ export function readCalibreSyncData(
     const cwaProgressModifiedByBookId = new Map<number, Date | null>();
     for (const r of cwaProgressRows) {
       if (!cwaProgressByBookId.has(r.book_id) && r.progress_percent !== null) {
-        cwaProgressByBookId.set(r.book_id, r.progress_percent);
+        cwaProgressByBookId.set(r.book_id, normalizeProgressPercent(r.progress_percent));
         cwaProgressModifiedByBookId.set(r.book_id, r.last_modified ? new Date(r.last_modified) : null);
       }
     }
 
-    const readNextShelf = cwaDb
-      .prepare("SELECT id FROM shelf WHERE name = 'Read Next' LIMIT 1")
-      .get() as { id: number } | undefined;
+    const readNextShelf = cwaDb.prepare("SELECT id FROM shelf WHERE name = 'Read Next' LIMIT 1").get() as
+      | { id: number }
+      | undefined;
     const readNextBookIds = new Set<number>();
     if (readNextShelf) {
       const readNextRows = cwaDb
@@ -228,31 +227,28 @@ export function readCalibreSyncData(
       const authors = authorsByBookId.get(row.id) ?? [];
       const author = authors.length > 0 ? authors.map((a) => a.name).join(" & ") : "Unknown";
       return {
-      calibreId: row.id,
-      title: row.title,
-      author,
-      authors,
-      seriesName: row.series_name,
-      seriesIndex: row.series_index,
-      goodreadsId: row.goodreads_id,
-      isbn: row.isbn ?? null,
-      publishedYear: extractYear(row.pubdate),
-      summary: row.description ? (stripHtml(row.description) || null) : null,
-      coverPath:
-        row.has_cover === 1 ? path.join(libraryRoot, row.path, "cover.jpg") : null,
-      bookFilePath: fileByBookId.has(row.id)
-        ? path.join(libraryRoot, row.path, fileByBookId.get(row.id)!)
-        : null,
-      readStatus: cwaReadByBookId.get(row.id) ?? null,
-      readPercent: cwaProgressByBookId.get(row.id) ?? null,
-      progressUpdatedAt: mostRecent(
-        cwaReadModifiedByBookId.get(row.id) ?? null,
-        cwaProgressModifiedByBookId.get(row.id) ?? null,
-      ),
-      datestarted: row.datestarted ? new Date(row.datestarted) : null,
-      dnf: row.dnf === 1,
-      isReadNext: readNextBookIds.has(row.id),
-      rating: row.rating ?? null,
+        calibreId: row.id,
+        title: row.title,
+        author,
+        authors,
+        seriesName: row.series_name,
+        seriesIndex: row.series_index,
+        goodreadsId: row.goodreads_id,
+        isbn: row.isbn ?? null,
+        publishedYear: extractYear(row.pubdate),
+        summary: row.description ? stripHtml(row.description) || null : null,
+        coverPath: row.has_cover === 1 ? path.join(libraryRoot, row.path, "cover.jpg") : null,
+        bookFilePath: fileByBookId.has(row.id) ? path.join(libraryRoot, row.path, fileByBookId.get(row.id)!) : null,
+        readStatus: cwaReadByBookId.get(row.id) ?? null,
+        readPercent: cwaProgressByBookId.get(row.id) ?? null,
+        progressUpdatedAt: mostRecent(
+          cwaReadModifiedByBookId.get(row.id) ?? null,
+          cwaProgressModifiedByBookId.get(row.id) ?? null,
+        ),
+        datestarted: row.datestarted ? new Date(row.datestarted) : null,
+        dnf: row.dnf === 1,
+        isReadNext: readNextBookIds.has(row.id),
+        rating: row.rating ?? null,
       };
     });
   } finally {

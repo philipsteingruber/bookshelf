@@ -4,6 +4,7 @@ import {
   deriveAbsStatus,
   deriveStatus,
   isRereadStart,
+  normalizeProgressPercent,
   shouldLogProgress,
   shouldUpdateStatus,
   statusPriority,
@@ -320,5 +321,23 @@ describe("isRereadStart", () => {
     const rereadAt = new Date("2026-07-01");
     const afterReread = new Date("2026-08-01");
     expect(isRereadStart({ ...readBook, rereadAt }, "READING", 5, afterReread, 90, 50)).toBe(true);
+  });
+});
+
+describe("normalizeProgressPercent", () => {
+  it("strips float noise left by converting a 0–1 fraction to a percentage", () => {
+    expect(normalizeProgressPercent(0.116 * 100)).toBe(11.6);
+  });
+
+  it("keeps the four decimal places CWA reports", () => {
+    expect(normalizeProgressPercent(23.9617)).toBe(23.9617);
+  });
+
+  it("leaves whole percentages unchanged", () => {
+    expect(normalizeProgressPercent(100)).toBe(100);
+  });
+
+  it("produces a value that no longer reads as progress against its own stored copy", () => {
+    expect(shouldLogProgress(normalizeProgressPercent(0.116 * 100), 11.6)).toBe(false);
   });
 });

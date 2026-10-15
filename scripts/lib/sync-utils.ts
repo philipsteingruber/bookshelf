@@ -20,8 +20,7 @@ export function deriveStatus(
 ): ReadStatus {
   if (dnf) return "DNF";
   if (readStatus === 1 || koboreadpct === 100) return "READ";
-  if (readStatus === 2 || (koboreadpct !== null && koboreadpct > 0 && koboreadpct < 100))
-    return "READING";
+  if (readStatus === 2 || (koboreadpct !== null && koboreadpct > 0 && koboreadpct < 100)) return "READING";
   if (isReadNext) return "READ_NEXT";
   return "TO_READ";
 }
@@ -86,6 +85,15 @@ export function shouldUpdateStatus(
     return sourceUpdatedAt !== null && sourceUpdatedAt > rereadAt;
   }
   return statusPriority(derived) > statusPriority(current);
+}
+
+// CWA stores KOSync's 0–1 fraction as a 0–100 percentage, so a value like
+// 0.116 * 100 arrives as 11.600000000000001. Postgres hands that back as 11.6,
+// which made shouldLogProgress see the same position as new progress on every
+// hourly sync (see docs/kb/bookshelf-troubleshooting.md, 2026-10-15). Four
+// decimals is the precision CWA itself reports.
+export function normalizeProgressPercent(value: number): number {
+  return Math.round(value * 10_000) / 10_000;
 }
 
 // Parameter order deliberately mirrors shouldUpdateStatus. The two functions
