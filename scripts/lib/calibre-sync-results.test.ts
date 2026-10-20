@@ -45,6 +45,7 @@ function makeBookshelf(overrides: Partial<BookshelfBook> = {}): BookshelfBook {
     series: { id: "series-1", name: "Gaunt's Ghosts" },
     seriesIndex: 8,
     isbn: null,
+    calibreId: 1,
     publishedYear: null,
     summary: null,
     rating: null,
@@ -71,6 +72,39 @@ describe("computeResults — ISBN matching", () => {
     const bookshelf = makeBookshelf({ isbn: "9780000000001", title: "Blood Pact" });
     const { toCreate } = computeResults([calibre], [bookshelf]);
     expect(toCreate).toHaveLength(0);
+  });
+});
+
+describe("computeResults — Calibre id matching", () => {
+  it("matches a book by Calibre id after its title and series change in Calibre", () => {
+    const calibre = makeCalibре({ calibreId: 608, title: "Blood Pact Renamed", seriesName: null, seriesIndex: null });
+    const bookshelf = makeBookshelf({ calibreId: 608 });
+    const { toCreate, notInCalibre } = computeResults([calibre], [bookshelf]);
+    expect(toCreate).toHaveLength(0);
+    expect(notInCalibre).toHaveLength(0);
+  });
+
+  it("records the Calibre id on a row matched by composite key that has none", () => {
+    const calibre = makeCalibре({ calibreId: 608 });
+    const bookshelf = makeBookshelf({ calibreId: null });
+    const { metadataUpdates } = computeResults([calibre], [bookshelf]);
+    expect(metadataUpdates).toHaveLength(1);
+    expect(metadataUpdates[0]!.newCalibreId).toBe(608);
+  });
+
+  it("replaces a stored Calibre id that no longer exists in Calibre", () => {
+    const calibre = makeCalibре({ calibreId: 700 });
+    const bookshelf = makeBookshelf({ calibreId: 608 });
+    const { metadataUpdates } = computeResults([calibre], [bookshelf]);
+    expect(metadataUpdates[0]!.newCalibreId).toBe(700);
+  });
+
+  it("keeps a stored Calibre id that still exists when a second Calibre copy matches the same row", () => {
+    const original = makeCalibре({ calibreId: 608 });
+    const copy = makeCalibре({ calibreId: 700 });
+    const bookshelf = makeBookshelf({ calibreId: 608 });
+    const { metadataUpdates } = computeResults([original, copy], [bookshelf]);
+    expect(metadataUpdates.filter((u) => u.newCalibreId !== null)).toHaveLength(0);
   });
 });
 

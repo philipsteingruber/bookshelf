@@ -132,6 +132,11 @@ model Book {
 
     isbn String?
 
+    // Calibre's books.id. Stable across title/author/series/ISBN edits and never
+    // reused (AUTOINCREMENT), so sync-calibre.ts matches on it before ISBN or the
+    // composite key. Null for books with no Calibre copy (ABS-only, manual).
+    calibreId Int?
+
     seriesIndex Float?
 
     series   Series? @relation(fields: [seriesId], references: [id])
@@ -175,6 +180,7 @@ model Book {
 
     @@unique([seriesId, seriesIndex])
     @@unique([isbn, userId])
+    @@unique([calibreId, userId])
     @@index([userId])
     @@index([status])
     @@index([titleSort])

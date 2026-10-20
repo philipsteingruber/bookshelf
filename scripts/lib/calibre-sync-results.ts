@@ -22,6 +22,7 @@ export interface BookshelfBook {
   series: { id: string; name: string } | null;
   seriesIndex: number | null;
   isbn: string | null;
+  calibreId: number | null;
   publishedYear: number | null;
   summary: string | null;
   rating: number | null; // bookshelf scale: 1–5
@@ -54,6 +55,9 @@ export interface MetadataUpdate {
   newIsbn: string | null;
   newPublishedYear: number | null;
   newSummary: string | null;
+  // Set when the row matched by ISBN or composite key and has no Calibre id
+  // yet, or its stored id no longer exists in Calibre (re-imported book).
+  newCalibreId: number | null;
   // Wrapped rather than two bare `T | null` fields like the others above,
   // because null is a legitimate Calibre value here (no series) and needs to
   // stay distinguishable from "no change" — see docs/kb/bookshelf.md's
@@ -94,13 +98,16 @@ export function computeResults(
     dropThreshold: REREAD_DROP_THRESHOLD,
   },
 ): SyncResults {
+  const bookshelfByCalibreId = new Map<number, BookshelfBook>();
   const bookshelfByIsbn = new Map<string, BookshelfBook>();
   const bookshelfByKey = new Map<string, BookshelfBook>();
   for (const b of bookshelfBooks) {
+    if (b.calibreId !== null) bookshelfByCalibreId.set(b.calibreId, b);
     if (b.isbn) bookshelfByIsbn.set(b.isbn, b);
     bookshelfByKey.set(buildCompositeKey(b.title, b.author, b.series?.name ?? null, b.seriesIndex), b);
   }
 
+  const liveCalibreIds = new Set(calibreBooks.map((c) => c.calibreId));
   const matchedIds = new Set<number>();
   const results: SyncResults = {
     toCreate: [],
@@ -114,7 +121,10 @@ export function computeResults(
   };
 
   for (const calibreBook of calibreBooks) {
+    // Calibre id first: it survives title/author/series/ISBN edits, which the
+    // other two keys don't (docs/kb/bookshelf-troubleshooting.md, 2026-10-20).
     const bookshelfBook =
+      bookshelfByCalibreId.get(calibreBook.calibreId) ??
       (calibreBook.isbn ? bookshelfByIsbn.get(calibreBook.isbn) : undefined) ??
       bookshelfByKey.get(
         buildCompositeKey(calibreBook.title, calibreBook.author, calibreBook.seriesName, calibreBook.seriesIndex),
@@ -208,6 +218,13 @@ export function computeResults(
       bookshelfBook.publishedYear === null && calibreBook.publishedYear !== null ? calibreBook.publishedYear : null;
     const newSummary =
       calibreBook.summary !== null && bookshelfBook.summary !== calibreBook.summary ? calibreBook.summary : null;
+    // A stored id that still exists in Calibre is left alone: two Calibre
+    // copies of one book would otherwise swap it back and forth every run.
+    const newCalibreId =
+      bookshelfBook.calibreId !== calibreBook.calibreId &&
+      (bookshelfBook.calibreId === null || !liveCalibreIds.has(bookshelfBook.calibreId))
+        ? calibreBook.calibreId
+        : null;
 
     const currentSeriesName = bookshelfBook.series?.name ?? null;
     const seriesChanged =
@@ -220,6 +237,7 @@ export function computeResults(
       newIsbn !== null ||
       newPublishedYear !== null ||
       newSummary !== null ||
+      newCalibreId !== null ||
       newSeries !== null
     ) {
       results.metadataUpdates.push({
@@ -230,6 +248,7 @@ export function computeResults(
         newIsbn,
         newPublishedYear,
         newSummary,
+        newCalibreId,
         newSeries,
       });
     }

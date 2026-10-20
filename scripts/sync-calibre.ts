@@ -103,6 +103,7 @@ function printResults(results: SyncResults, apply: boolean, pageCountMap: Map<nu
     newIsbn,
     newPublishedYear,
     newSummary,
+    newCalibreId,
     newSeries,
   } of results.metadataUpdates) {
     console.log(`  • ${formatBook(bookshelfBook.title, bookshelfBook.author, null, null)}`);
@@ -111,6 +112,7 @@ function printResults(results: SyncResults, apply: boolean, pageCountMap: Map<nu
     if (newIsbn !== null) console.log(`    ISBN: ${newIsbn}`);
     if (newPublishedYear !== null) console.log(`    Year: ${newPublishedYear}`);
     if (newSummary !== null) console.log(`    Summary: ${newSummary.slice(0, 80)}…`);
+    if (newCalibreId !== null) console.log(`    Calibre id: ${bookshelfBook.calibreId ?? "(none)"} → ${newCalibreId}`);
     if (newSeries !== null) {
       const from = bookshelfBook.series ? `${bookshelfBook.series.name} #${bookshelfBook.seriesIndex}` : "(none)";
       const to = newSeries.name ? `${newSeries.name} #${newSeries.index}` : "(none)";
@@ -254,6 +256,7 @@ async function applyCreates(
             seriesId,
             seriesIndex: b.seriesIndex,
             isbn: b.isbn,
+            calibreId: b.calibreId,
             publishedYear: b.publishedYear,
             summary: b.summary,
             coverUrl,
@@ -327,6 +330,7 @@ async function applyMetadataUpdates(metadataUpdates: MetadataUpdate[], userId: s
     newIsbn,
     newPublishedYear,
     newSummary,
+    newCalibreId,
     newSeries,
   } of metadataUpdates) {
     try {
@@ -336,6 +340,7 @@ async function applyMetadataUpdates(metadataUpdates: MetadataUpdate[], userId: s
         author?: string;
         authorSort?: string;
         isbn?: string;
+        calibreId?: number;
         publishedYear?: number;
         summary?: string;
         seriesId?: string | null;
@@ -352,6 +357,7 @@ async function applyMetadataUpdates(metadataUpdates: MetadataUpdate[], userId: s
         data.authorSort = fields.authorSort;
       }
       if (newIsbn !== null) data.isbn = newIsbn;
+      if (newCalibreId !== null) data.calibreId = newCalibreId;
       if (newPublishedYear !== null) data.publishedYear = newPublishedYear;
       if (newSummary !== null) data.summary = newSummary;
 
@@ -544,6 +550,7 @@ async function main(): Promise<void> {
         series: { select: { id: true, name: true } },
         seriesIndex: true,
         isbn: true,
+        calibreId: true,
         publishedYear: true,
         summary: true,
         rating: true,
