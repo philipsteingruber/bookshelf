@@ -9,7 +9,7 @@ export type ProgressBeforeBook = {
 };
 
 /**
- * Progress as it stood at `cutoff`, for the "read in the last 24h" split of
+ * Progress as it stood at `cutoff`, for the "read recently" (last 24h or since midnight) split of
  * Nucleus's progress bars — or null when the book has no activity since
  * `cutoff` and so nothing recent to split out.
  *

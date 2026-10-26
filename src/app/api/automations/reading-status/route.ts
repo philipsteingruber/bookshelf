@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 
 import { resolveAutomationUser } from "@/lib/automations/auth";
 import { getProgressBefore } from "@/lib/automations/progress-before";
+import { getRecentCutoff, isRecentWindow, RECENT_WINDOWS } from "@/lib/automations/recent-cutoff";
 import { logger, performanceLogger } from "@/lib/common/logger";
 import prisma from "@/lib/prisma";
 import { validateCurrentStreak } from "@/lib/reading";
@@ -21,20 +22,29 @@ import { validateCurrentStreak } from "@/lib/reading";
  * `bookRouter.getDashBoardBooks`' reading-books query, `userRouter.getUserStats`'
  * streak validation) rather than hand-rolling simplified versions, and returns
  * one merged `books` list — any book currently being read, or with a
- * progress log in the last 24h — instead of two separately-shaped
+ * progress log inside the recent window (below) — instead of two separately-shaped
  * lists.
+ *
+ * `?window=` picks the "recent" window: `24h` (rolling, the default) or
+ * `today` (since midnight in the user's time zone). Nucleus's Bookshelf
+ * widget toggles between the two.
  */
 export async function GET(req: NextRequest): Promise<Response> {
   const auth = await resolveAutomationUser(req, "reading-status");
   if (!auth.ok) return auth.response;
   const { user } = auth;
 
+  const recentWindow = req.nextUrl.searchParams.get("window") ?? "24h";
+  if (!isRecentWindow(recentWindow)) {
+    return NextResponse.json({ error: `window must be one of: ${RECENT_WINDOWS.join(", ")}` }, { status: 400 });
+  }
+
   const timer = performanceLogger("Automation reading-status query", 1000, logger);
   timer.start();
 
   // Start of the "recent" window: gates which books count as recently
   // active, and is the point progressBefore measures from.
-  const recentCutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const recentCutoff = getRecentCutoff(recentWindow, user.timezone);
 
   const [statsRow, booksRaw] = await Promise.all([
     prisma.userStats.upsert({
@@ -43,7 +53,7 @@ export async function GET(req: NextRequest): Promise<Response> {
       update: {},
     }),
     // Every book that's either currently being read, or had a progress
-    // log in the last 24h regardless of status (e.g. one that was just
+    // log inside the window regardless of status (e.g. one that was just
     // finished and so is no longer "READING") — merged into one query so
     // a book doesn't need two separate code paths depending on which
     // side of that status line it's on.
@@ -67,8 +77,8 @@ export async function GET(req: NextRequest): Promise<Response> {
         progress: true,
         // status and isbn are for Concordance (the CWA/ABS position sync),
         // which only writes positions for books Bookshelf has as READING —
-        // the OR arm below also returns books finished or DNF'd in the last
-        // 24h, so list membership alone can't answer that.
+        // the OR arm below also returns books finished or DNF'd inside the
+        // recent window, so list membership alone can't answer that.
         status: true,
         isbn: true,
         // resetAt/rereadAt bound which rows can anchor progressBefore —
@@ -107,7 +117,7 @@ export async function GET(req: NextRequest): Promise<Response> {
     })),
   );
 
-  timer.end({ bookCount: books.length });
+  timer.end({ window: recentWindow, bookCount: books.length });
 
   return NextResponse.json({
     books,
