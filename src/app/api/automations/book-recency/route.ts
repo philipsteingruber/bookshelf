@@ -26,6 +26,13 @@ const MAX_BOOKS = 300;
 // reread". Nucleus uses it to tuck long-finished companions away.
 type RecencyEntry = { id: number; title: string; author: string; lastReadAt: string; finishedAt: string | null };
 
+// Every TO_READ book, read history or not. Most have never been opened, so
+// the recency arms above can't see them; Nucleus uses this list to tuck
+// companions for books not yet started into a collapsed "Archived" section.
+// Bounded well above the library's size (~460 TO_READ books in Oct 2026).
+const MAX_TO_READ = 2000;
+type ToReadEntry = { id: number; title: string; author: string };
+
 export async function GET(req: NextRequest): Promise<Response> {
   const auth = await resolveAutomationUser(req, "book-recency");
   if (!auth.ok) return auth.response;
@@ -34,7 +41,7 @@ export async function GET(req: NextRequest): Promise<Response> {
   const timer = performanceLogger("Automation book-recency query", 1000, logger);
   timer.start();
 
-  const [progressGroups, unloggedBooks] = await Promise.all([
+  const [progressGroups, unloggedBooks, toReadBooks] = await Promise.all([
     // groupBy + orderBy _max, not findMany with a nested take:1 — ordering
     // by "the newest progress row per book" has to happen in the database
     // for the LIMIT to be correct. A JS-side sort after a bounded findMany
@@ -60,6 +67,12 @@ export async function GET(req: NextRequest): Promise<Response> {
       orderBy: [{ finishedAt: "desc" }, { startedAt: "desc" }],
       take: MAX_BOOKS,
       select: { id: true, title: true, author: true, finishedAt: true, startedAt: true },
+    }),
+    prisma.book.findMany({
+      where: { userId: user.id, status: "TO_READ" },
+      orderBy: { id: "asc" },
+      take: MAX_TO_READ,
+      select: { id: true, title: true, author: true },
     }),
   ]);
 
@@ -101,7 +114,9 @@ export async function GET(req: NextRequest): Promise<Response> {
   entries.sort((a, b) => b.lastReadAt.localeCompare(a.lastReadAt));
   const books = entries.slice(0, MAX_BOOKS);
 
-  timer.end({ bookCount: books.length });
+  const toRead: ToReadEntry[] = toReadBooks;
 
-  return NextResponse.json({ books });
+  timer.end({ bookCount: books.length, toReadCount: toRead.length });
+
+  return NextResponse.json({ books, toRead });
 }
