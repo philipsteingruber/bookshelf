@@ -4,6 +4,8 @@ import { parseArgs } from "node:util";
 
 import prisma from "@/lib/prisma";
 
+import { removeFromConcordanceAllowlist } from "./lib/concordance-allowlist";
+
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 const parseTitleList = (raw: string | undefined): string[] =>
@@ -50,6 +52,7 @@ const markAbandonedBooks = async (): Promise<void> => {
       startedAt: true,
       createdAt: true,
       progress: true,
+      calibreId: true,
     },
   });
 
@@ -62,6 +65,7 @@ const markAbandonedBooks = async (): Promise<void> => {
     author: string;
     daysStale: number;
     progress: number;
+    calibreId: number | null;
     action: "dnf" | "reset";
   }[] = [];
 
@@ -88,6 +92,7 @@ const markAbandonedBooks = async (): Promise<void> => {
         author: book.author,
         daysStale: Math.floor(daysStale),
         progress: book.progress,
+        calibreId: book.calibreId,
         action: book.progress < resetBelowPercent ? "reset" : "dnf",
       });
     }
@@ -162,6 +167,12 @@ const markAbandonedBooks = async (): Promise<void> => {
       ]);
     }
     console.log(`\nUpdated ${dnfTargets.length} book(s) to DNF, reset ${resetTargets.length} book(s) to TO_READ.`);
+    // Both outcomes leave the book not READING, so Concordance (the CWA/ABS
+    // position sync) must stop writing it. Its sync would prune it after 24h
+    // anyway; this makes it immediate.
+    for (const line of removeFromConcordanceAllowlist(targets.map((candidate) => candidate.calibreId))) {
+      console.log(line);
+    }
   } else {
     console.log("\nDry run complete. Run with --apply to apply those changes.");
     console.log(
