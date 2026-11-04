@@ -10,6 +10,7 @@ import Database from "better-sqlite3";
 
 import { DEFAULT_CALIBRE_DB, extractErrorMessage } from "./lib/calibre-constants";
 import { startContainer, stopContainer } from "./lib/docker";
+import { partitionExcluded } from "./lib/sync-exclusions";
 import { isValidIsbn10, isValidIsbn13 } from "./lib/isbn-utils";
 import { titlesMatch } from "./lib/title-utils";
 
@@ -17,8 +18,14 @@ const OPENLIBRARY_SEARCH = "https://openlibrary.org/search.json";
 const GOOGLE_BOOKS_SEARCH = "https://www.googleapis.com/books/v1/volumes";
 const OL_DELAY_MS = 500;
 const GB_DELAY_MS = 300;
-const OL_USER_AGENT =
-  "bookshelf-enrich-isbns/1.0 (personal library enrichment script; philip.steingruber@gmail.com)";
+const OL_USER_AGENT = "bookshelf-enrich-isbns/1.0 (personal library enrichment script; philip.steingruber@gmail.com)";
+
+// Books confirmed to have no ISBN at all (e.g. Kindle-only releases with just
+// an ASIN). Without this they'd be searched and logged as NOT FOUND every
+// night. Keyed on Calibre id, not title, so a metadata edit can't re-admit one.
+const NO_ISBN_CALIBRE_IDS: ReadonlySet<number> = new Set([
+  613, // Candy Lips: A Sapphic Halloween Novella — ASIN only (B0CJQFJG3X)
+]);
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -72,7 +79,11 @@ interface OlDoc {
 }
 
 async function searchOpenLibrary(title: string, author: string): Promise<IsbnMatch | null> {
-  const authorLastName = author.split(/[\s,|]+/).filter(Boolean).at(-1) ?? author;
+  const authorLastName =
+    author
+      .split(/[\s,|]+/)
+      .filter(Boolean)
+      .at(-1) ?? author;
   const params = new URLSearchParams({
     title,
     author: authorLastName,
@@ -325,7 +336,14 @@ async function main(): Promise<void> {
 
   try {
     console.log(`Reading Calibre library from: ${calibreDbPath}`);
-    const books = readMissingBooks(calibreDbPath);
+    const { kept: books, skipped } = partitionExcluded(
+      readMissingBooks(calibreDbPath),
+      (b) => b.calibreId,
+      NO_ISBN_CALIBRE_IDS,
+    );
+    for (const b of skipped) {
+      console.log(`EXCLUDED (no ISBN exists): ${b.title} [calibre ${b.calibreId}]`);
+    }
     console.log(`Found ${books.length} books missing ISBN\n`);
 
     if (books.length === 0) {
